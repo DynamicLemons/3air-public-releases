@@ -1,0 +1,183 @@
+function void rk_renderStageAssets()
+{
+	// not the hud, but the best place to draw these
+	A0 = roaringKnight_memLoc
+	
+	string key 
+	s16 px = 0
+	s16 py = 0
+	u16 renderQueue = 0x1000
+	
+	u32 borderColor = Color.lerp(0xd890fcff, 0xd86cd8ff, level.palettefx.timer_1 / 30.0)
+	// Null Space
+	if (roaringKnight_arena_squareMode)
+	{
+		rk_renderBg(renderQueue, 1)
+		++renderQueue
+		
+		Renderer.setViewport(move_area.left - camera.foreground.x.u16, move_area.top - camera.foreground.y.u16, move_area.right - move_area.left + 400, move_area.bottom - move_area.top + getScreenHeight(), renderQueue)
+		++renderQueue
+		rk_renderBg(renderQueue, 0)
+		++renderQueue
+		Renderer.resetViewport(renderQueue)
+		
+		px = move_area.left - camera.foreground.x.u16
+		py = move_area.top - camera.foreground.y.u16
+		
+		float scaleX = move_area.right - move_area.left + 400
+		float scaleY = move_area.bottom - move_area.top + getScreenHeight()
+		
+		// battle box
+		SpriteHandle spr_tl = Renderer.addSpriteHandle("rk_peekborder_tl", px, py, renderQueue + 1)
+		spr_tl.setFlags(SPRITE_FLAG_PRIO)
+		spr_tl.setTintColorRGBA(borderColor)
+		
+		SpriteHandle spr_t = Renderer.addSpriteHandle("rk_peekborder_t", px, py, renderQueue + 1)
+		spr_t.setFlags(SPRITE_FLAG_PRIO)
+		spr_t.setScale(scaleX, 1)
+		spr_t.setTintColorRGBA(borderColor)
+		
+		SpriteHandle spr_tr = Renderer.addSpriteHandle("rk_peekborder_tr", px + Math.roundToInt(scaleX), py, renderQueue + 1)
+		spr_tr.setFlags(SPRITE_FLAG_PRIO)
+		spr_tr.setTintColorRGBA(borderColor)
+
+		SpriteHandle spr_l = Renderer.addSpriteHandle("rk_peekborder_l", px, py, renderQueue + 1)
+		spr_l.setFlags(SPRITE_FLAG_PRIO)
+		spr_l.setScale(1, scaleY)
+		spr_l.setTintColorRGBA(borderColor)
+
+		SpriteHandle spr_r = Renderer.addSpriteHandle("rk_peekborder_r", px + Math.roundToInt(scaleX), py, renderQueue + 1)
+		spr_r.setFlags(SPRITE_FLAG_PRIO)
+		spr_r.setScale(1, scaleY)
+		spr_r.setTintColorRGBA(borderColor)
+		
+		py += Math.roundToInt(scaleY)
+
+		SpriteHandle spr_bl = Renderer.addSpriteHandle("rk_peekborder_bl", px, py, renderQueue + 1)
+		spr_bl.setFlags(SPRITE_FLAG_PRIO)
+		spr_bl.setTintColorRGBA(borderColor)
+		
+		SpriteHandle spr_b = Renderer.addSpriteHandle("rk_peekborder_b", px, py, renderQueue + 1)
+		spr_b.setFlags(SPRITE_FLAG_PRIO)
+		spr_b.setScale(scaleX, 1)
+		spr_b.setTintColorRGBA(borderColor)
+		
+		SpriteHandle spr_br = Renderer.addSpriteHandle("rk_peekborder_br", px + Math.roundToInt(scaleX), py, renderQueue + 1)
+		spr_br.setFlags(SPRITE_FLAG_PRIO)
+		spr_br.setTintColorRGBA(borderColor)
+	}
+	else if (camera.foreground.x.u16 < move_area.left || camera.foreground.x.u16 + 400 > cam_bound.right)
+	{
+		rk_renderBg(renderQueue, 1)
+		++renderQueue
+		
+		Renderer.setViewport(move_area.left - camera.foreground.x.u16, 0, move_area.right - move_area.left + 400, getScreenHeight(), renderQueue)
+		++renderQueue
+		rk_renderBg(renderQueue, 0)
+		++renderQueue
+		Renderer.resetViewport(renderQueue)
+		
+		px = move_area.left - camera.foreground.x.u16
+		py = -(camera.position.y.u16 % 8) - 8
+		
+		if (px >= 0)
+		{
+			SpriteHandle spr = Renderer.addSpriteHandle("rk_peekborder_l", px, 0, renderQueue + 1)
+			spr.setFlags(SPRITE_FLAG_PRIO)
+			spr.setScale(1, getScreenHeight())
+			spr.setTintColorRGBA(borderColor)
+		}
+		
+		px = move_area.right - camera.foreground.x.u16 + 400
+		if (px <= getScreenWidth())
+		{
+			SpriteHandle spr = Renderer.addSpriteHandle("rk_peekborder_r", px, 0, renderQueue + 1)
+			spr.setFlags(SPRITE_FLAG_PRIO)
+			spr.setScale(1, getScreenHeight())
+			spr.setTintColorRGBA(borderColor)
+		}
+	}
+	else
+		rk_renderBg(renderQueue, 0)
+		
+	// custom fountains
+	renderQueue = 0x2000
+	key = stringformat("rk_fountain_%d", (level.framecounter >> 2) % 4)
+	constant array<s16> f_pos = 
+	{
+		0x04C0, 0x0B68,
+		0x0740, 0x0BE8,
+		0x09C0, 0x0B68,
+	}
+	
+	for (s16 i = 0; i < 30; ++i)
+	{
+		px = f_pos[i * 2] - camera.foreground.x.u16
+		py = f_pos[i * 2 + 1] - camera.foreground.y.u16 - 36
+		if (px >= -36 && px < getScreenWidth() + 36 && py >= -60 && py < getScreenHeight() + 60)
+			Renderer.drawSprite(key, px, py, 0x30, SPRITE_FLAG_PRIO, renderQueue)
+	}
+}
+
+function void rk_renderBg(u16 renderQueue, u8 special)
+{
+	s16 px = camera.background.x.u16
+	s16 py = -camera.background.y.u16 + 456
+
+	Renderer.enableDefaultPlane(0, false)
+		
+	constant array<s16> heights = 
+	{
+		8, 16, 24, 16, 16, 8, 40, 8, 16, 8, 8, 40, 8, 32, 8, 8, 8, 16, 24, 32, 64, 32, 24, 16, 8, 8, 8, 32, 8, 24
+	}
+	
+	u16 _atex = 0xc0 + special * 0x10
+	string _pal
+	if (special)
+		_pal = "rk_pal_bg_null"
+	
+	// above bg
+	if (py > 0)
+	{
+		SpriteHandle stretch1 = Renderer.addSpriteHandle("rk_bg_stretch", 0, 0, renderQueue)
+		stretch1.setFlags(SPRITE_FLAG_PRIO)
+		stretch1.setScale(getScreenWidth(), py)
+		stretch1.setPaletteOffset(_atex)
+	}
+	
+	// bg lines 
+	A1 = 0xffffa804
+	for (s16 _y = 0; _y < 30; ++_y)
+	{
+		px = -u16[A1 + _y * 2]
+		
+		string key = stringformat("rk_bg_%d", _y)
+		
+		for (s32 n_px = (px % 512) - 512; n_px <= getScreenWidth(); n_px += 512)
+		{
+			SpriteHandle spr = Renderer.addSpriteHandle(key, n_px, py, renderQueue)
+			spr.setFlags(SPRITE_FLAG_PRIO)
+			spr.setPaletteOffset(_atex)
+		}
+		
+		D0 += D1
+		
+		s16 value = 8
+		if (_y < heights.length())
+			value = heights[_y]
+		
+		py += value
+		
+		if (py > getScreenHeight())
+			return
+	}
+	
+	// below bg
+	SpriteHandle stretch2 = Renderer.addSpriteHandle("rk_bg_stretch", 0, py, renderQueue)
+	stretch2.setFlags(SPRITE_FLAG_PRIO)
+	stretch2.setScale(getScreenWidth(), getScreenHeight() - py)
+	if (special)
+		stretch2.setPalette(_pal, 0)
+	else
+		stretch2.setPaletteOffset(_atex)
+}

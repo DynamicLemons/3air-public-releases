@@ -1,0 +1,4 @@
+{
+	"character_sonic_fightstance_1":  { "File": "character_sonic_fightstance.bmp", "Rect": "0,0,56,56", "Center": "28,36" },
+	"character_tails_fightstance_1":  { "File": "character_tails_fightstance.bmp", "Rect": "0,0,32,32", "Center": "16,16" }
+}

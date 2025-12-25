@@ -1,0 +1,5 @@
+{
+	"titlecard_text_vs":  { "File": "titlecard.png", "Rect": "0,0,40,32", "Center": "20,8" },
+	"titlecard_text_roaringknight":  { "File": "titlecard.png", "Rect": "48,0,264,32", "Center": "132,8" },
+	"titlecard_redbar_rk":  { "File": "titlecard_redbar.png", "Rect": "0,0,176,176", "Center": "72,64" }
+}

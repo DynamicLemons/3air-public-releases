@@ -1,0 +1,208 @@
+function void renderNextObject()
+{
+	if (!isRoaringKnightMode)
+	{
+		base.renderNextObject()
+		return
+	}
+	
+	u16 cameraX = u16[A3]
+	u16 cameraY = u16[A3+4]
+	u16 renderQueue = 0xa000 - (A4 - 0xffffac00)
+
+	u32 objAddress = 0xffff0000 + u16[A4]
+	A0 = objAddress
+	A4 += 2
+
+	objA0.render_flags &= ~render_flag.VISIBLE		// Reset visibility flag
+	D6.u8 = objA0.render_flags
+	D0.u16 = objA0.position.x.u16
+	D1.u16 = objA0.position.y.u16
+	
+	u32 color = 0x40ff0000
+	
+	// Special handling for compound objects
+	if (objA0.render_flags & render_flag.COMPOUND)
+	{
+		if ((objA0.render_flags & render_flag.WORLD) == 0)
+		{
+			D2.u16 = objA0.box_size.x
+			D0.u16 -= 0x80
+			if (D0.s16 + D2.s16 < 0 || D0.s16 - D2.s16 >= getScreenWidth())
+				return
+
+			D0.u16 += 0x80
+			D2.u16 = objA0.box_size.y
+			D1.u16 -= 0x80
+			if (D1.s16 + D2.s16 < 0 || D1.s16 - D2.s16 >= getScreenHeight())
+				return
+
+			D1.u16 += 0x80
+
+			if (debugDrawFlag == 3)
+				debugDrawRect(D0.u16 - u16(objA0.box_size.x) - 0x80, D1.u16 - u16(objA0.box_size.y) - 0x80, u16(objA0.box_size.x) * 2, u16(objA0.box_size.y) * 2, color)
+		}
+		else
+		{
+			D2 = objA0.box_size.x
+			D0.u16 -= cameraX
+			if (D0.s16 + D2.s16 < 0 || D0.s16 - D2.s16 >= getScreenWidth())
+				return
+
+			D0.u16 += 0x80
+			D1.u16 = (D1.u16 + objA0.box_size.y - cameraY) & level.height.bitmask
+			D2.u16 = objA0.box_size.y * 2 + getScreenHeight()
+			if (D1.u16 >= D2.u16)
+				return
+
+			D1.u16 += 0x80 - objA0.box_size.y
+			
+			if (debugDrawFlag == 3)
+				debugDrawRect(D0.u16 - u16(objA0.box_size.x) - 0x80, D1.u16 - u16(objA0.box_size.y) - 0x80, u16(objA0.box_size.x) * 2, u16(objA0.box_size.y) * 2, color)
+		}
+
+		objA0.render_flags |= render_flag.VISIBLE	// Set visibility flag
+
+	#if STANDALONE
+		if (Standalone.shouldUseFrameInterpolation(objAddress))
+			Renderer.setSpriteTagWithPosition(A0, D0.u16 - 0x80, D1.u16 - 0x80)
+		else
+			Renderer.clearSpriteTag()
+		if (Standalone.onWriteToSpriteTable(D0.u16 - 0x80, D1.u16 - 0x80, renderQueue))
+			return
+	#else
+		if (D7.s16 < 0)
+			return
+	#endif
+
+		A2 = objA0.mapping_offset
+		D5.u16 = objA0.sprite_attributes
+		if (objA0.animation.sprite != 0)
+		{
+			A1 = tableLookupAddress(A2, s16(objA0.animation.sprite) * 2)
+			D4.u16 = u16[A1] - 1
+			A1 += 2
+			if (D4.s16 >= 0)
+			{
+				u16 backup = D6.u16
+				writeToSpriteTableCompound(renderQueue)
+				D6.u16 = backup
+
+			#if !STANDALONE
+				if (D7.s16 < 0)
+					return
+			#endif
+			}
+		}
+
+		D3.u16 = objA0.compound.count - 1	// Number of compound sprites
+		if (D3.s16 < 0)
+			return	// Skip if none
+
+		A0 += 0x18	// Start of compound sprite data (u8[A0 + 0x05] = map frame)
+
+	#if STANDALONE
+		while (D3.s16 >= 0)
+	#else
+		while (D3.s16 >= 0 && D7.s16 >= 0)
+	#endif
+		{
+			D0.u16 = u16[A0]		// Compound sprite X position
+			D1.u16 = u16[A0 + 2]	// Compound sprite Y position
+			if (D6 & render_flag.WORLD)
+			{
+				D0.u16 = (D0.u16 + 0x80 - cameraX)
+				D1.u16 = (D1.u16 + 0x80 - cameraY) & level.height.bitmask
+			}
+
+			D4 = u8[A0 + 5]		// Compound sprite map frame id
+			A0 += 6				// To next compound sprite
+
+			A1 = tableLookupAddress(A2, D4.u16 * 2)
+			D4.u16 = u16[A1] - 1
+			A1 += 2
+			u32 spriteTag = A0
+			if (D4.s16 >= 0)
+			{
+				u16 backup = D6.u16
+				++spriteTag
+			#if STANDALONE
+				if (Standalone.shouldUseFrameInterpolation(objAddress))
+					Renderer.setSpriteTagWithPosition(spriteTag, D0.u16 - 0x80, D1.u16 - 0x80)
+				else
+					Renderer.clearSpriteTag()
+			#endif
+				writeToSpriteTableCompound(renderQueue)
+				D6.u16 = backup
+			}
+
+			--D3.s16
+		}
+	}
+	else
+	{
+		// Normal (non-compound) object
+		if (objA0.render_flags & render_flag.WORLD)
+		{
+			// Debug output of graphics bounding box
+			if (debugDrawFlag == 3)
+				debugDrawRect(D0.u16 - u16(objA0.box_size.x), D1.u16 - u16(objA0.box_size.y), u16(objA0.box_size.x) * 2, u16(objA0.box_size.y) * 2, color)
+				
+			if (objA0.render_flags & render_flag.ALWAYS_DRAW)
+			{
+				D0.s16 -= cameraX
+				D0.s16 += 0x80
+				D1.s16 -= cameraY
+				D1.s16 += 0x80
+			}
+			else
+			{
+				D2 = objA0.box_size.x
+				D0.u16 -= cameraX
+				if (D0.s16 + D2.s16 < 0 || D0.s16 - D2.s16 >= getScreenWidth())
+					return
+
+				D1.u16 = (D1.u16 + objA0.box_size.y - cameraY) & level.height.bitmask
+				D2.u16 = objA0.box_size.y * 2 + getScreenHeight()
+				if (D1.u16 >= D2.u16)
+					return
+					
+				D0.u16 += 0x80
+				D1.u16 += 0x80 - objA0.box_size.y
+			}
+		}
+		else
+		{
+			if (debugDrawFlag == 3)
+				debugDrawRect(D0.u16 - u16(objA0.box_size.x), D1.u16 - u16(objA0.box_size.y), u16(objA0.box_size.x) * 2, u16(objA0.box_size.y) * 2, color)
+		}
+
+		objA0.render_flags |= render_flag.VISIBLE
+
+	#if STANDALONE
+		if (Standalone.shouldUseFrameInterpolation(objAddress))
+			Renderer.setSpriteTagWithPosition(A0, D0.u16 - 0x80, D1.u16 - 0x80)
+		else
+			Renderer.clearSpriteTag()
+		if (Standalone.onWriteToSpriteTable(D0.s16 - 0x80, D1.s16 - 0x80, renderQueue))
+			return
+	#else
+		if (D7.s16 < 0)
+			return
+	#endif
+
+		A1 = objA0.mapping_offset
+		D4 = 0
+		if ((objA0.render_flags & render_flag.STATIC_MAPPING) == 0)
+		{
+			A1 = tableLookupAddress(A1, u16(objA0.animation.sprite) * 2)
+			D4.u16 = u16[A1] - 1
+			A1 += 2
+			if (D4.s16 < 0)
+				return
+		}
+
+		D5.u16 = objA0.sprite_attributes
+		writeToSpriteTable(renderQueue)
+	}
+}

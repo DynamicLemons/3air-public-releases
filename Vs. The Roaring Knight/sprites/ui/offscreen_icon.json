@@ -1,0 +1,5 @@
+{
+	"roaringknight_offscreen_icon_dess":  { "File": "offscreen_icon.png", "Rect": "0,0,16,16", "Center": "8,8" },
+	"roaringknight_offscreen_icon_small_white":  { "File": "offscreen_icon.png", "Rect": "16,0,16,16", "Center": "8,8" },
+	"roaringknight_offscreen_icon_small_red":  { "File": "offscreen_icon.png", "Rect": "32,0,16,16", "Center": "8,8" },
+}

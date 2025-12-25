@@ -1,0 +1,6 @@
+{
+	"rk_redring_0":  { "File": "redring_strip4.png", "Rect": "0,0,32,32", "Center": "16,16" },
+	"rk_redring_1":  { "File": "redring_strip4.png", "Rect": "32,0,32,32", "Center": "16,16" },
+	"rk_redring_2":  { "File": "redring_strip4.png", "Rect": "64,0,32,32", "Center": "16,16" },
+	"rk_redring_3":  { "File": "redring_strip4.png", "Rect": "96,0,32,32", "Center": "16,16" }
+}

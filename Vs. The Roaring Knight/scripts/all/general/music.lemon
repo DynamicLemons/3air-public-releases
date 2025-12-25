@@ -1,0 +1,13 @@
+function void playMusic(u8 soundId)
+{
+	if (isRoaringKnightMode && soundId == MUSIC_BIGARMS)
+	{
+		string song = "mus_knight"
+		if (Audio.isPlayingAudio(song))
+			Audio.fadeInChannel(0, 0.25f)
+		else
+			Audio.playAudio(song, AudioContext.CONTEXT_MUSIC)
+	}
+	else
+		base.playMusic(soundId)
+}

@@ -1,0 +1,477 @@
+function s32 hypotenuse_s32(s32 A, s32 B)
+{
+	s32 xDiff = abs(A)
+	s32 yDiff = abs(B)
+	xDiff = xDiff * xDiff
+	yDiff = yDiff * yDiff
+	
+	return sqrt(xDiff + yDiff)
+}
+
+function double hypotenuse_double(double A, double B)
+{
+	double xDiff = abs(A)
+	double yDiff = abs(B)
+	xDiff = xDiff * xDiff
+	yDiff = yDiff * yDiff
+	
+	return Math.sqrt(xDiff + yDiff)
+}
+
+function u16 calcDistBetweenPoints(s16 pxA, s16 pyA, s16 pxB, s16 pyB)
+{
+	s16 dx = pxB - pxA
+	s16 dy = pyB - pyA
+	
+	if (level.vertical_wrap == 0xff00)
+	{
+		s16 dy2 = (pyB - level.height.bitmask) - pyA
+		if (abs(dy2) < abs(dy))
+			dy = dy2
+	}
+	
+	return hypotenuse_s32(dx, dy)
+}
+
+function float calcDistBetweenPointsF(float pxA, float pyA, float pxB, float pyB)
+{
+	float dx = pxB - pxA
+	float dy = pyB - pyA
+	
+	if (level.vertical_wrap == 0xff00)
+	{
+		float dy2 = (pyB - level.height.bitmask) - pyA
+		if (abs(dy2) < abs(dy))
+			dy = dy2
+	}
+	
+	return hypotenuse_double(dx, dy)
+}
+
+function u8 calcAngleBetweenPoints(s16 pxA, s16 pyA, s16 pxB, s16 pyB)
+{
+	s16 dx = pxB - pxA
+	s16 dy = pyB - pyA
+	
+	if (level.vertical_wrap == 0xff00)
+	{
+		s16 dy2 = (pyB - level.height.bitmask) - pyA
+		if (abs(dy2) < abs(dy))
+			dy = dy2 - level.height.bitmask
+	}
+	
+	return lookupAngleByVector(dx, dy)
+}
+
+function u16 calcDistBetweenBoxes(s16 x1, s16 y1, s16 w1, s16 h1, s16 x2, s16 y2, s16 w2, s16 h2)
+{
+	s16 pxA = x1 + w1 / 2
+	s16 pyA = y1 + h1 / 2
+	s16 pxB = x2 + w2 / 2
+	s16 pyB = y2 + h2 / 2
+
+	s32 dx = x2 - x1
+	s32 dy = y2 - y1
+	bool overlapX = (dx >= -w2 && dx <= w1)
+	bool overlapY = (dy >= -h2 && dy <= h1)
+
+	if (overlapX)
+	{
+		double left = max(x1, x2)
+		double right = min(x1 + w1, x2 + w2)
+		double middle = Math.lerp(left, right, .5)
+		
+		pxA = Math.roundToInt(middle)
+		pxB = Math.roundToInt(middle)
+	}
+	else
+	{
+		if (pxA < pxB)
+		{
+			pxA = x1 + w1
+			pxB = x2
+		}
+		else
+		{
+			pxA = x1 
+			pxB = x2 + w2
+		}
+	}
+	
+	if (overlapY)
+	{
+		double top = max(y1, y2)
+		double bottom = min(y1 + h1, y2 + h2)
+		double middle = Math.lerp(top, bottom, .5)
+		
+		pyA = Math.roundToInt(middle)
+		pyB = Math.roundToInt(middle)
+	}
+	else
+	{
+		if (pyA < pyB)
+		{
+			pyA = y1 + h1
+			pyB = y2
+		}
+		else
+		{
+			pyA = y1 
+			pyB = y2 + h2
+		}
+	}
+	
+	D0.s16 = pxA
+	D1.s16 = pyA
+	D2.s16 = pxB
+	D3.s16 = pyB
+	
+	//debugDrawRect(pxA - 5, pyA - 5, 9, 9, 0xff00ff00)
+	//debugDrawRect(pxB - 5, pyB - 5, 9, 9, 0xff0000ff)
+	//debugLog(stringformat("%d %d", overlapX, overlapY))
+	
+	return calcDistBetweenPoints(pxA, pyA, pxB, pyB)
+}
+
+function u16 calcAngleBetweenBoxes(s16 x1, s16 y1, s16 w1, s16 h1, s16 x2, s16 y2, s16 w2, s16 h2)
+{
+	s16 pxA = x1 + w1 / 2
+	s16 pyA = y1 + h1 / 2
+	s16 pxB = x2 + w2 / 2
+	s16 pyB = y2 + h2 / 2
+
+	s32 dx = x2 - x1
+	s32 dy = y2 - y1
+	bool overlapX = (dx >= -w2 && dx <= w1)
+	bool overlapY = (dy >= -h2 && dy <= h1)
+
+	if (overlapX)
+	{
+		double left = max(x1, x2)
+		double right = min(x1 + w1, x2 + w2)
+		double middle = Math.lerp(left, right, .5)
+		
+		pxA = Math.roundToInt(middle)
+		pxB = Math.roundToInt(middle)
+	}
+	else
+	{
+		if (pxA < pxB)
+		{
+			pxA = x1 + w1
+			pxB = x2
+		}
+		else
+		{
+			pxA = x1 
+			pxB = x2 + w2
+		}
+	}
+	
+	if (overlapY)
+	{
+		double top = max(y1, y2)
+		double bottom = min(y1 + h1, y2 + h2)
+		double middle = Math.lerp(top, bottom, .5)
+		
+		pyA = Math.roundToInt(middle)
+		pyB = Math.roundToInt(middle)
+	}
+	else
+	{
+		if (pyA < pyB)
+		{
+			pyA = y1 + h1
+			pyB = y2
+		}
+		else
+		{
+			pyA = y1 
+			pyB = y2 + h2
+		}
+	}
+	
+	D0.s16 = pxA
+	D1.s16 = pyA
+	D2.s16 = pxB
+	D3.s16 = pyB
+	
+	//debugDrawRect(pxA - 5, pyA - 5, 9, 9, 0xff00ff00)
+	//debugDrawRect(pxB - 5, pyB - 5, 9, 9, 0xff0000ff)
+	//debugLog(stringformat("%d %d", overlapX, overlapY))
+	
+	return calcAngleBetweenPoints(pxA, pyA, pxB, pyB)
+}
+
+function double calcAngleBetweenPoints360(s16 pxA, s16 pyA, s16 pxB, s16 pyB)
+{
+	double dx = pxB - pxA
+	double dy = pyB - pyA
+	
+	if (level.vertical_wrap == 0xff00)
+	{
+		double dy2 = (pyB - level.height.bitmask) - pyA
+		if (abs(dy2) < abs(dy))
+			dy = dy2 - level.height.bitmask
+	}
+	
+	double value = Math.radiansToDegrees(Math.atan2(dx, dy))
+	if (value < 0)
+		value += 360
+	return value
+}
+
+function u16 calcDist(s16 dx, s16 dy)
+{
+	s32 xDiff = abs(dx)
+	s32 yDiff = abs(dy)
+	xDiff = xDiff * xDiff
+	yDiff = yDiff * yDiff
+	
+	return sqrt(xDiff + yDiff)
+}
+
+function s16 calcAngleDiff(s16 A, s16 B)
+{
+	s16 angleDiff_A = normalizeAngle(A - B)
+	s16 angleDiff_B = normalizeAngle(B - A)
+
+	if (angleDiff_A < angleDiff_B)
+		return angleDiff_A
+	else
+		return angleDiff_B
+}
+
+function s16 normalizeAngle(s16 angle)
+{
+    while (angle < 0) 
+        angle += 256
+    while (angle >= 256) 
+        angle -= 256
+    return angle
+}
+
+function double calcAngleDiff360(double A, double B)
+{
+	double angleDiff_A = normalizeAngle360(A - B)
+	double angleDiff_B = normalizeAngle360(B - A)
+
+	if (angleDiff_A < angleDiff_B)
+		return angleDiff_A
+	else
+		return angleDiff_B
+}
+
+function double normalizeAngle360(double angle)
+{
+    while (angle < 0) 
+        angle += 360
+    while (angle >= 360) 
+        angle -= 360
+    return angle
+}
+
+function bool checkLineIntersect(u16 x1, u16 y1, u16 x2, u16 y2, u16 x3, u16 y3, u16 x4, u16 y4)
+{
+	double x1_d = x1
+	double y1_d = y1
+	double x2_d = x2
+	double y2_d = y2
+	double x3_d = x3
+	double y3_d = y3
+	double x4_d = x4
+	double y4_d = y4
+	
+	// calculate the distance to intersection point
+	double uA = ((x4_d-x3_d)*(y1_d-y3_d) - (y4_d-y3_d)*(x1_d-x3_d)) / ((y4_d-y3_d)*(x2_d-x1_d) - (x4_d-x3_d)*(y2_d-y1_d))
+	double uB = ((x2_d-x1_d)*(y1_d-y3_d) - (y2_d-y1_d)*(x1_d-x3_d)) / ((y4_d-y3_d)*(x2_d-x1_d) - (x4_d-x3_d)*(y2_d-y1_d))
+	
+	// if uA and uB are between 0-1, lines are colliding
+	if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) 
+	{
+		double intersectionX = x1 + (uA * (x2-x1))
+		double intersectionY = y1 + (uA * (y2-y1))
+		
+		D0.u32 = Math.roundToInt(intersectionX)
+		D0.u32 = Math.roundToInt(intersectionY)
+		return true
+	}
+	return false
+}
+
+function bool checkLineIntersectRectangle(u16 x1, u16 y1, u16 x2, u16 y2, u16 rx, u16 ry, u16 rw, u16 rh)
+{
+	if (checkLineIntersect(x1,y1,x2,y2, rx,ry,rx, ry+rh) || checkLineIntersect(x1,y1,x2,y2, rx+rw,ry, rx+rw,ry+rh) || checkLineIntersect(x1,y1,x2,y2, rx,ry, rx+rw,ry) || checkLineIntersect(x1,y1,x2,y2, rx,ry+rh, rx+rw,ry+rh))
+		return true
+	return false
+}
+
+function void Renderer.drawLine(u16 x1, u16 y1, u16 x2, u16 y2, u32 color, u16 renderQueue)
+{
+	Renderer.drawLine(x1, y1, x2, y2, color, renderQueue, .5, false, true)
+}
+
+function void Renderer.drawLine(u16 x1, u16 y1, u16 x2, u16 y2, u32 color, u16 renderQueue, float width, bool world, bool prio)
+{
+	SpriteHandle spr = Renderer.addSpriteHandle("coolrectangle", x1, y1, renderQueue)
+	spr.setPriorityFlag(prio)
+	spr.setCoordinateSpace(world)
+	spr.setRotationScale(-calcAngleBetweenPoints360(x1, y1, x2, y2) + 90, calcDistBetweenPointsF(x1, y1, x2, y2), width * .5)
+	spr.setTintColorRGBA(color)
+}
+
+function void Renderer.drawDebugCircleOutline(s16 pxO, s16 pyO, u16 renderQueue, u32 color, u16 size)
+{
+	s16 px_first
+	s16 py_first
+	s16 px_last
+	s16 py_last
+	
+	bool first = true
+	for (float angle = 0; angle < 360; angle += 5)
+	{
+		float rad = Math.degreesToRadians(angle)
+		
+		s16 px = pxO + Math.roundToInt(Math.sin(rad) * size)
+		s16 py = pyO + Math.roundToInt(Math.cos(rad) * size)
+		
+		//Renderer.drawRect(px, py, 1, 1, 0xfc0000ff, 0x5001, true)
+		if (!first)
+			Renderer.drawLine(px_last, py_last, px, py, color, 0x5001, 1, true, true)
+		else
+		{
+			first = false
+			px_first = px
+			py_first = py
+		}
+		px_last = px
+		py_last = py
+	}
+	
+	Renderer.drawLine(px_last, py_last, px_first, py_first, color, 0x5001, 1, true, true)
+}
+
+function s64 valueProgressToEnd(s64 curr, s64 end, u32 speed)
+{
+	if (curr < end)
+		curr = min(curr + speed, end)
+	else if (curr > end)
+		curr = max(curr - speed, end)
+	return curr
+}
+
+function u16 vectorizeVelocity(s16 vX, s16 vY)
+{
+	s32 xDiff = abs(vX)
+	s32 yDiff = abs(vY)
+	xDiff = xDiff * xDiff
+	yDiff = yDiff * yDiff
+	
+	return sqrt(xDiff + yDiff)
+}
+
+function s64 valueLerpInt(s64 A, s64 B, float C)
+{
+	if (A == B)
+		return A
+		
+	s64 D = A
+	s64 diff = Math.roundToInt(Math.lerp(A, B, C)) - A
+	if (diff == 0 && A != B)
+		diff = (A < B) ? 1 : -1
+	D += diff
+	return D
+}
+
+function s64 valueLerpIntClamped(s64 A, s64 B, float C, s64 E, s64 F)
+{
+	E = abs(E)
+	F = abs(F)
+	
+	s16 diffT = B - A
+	s64 D = A
+	s64 diff = Math.roundToInt(Math.lerp(A, B, C)) - A
+	if (diff == 0 && A != B)
+		diff = (A > B) ? -1 : 1
+	else
+	{
+		if (abs(diff) < E && abs(diffT) >= E)
+			diff = clamp(diff, -E, E)
+		else if (abs(diff) > F)
+			diff = clamp(diff, -F, F)
+	}
+	D += diff
+	return D
+}
+
+function s64 valueLerpIntMax(s64 A, s64 B, float C, s64 E)
+{
+	E = abs(E)
+	
+	s16 diffT = B - A
+	s64 D = A
+	s64 diff = Math.roundToInt(Math.lerp(A, B, C)) - A
+	if (diff == 0 && A != B)
+		diff = (A > B) ? -1 : 1
+	else
+	{
+		if (abs(diff) < E && abs(diffT) >= E)
+			diff = clamp(diff, -E, E)
+	}
+	D += diff
+	return D
+}
+
+
+function s16 normalizeAngle(s16 angle)
+{
+    while (angle < 0) 
+        angle += 256
+    while (angle >= 256) 
+        angle -= 256
+    return angle
+}
+
+function double lerp_angle(double a, double b, double weight)
+{
+	double difference = fmod(b - a, 256)
+	double short_angle_dist = fmod(2 * difference, 256) - difference
+	return a + short_angle_dist * weight
+}
+
+function s64 lerp_angleInt(s64 A, s64 B, float C)
+{
+	if (A == B)
+		return A
+	s64 D = A
+	s64 diff = Math.roundToInt(lerp_angle(A, B, C)) - A
+	if (diff == 0)
+		return B
+	D += diff
+	return D
+}
+function double lerp_angle360(double a, double b, double weight)
+{
+	double difference = fmod(b - a, 360)
+	double short_angle_dist = fmod(2 * difference, 360) - difference
+	return a + short_angle_dist * weight
+}
+
+function s16 getDiffOfAngle(s16 a, s16 b)
+{
+	double difference = fmod(b - a, 256)
+	double short_angle_dist = fmod(2 * difference, 256) - difference
+	return Math.roundToInt(short_angle_dist)
+}
+
+function double getDiffOfAngle360(double a, double b)
+{
+	double difference = fmod(b - a, 360)
+	double short_angle_dist = fmod(2 * difference, 360) - difference
+	return short_angle_dist
+}
+
+function float fmod(float x, float y)
+{
+	return x - Math.floor(x / y) * y
+}

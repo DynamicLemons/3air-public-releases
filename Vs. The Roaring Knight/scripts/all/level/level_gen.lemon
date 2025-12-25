@@ -1,0 +1,626 @@
+//# address-hook(0x0571f6) end(0x057298)
+function void InitLevelTiles.SSZ()
+{
+	if (!isRoaringKnightMode)
+	{
+		base.InitLevelTiles.SSZ()
+		return
+	}
+	
+	global.random.seed = System.rand()
+	
+	roaringKnight_camType = rk_camMode_player
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = 0x39B340
+		if (checkpoint.number)
+		{
+			roaringKnight_updateRoutine = "introInitFast"
+			objA1.position.x.u16 = 0x7c0
+			objA1.position.y.u16 = 0xbae
+		}
+		else
+		{
+			roaringKnight_updateRoutine = "introInit"
+			objA1.position.x.u16 = 0x7c0
+			objA1.position.y.u16 = 0xb00
+		}
+		roaringKnight_memLoc = A1
+		roaringKnight_attackPhase = 0
+
+		roaringKnight_moveXPos = objA1.position.x.u16
+		roaringKnight_moveYPos = objA1.position.y.u16
+		roaringKnight_moveStyle = 0
+		roaringKnight_moveLerpBy = 0
+	}
+	
+	if (checkpoint.number == 0)
+	{
+		if (allocDynamicObjectStd())
+		{
+			objA1.update_address = 0x057c1e
+			objA1.position.x.u16 = 0x0100 + arenaShiftX
+			u8[A1 + 0x2d] = 0x6c
+			u8[0xffffeed7] = 0xff
+			
+			camera.foreground.x.u16  = 0x60 - getScreenExtend() + arenaShiftX
+			camera.position.x.u16    = 0x60 - getScreenExtend() + arenaShiftX
+			camera.foreground.y.u16  = 0x0f49 + arenaShiftY
+			camera.position.y.u16    = 0x0f49 + arenaShiftY
+			player1.camera_lock = 0xff
+		}
+	}
+
+	move_area.left		= rk_arena_inner_L
+	move_area.right		= rk_arena_inner_R
+	move_area.top		= rk_arena_inner_T
+	move_area.bottom	= rk_arena_B
+	
+	cam_bound.left		= (checkpoint.number == 0) ? rk_arena_full_L : rk_arena_inner_L
+	cam_bound.right		= move_area.right
+	cam_bound.top		= move_area.top
+	cam_bound.bottom	= move_area.bottom + (checkpoint.number == 0 ? 128 : 0)
+
+	camera.update_routine = rk_borderMode_none
+	roaringKnight_camPeekH = 0
+	roaringKnight_cam_transValue = 0
+	roaringKnight_arena_floatMode = false
+	roaringKnight_arena_squareMode = false
+	
+	rkC_collis_enable = false
+	u32[0xffffcb2c] = addressof(RK_c_collisRunner)
+	rkC_deathPause = false
+	
+	u16[0xffffee98] = 0
+	u16[0xffffee9c] = 0
+
+	/*
+	zeroMemory(0xffffa9f6, 0x0a)
+	A1 = 0xffffaa00
+	if (allocDynamicObjectStd())
+	{
+		for (u32 k = 0; k < 5; ++k)
+		{
+			A5 = 0xffffa9f6 + k * 2
+			A6 = 0x058758 + k * 8
+			u16[A5] = A1.u16
+			objA1.update_address = 0x057bb2		// Cloud
+			u16[A1 + 0x38] = u16[A6]
+			u16[A1 + 0x3a] = u16[A6+2]
+			u16[A1 + 0x40] = u16[A6+4]
+			u8[A1 + 0x22]  = u16[A6+6]
+
+			if (!allocDynamicObjectAfterA1())
+				break
+		}
+	}
+	*/
+	
+	fn05758a()
+	Level.GetCameraPosition()
+	Level.InitialTilesFill()
+}
+
+//# address-hook(0x0577fa) end(0x05788c)
+function void InitLevelScrolling.SSZ()
+{
+	if (!isRoaringKnightMode)
+	{
+		base.InitLevelScrolling.SSZ()
+		return
+	}
+	
+	/*
+	u16[0xffffeee2] = 0
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = 0x057b6a
+		A5 = 0x05853e
+		D1.u16 = u16[(A5+=2)-2]
+		while (D1.s16 >= 0)
+		{
+			if (!allocDynamicObjectAfterA1())
+				break
+
+			objA1.update_address = 0x057b8e
+			D2.u16 = u16[(A5+=2)-2]
+			objA1.render_flags = D2.u8
+			objA1.box_size.y = 0x80
+			objA1.position.x.u16 = u16[(A5+=2)-2]
+			objA1.velocity.y = u16[(A5+=2)-2]
+			u16[A1 + 0x2e] = u16[(A5+=2)-2]
+			u32[A1 + 0x30] = u32[(A5+=4)-4]
+			--D1.s16
+		}
+	}
+	*/
+	
+	D0.u16 = camera.position.y.u16 & level.height.bitmask
+	if (D0.u16 >= 0x0800 && D0.u16 < 0x0f00)
+	{
+		level.scrolling_routine = 0x08
+		fn057a60()
+		fn04f2f6()
+		D1.u16 = 0x1c00
+		Level.InitialTilesFill()
+		A4 = 0x058502
+		A5 = 0xffffa804
+		fn04f0ce()
+	}
+	else
+	{
+		fn0579f0()
+		fn04f2f6()
+		Level.InitialTilesFill()
+		WriteScrollOffsets()
+	}
+}
+
+//# address-hook(0x01be46) end(0x01bfae)
+function void SetupCharacterAtStartPosition()
+{
+	if (!isRoaringKnightMode || global.zone_act != 0x0a00)
+	{
+		base.SetupCharacterAtStartPosition()
+		return
+	}
+
+	if (checkpoint.number != 0)
+	{
+		SetupCharacterAtLastCheckpoint()
+		D1.u16 = 0x740
+		D0.u16 = 0xba0
+	}
+	else
+	{
+		D1 = 0x06c0
+		D0 = 0x0bec
+		u16[0xffffb000 + 0x10] = D1.u16
+		u16[0xffffb000 + 0x14] = D0.u16
+	}
+	
+	D1.s16 = max(D1.s16 - getScreenWidth() / 2, 0)
+	if (competition_mode.active == 0)
+	{
+	#if STANDALONE
+		// Avoid exact tile edges
+		//  -> This was particularly added in to avoid glitches in first pixel row after exiting first Giant Ring in AIZ 2
+		//     (There's probably a better solution, that generally solves this type of glitches when going left in AIZ 2)
+		if ((D1.u16 & 0x0f) == 0)
+			++D1.u16
+	#endif
+		D1.u16 = min(D1.u16, move_area.right)
+	}
+		
+	camera.position.x.u16 = D1.u16
+	camera.position.x.u16.player2 = D1.u16
+
+	D0.s16 = clamp(D0.s16 - 96, 0, s16(move_area.bottom.current))
+	camera.position.y.u16 = D0.u16
+	camera.position.y.u16.player2 = D0.u16
+}
+
+//# address-hook(0x0067ee) end(0x0069b6)
+function void fn0067ee()
+{
+	base.fn0067ee()
+	if (isRoaringKnightMode && global.zone_act == 0x0a00)
+	{
+		enable_rk_charStance = (checkpoint.number != 0)
+		
+		roaringKnight_ui_hidden = true
+		roaringKnight_ui_timerAlpha = 0
+		roaringKnight_ui_healthY = -rk_ringoffsets
+	}
+}
+
+function void initializeMainGame()
+{
+	if (!isRoaringKnightMode)
+	{
+		base.initializeMainGame()
+		return
+	}
+	
+	global.game_mode |= 0x80
+	if (s16(global.rolling_demo) >= 0)
+	{
+		Audio.fadeOutChannel(0, 1.0)
+	}
+#if STANDALONE
+	// Reset music tempo
+	Standalone.setFastMusicFlag(FastMusicFlag.MUSIC_TEMPO, false)
+	Standalone.setFastMusicFlag(FastMusicFlag.SUPER_THEME, false)
+
+	// Just to be sure this is not active
+	Game.endSkippableCutscene()
+
+	Input.setTouchInputMode(TOUCH_INPUT_MODE_NORMAL_CONTROLS)
+
+#if GAMEAPP
+	Game.setUnderwaterAudioEffect(0)
+#endif
+#endif
+
+	global.pause_disabled = 0
+	kosinski.queue_size = 0
+	zeroMemory(0xffffff10, 0x1b * 4)
+	ClearPatternLoadingQueue()
+
+	FadeOutScreenBlocking()
+
+#if STANDALONE
+	global.zone_act = Game.onFadedOutLoadingZone(global.zone_act)
+#endif
+
+	#if STANDALONE
+	{
+		Renderer.resetSprites()
+
+		if (!Game.getSetting(SETTING_CONTINUE_MUSIC))
+		{
+			// Stop music
+			Audio.stopChannel(0)
+		}
+	}
+	#endif
+
+	if (s16(global.rolling_demo) >= 0)
+	{
+	#if !STANDALONE
+		set_status_register(0x2700)
+	#endif
+		fn0011ca()
+	#if !STANDALONE
+		set_status_register(0x2300)
+	#endif
+
+		level.framecounter = 0
+		if (checkpoint.number != 0)
+		{
+			if (global.stage_type == 0)
+			{
+				global.zone_act = checkpoint.zone_act
+				global.zone_act.apparent = checkpoint.zone_act.apparent
+			}
+			else
+			{
+				global.zone_act = level.backup.zone_act
+				global.zone_act.apparent = level.backup.zone_act.apparent
+			}
+		}
+
+		if (global.zone_act != 0x0401 || checkpoint.number != 6)
+		{
+			A2 = MainGame.getLevelDataPointer()
+			D0 = u8[A2]
+			if (D0.u8 != 0)
+			{
+				requestLoadingPatterns(D0.u8)
+			}
+		}
+
+		SetGlobalCharacters()
+
+		if (isSonicIntro())
+		{
+			fillPatternLoadingCues(0x01)
+			requestLoadingPatterns(0x0a)
+		}
+		else if (competition_mode.active)
+		{
+			D0 = 6
+			// It looks like RequestLoadingPatterns() is missing here, but each zone already loads the common sprites, so it would be redundant
+		}
+		else
+		{
+			// Load both HUD and common object sprites for main game stages
+			if (isMainCharacter(CHARACTER_SONIC))
+			{
+				// Sonic
+				requestLoadingPatterns(0x01)
+			}
+			else if (isMainCharacter(CHARACTER_TAILS))
+			{
+				// Tails - or Miles
+				requestLoadingPatterns((global.region_code & 0x80) ? 0x07 : 0x52)
+			}
+			else
+			{
+				// Must be Knuckles then
+				requestLoadingPatterns(0x05)
+			}
+		}
+	}
+
+	zeroMemory(0xffffac00, 0x400)
+	zeroMemory(0xffffb000, 0x2000)
+	zeroMemory(0xfffff628, 0x16 * 4)
+	zeroMemory(0xfffff700, 0x100)
+	zeroMemory(0xfffffe6e, 0x13 * 4)
+	zeroMemory(0xfffffa80, 0x80)
+
+	fn01aa6e()
+
+	VDP.Config.setVerticalScrolling(false, 0xff)	// Good old horizontal scrolling mode
+	VDP.Config.setNameTableBasePlaneA(0xc000)
+	VDP.Config.setNameTableBasePlaneB(0xe000)
+	VDP.Config.setSpriteAttributeTableBase(0xf800)
+	VDP.Config.setPlayfieldSizeInPixels(512, 256)
+	VDP.Config.enableHInt(false)
+	VDP.Config.setupWindowPlane(false, 0)	// Disable window plane
+	VDP.Config.setBackdropColor(0x20)
+	VDP.Config.setRenderingModeConfiguration(false)
+
+	if (debug_mode.unlocked && control.pad1.state & CONTROL_A)
+	{
+		debug_mode.enabled.u8 = true
+	}
+
+	if (competition_mode.active)
+	{
+		u16[0xfffffff6] = 0x4ef9		// Machine code for "jump"
+		irq_table.lineupdate = 0x000d10
+
+		VDP.Config.enableHInt(true)
+		VDP.Config.setNameTableBasePlaneA(0x8000)
+		VDP.Config.setNameTableBasePlaneB(0xa000)
+		h_int.configuration = 0x8a6b	// H-INT at 0x6b = 107 (near the vertical screen center)
+
+		if (global.zone == 0x0f)
+			VDP.Config.setPlayfieldSizeInPixels(512, 512)
+		else
+			VDP.Config.setPlayfieldSizeInPixels(1024, 256)
+	}
+	else
+	{
+		h_int.configuration = 0x8aff
+	}
+	Renderer.configureHInt()
+
+	u16[0xfffffb00] = 0
+	u32[0xfffffbfc] = 0xfffffb00
+
+	Level.loadPaletteData(isMainCharacter(CHARACTER_KNUCKLES) ? 0x05 : 0x03)	// Character palette
+	Level.InitializeWater()
+
+	zeroMemory(0xfffff0a0, 0x60)
+
+	if (level.water_present)
+	{
+		VDP.Config.enableHInt(true)
+	}
+
+	if (s16(global.rolling_demo) >= 0)
+	{
+		u8 musicId
+	#if STANDALONE
+		// Check if this is the S/T outro
+		if (global.zone_act == 0x0d01)
+		{
+			playMusic(MUSIC_ENDING)		// Play Sonic 3 credits (instead of Sky Sanctuary)
+		}
+		else
+		{
+			// Bug fix for second parts of AIZ 1 and ICZ 1
+			musicId = u8[0x005f82 + global.zone * 2 + global.act.apparent]
+		}
+	#else
+		musicId = u8[0x005f82 + global.zone * 2 + global.act]
+	#endif
+
+		level.default_music = musicId
+
+		if (!level.skip_titlecard)
+		{
+			// Spawn title card
+			u32[0xffffb250] = addressof(TitleCard.Update)
+
+			while (true)
+			{
+				global.frame_state = 0x0c
+				Kosinski.ProcessDecompressionQueue()
+				waitForNextFrame()
+
+				UpdateGameObjects()
+				RenderSprites()
+				LoadRequiredSpritePatterns()
+				Kosinski.ProcessModules()
+				if (u16[0xffffb298] == 0 && u32[0xfffff680] == 0)
+					break
+			}
+		}
+
+		level.skip_titlecard = false
+	#if !STANDALONE
+		set_status_register(0x2700)
+	#endif
+		ResetScoreDisplay()
+	#if !STANDALONE
+		set_status_register(0x2300)
+	#endif
+	}
+
+	Level.loadNonfadingPaletteData(0x03)	// Sonic's character palette
+	Level.SetupLevelSize()
+	
+	roaringKnight_camType = rk_camMode_player
+	
+	UpdateCamera()
+	fn007812()
+	fn01c2b0()
+
+#if !STANDALONE
+	set_status_register(0x2700)
+#endif
+	InitLevelDisplay()
+#if !STANDALONE
+	set_status_register(0x2300)
+#endif
+
+	fn028c80()
+	fn0076a6()
+	UpdateWater()
+
+	u16[0xffffff7c] = control.pad2
+	control.player1 = 0
+	control.tails = 0
+	control.pad1 = 0
+	control.pad2 = 0
+	player1.control_override = 0
+	player2.control_override = 0
+	global.level_started = 0
+	
+	ring_counter = rk_maxHpChar
+	rkC_playBackHp = ring_counter
+	
+	timer.alldata = 0
+	extra_lives_granted = 0
+	ring_counter.player2 = 0
+	timer.alldata.player2 = 0
+#if STANDALONE
+	if (!Game.getSetting(SETTING_MAINTAIN_SHIELDS))
+#endif
+	{
+		global.shields_backup_1 = 0
+	}
+
+	if (global.zone_act == 0x1600 || global.zone_act == 0x1700)
+	{
+		global.in_extra_stage = 0
+	}
+	else if (global.zone < 0x13 || (global.zone > 0x15 && global.zone_act != 0x1701))
+	{
+		global.shields_backup_2 = 0
+		global.in_extra_stage = 0
+	}
+
+	global.time_over = 0
+	debug_mode.state = 0
+	level.restart = 0
+#if !STANDALONE
+	unused.teleport_timer = 0
+	unused.teleport_active = 0
+#endif
+	player.total_rings = 0
+	unused.player2.total_rings = 0
+	player.item_count = 0
+	unused.player2.item_count = 0
+	u16[0xfffffede] = 0
+	u8[0xfffffe65] = 0
+	super.active = 0
+	ResetOscillatingNumbers()
+
+	hud.dirty.score = 0x01
+	hud.dirty.rings = 0x01
+	hud.dirty.timer = 0
+	global.level_started = 1
+
+	fn0067ee()
+	DynamicObjectsLoading()
+	UpdateListOfRingsAround()
+
+	fn01cacc()
+
+	UpdateGameObjects()
+	RenderSprites()
+	LevelTilesAnimation()
+	global.demo_countdown = 1800	// 30 seconds
+	Level.InitializeWater.Part2()
+
+	zeroMemory(0xfffff0a0, 0x60)
+
+	fn0075d2()
+
+#if STANDALONE
+	// Just in case active display got disabled before (when entering Hidden Palace through a Giant Ring)
+	VDP.Config.setActiveDisplay(true)
+#endif
+}
+
+//# address-hook(0x057d64) end(0x057da0)
+function void fn057d64()
+{
+	if (!isRoaringKnightMode)
+	{
+		base.fn057d64()
+		return
+	}
+	
+	fn045866()
+
+	A1 = 0xffffb000
+	D0 = 0x020000
+	D1 = 0x0800
+	fn0465d6()
+
+	objA1.position.y.u16 = D0.u16 + objA0.value3e
+	if (s32[A0 + 0x2e] >= 0)
+	{
+		objA1.state = char.state.RUNNING
+		u8[A1 + 0x2e] = 0
+		u8[0xffffeed6] = 0
+		objA0.update_address = 0x057da2
+		
+		player1.control_override = 0xff
+		player2.control_override = 0xff
+		control.player1 = 0
+		control.tails = 0
+	}
+}
+
+//# address-hook(0x057c1e) end(0x057cd0)
+function void fn057c1e()
+{
+	if (!isRoaringKnightMode)
+	{
+		base.fn057c1e()
+		return
+	}
+	
+	if (!allocDynamicObjectAfterA0())
+		return
+
+	objA0.update_address = 0x057cd2
+	objA0.position.y.u16 = 0x1000
+	u16[A0 + 0x38] = 0xff00
+	u16[A0 + 0x3c] = A1.u16
+
+	objA1.update_address = 0x0459b4
+	objA1.render_flags = (render_flag.COMPOUND | render_flag.WORLD)
+	objA1.box_size.y = 0x80
+	objA1.box_size.x = 0x18
+	objA1.sprite_priority = 0x80
+	objA1.sprite_attributes = (sprite_attribute.PRIORITY | sprite_attribute.PALETTE.LINE3 | 0x035c)
+	objA1.mapping_offset = 0x046b3c
+	objA1.position.x.u16 = objA0.position.x.u16
+	objA1.position.y.u16 = objA0.position.y.u16
+	objA1.compound.count = 0x02
+	u16[A1 + 0x44] = objA0.position.y.u16 - 0x88
+	u8[A1 + 0x46] = 0x18
+	u16[A1 + 0x48] = A0.u16
+
+	u8[0xffffeed6] = 0xff
+	A1 = 0xffffb000
+	objA1.position.y.u16 = camera.position.y.u16 + 0x65
+	objA1.state = char.state.RUNNING
+	u8[A1 + 0x22] = 0
+	u8[A1 + 0x2e] = (control_flag.DISABLE_ANIMATION | control_flag.DISABLE_UPDATE)
+}
+
+
+//# address-hook(0x057da2) end(0x057dc6)
+function void fn057da2()
+{
+	if (isRoaringKnightMode)
+		UnloadObject()
+	else
+		base.fn057da2()
+}
+
+//# address-hook(0x0575ea) end(0x057788)
+function void fn0575ea()
+{
+	if (!isRoaringKnightMode)
+		base.fn0575ea()
+}

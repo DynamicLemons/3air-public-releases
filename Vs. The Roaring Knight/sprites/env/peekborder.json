@@ -1,0 +1,10 @@
+{
+	"rk_peekborder_tl":  { "File": "peekborder.png", "Rect": "0,0,19,19", "Center": "19,19" },
+	"rk_peekborder_t":  { "File": "peekborder.png", "Rect": "19,0,1,19", "Center": "0,19" },
+	"rk_peekborder_tr":  { "File": "peekborder.png", "Rect": "20,0,19,19", "Center": "0,19" },
+	"rk_peekborder_l":  { "File": "peekborder.png", "Rect": "0,19,19,1", "Center": "19,0" },
+	"rk_peekborder_r":  { "File": "peekborder.png", "Rect": "20,19,19,1", "Center": "0,0" },
+	"rk_peekborder_bl":  { "File": "peekborder.png", "Rect": "0,20,19,19", "Center": "19,0" },
+	"rk_peekborder_b":  { "File": "peekborder.png", "Rect": "19,20,1,19", "Center": "0,0" },
+	"rk_peekborder_br":  { "File": "peekborder.png", "Rect": "20,20,19,19", "Center": "0,0" }
+}

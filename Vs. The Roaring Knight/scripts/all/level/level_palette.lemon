@@ -1,0 +1,109 @@
+function void copyPaletteDataFromTable(u8 index, u16 ramAddress)
+{
+	base.copyPaletteDataFromTable(index, ramAddress)
+	
+	if (index == 0x1e && isRoaringKnightMode)
+	{
+		// raw index file
+		// System.loadExternalRawData("rkz_palette", 0xfffffca0)
+		
+		// png
+		for (u8 j = 0; j < 3; ++j)
+		{
+			System.loadExternalPaletteData("rk_pal_stage", j, 0x800000, 0x20)
+			for (u8 i = 0; i < 16; ++i)
+			{
+				u32 rgba = u32[0x800000 + i * 4]
+				u16[0xfffffca0 + i * 2 + j * 32] = packColor(rgba)
+			}
+		}
+		
+		u32 dest = (ramAddress == 0xfc00) ? 0x802000 : 0x802180
+		u32 targetAddress = dest + rk_pal_mult * 0x40
+		u16 numColors
+		
+		zeroMemory(dest, 0x40)
+		
+		numColors = System.loadExternalPaletteData("boss_palette_roaring_knight", 0, 0x800000, 0x10)
+		for (u8 i = 0; i < numColors; ++i)
+		{
+			u32 rgba = u32[0x800000 + i * 4]
+			u16[targetAddress + i * 2] = packColorExt(rgba)
+		}
+		
+		targetAddress = dest + 0xe0
+		
+		numColors = System.loadExternalPaletteData("rk_pal_sky", 0, 0x800000, 0x20)
+		for (u8 i = 0; i < numColors; ++i)
+		{
+			u32 rgba = u32[0x800000 + i * 4]
+			u16[targetAddress + 0x20 + i * 2] = packColorExt(rgba)
+		}
+
+		/*for (u8 i = 0; i < 7; ++i)
+		{
+			debugLog(u16[0xfffffce2 + i * 2])
+			u16[0x8021a2 + rk_pal_mult * 0x40 + i * 2] = packColorExt(unpackColor(u16[0xfffffce2 + i * 2]))
+		}*/
+	}
+}
+
+//# address-hook(0x002142) end(0x002156)
+function void UpdatePaletteEffects.Default()
+{
+	if (isRoaringKnightMode)
+	{
+		if (level.palettefx.state == 3)
+		{
+			++level.palettefx.timer_1
+			FadeOutPalette()
+			if (level.palettefx.timer_1 == 0x15)
+				level.palettefx.state = 4
+		}
+		else if (level.palettefx.state == 5)
+		{
+			fillPlaneA_Default(camera.foreground.x.u16, camera.foreground.y.u16, getScreenWidth(), getScreenHeight())
+			
+			--level.palettefx.timer_1
+			FadeInPalette()
+			if (level.palettefx.timer_1 == 0)
+				level.palettefx.state = 6
+		}
+		else if (level.palettefx.state <= 2)
+		{
+			UpdatePaletteEffects.SuperForm()
+			if (level.palettefx.state == 1 || level.palettefx.state == 2)
+			{
+				if (level.palettefx.state == 1)
+				{
+					++level.palettefx.timer_1
+					if (level.palettefx.timer_1 == 30)
+						level.palettefx.state = 0
+				}
+				else
+				{
+					--level.palettefx.timer_1
+					if (level.palettefx.timer_1 == 0)
+						level.palettefx.state = 0
+				}
+				
+				System.loadExternalPaletteData("rk_pal_sky", 0, 0x800000, 0x20)
+				u16 numColors = System.loadExternalPaletteData("rk_pal_sky", 1, 0x800080, 0x20)
+				
+				u16 blendFactor = Math.roundToInt(Math.lerp(0.0, 256.0, level.palettefx.timer_1 / 30.0))
+				//debugLog(blendFactor)
+				
+				for (u8 i = 0; i < numColors; ++i)
+				{
+					if (u32[0x800080 + i * 4] != 0)
+					{
+						u32 rgba = blendColors_RGBA32(u32[0x800000 + i * 4], u32[0x800080 + i * 4], blendFactor)
+						u16[0x801fc0 + rk_pal_mult * 0x40 + i * 2] = packColorExt(rgba)
+					}
+				}
+			}
+		}
+	}
+	else
+		base.UpdatePaletteEffects.Default()
+}

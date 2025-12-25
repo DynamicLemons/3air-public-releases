@@ -1,0 +1,149 @@
+function bool updateDebugModeInput(bool playingAsTails)
+{
+	if (Key2 && isRoaringKnightMode)
+	{
+		if (control.pad1.pressed & CONTROL_A)
+		{
+			roaringKnight_arena_floatMode = !roaringKnight_arena_floatMode
+			if (roaringKnight_arena_floatMode)
+				Character.onRKFloatEnter()
+			else
+				Character.onRKFloatExit()
+			return false
+		}
+	}
+	return base.updateDebugModeInput(playingAsTails)
+}
+
+function bool updateDebugModeRegular()
+{
+	bool ret = base.updateDebugModeRegular()
+	if (isRoaringKnightMode && roaringKnight_arena_floatMode && debug_mode.state == 0)
+		Character.onRKFloatEnter()
+	return ret
+}
+
+function bool debugModeRescue()
+{
+	if (isRoaringKnightMode)
+	{
+		u8 deny = char.invuln.countdown
+		bool ret = base.debugModeRescue()
+		if (ret)
+		{
+			ring_counter = rk_maxHpChar
+			rkC_dmgfx_time = 5
+			char.invuln.countdown = deny
+			roaringKnight_ui_hidden = false
+			hud.dirty.timer = 0xff
+			Game.endSkippableCutscene()
+		}
+		return ret
+	}
+	return base.debugModeRescue()
+}
+
+//# address-hook(0x092ad4) end(0x092c52)
+function void DebugMode.EvaluateInput()
+{
+	if (isRoaringKnightMode)
+	{
+		bool skipMovement = false
+
+		D4 = control.pad1.pressed & CONTROL_DPAD
+		if (D4 == 0)
+		{
+			if ((control.pad1.state & CONTROL_DPAD) == 0)
+			{
+				debug_mode.move_delay = 12
+				debug_mode.move_speed = 15
+				skipMovement = true
+			}
+			else
+			{
+				--debug_mode.move_delay
+				if (debug_mode.move_delay == 0)
+				{
+					debug_mode.move_delay = 1	// That's basically no delay at all
+
+					// Increase movement speed, up to 0xff
+					if (debug_mode.move_speed < 0xff)
+						++debug_mode.move_speed
+					D4 = control.pad1.state
+				}
+			}
+		}
+		else
+		{
+			D4 = control.pad1.state
+		}
+
+		if (!skipMovement)
+		{
+			// Free movement
+			u32 step = (u32(debug_mode.move_speed) + 1) << 12
+			D3 = char.position.x
+			D2 = char.position.y
+			if (D4 & CONTROL_UP)
+			{
+				D2 -= step
+				D0 = u32(level.vertical_wrap) << 16
+				//D2.s32 = max(D2.s32, D0.s32)
+			}
+			if (D4 & CONTROL_DOWN)
+			{
+				D2 += step
+				D0 = u32(move_area.bottom.target + 223) << 16
+				//D2.s32 = min(D2.s32, D0.s32)
+			}
+			if (D4 & CONTROL_LEFT)
+			{
+				D3 -= step
+				D3.s32 = max(D3.s32, 0)
+			}
+			if (D4 & CONTROL_RIGHT)
+			{
+				D3 += step
+			}
+			char.position.x = D3
+			char.position.y = D2
+		}
+
+		if (control.pad1.pressed & CONTROL_B)
+		{
+			debug_mode.state = 0
+
+		#if !STANDALONE
+			set_status_register(0x2700)
+		#endif
+			ResetScoreDisplay()
+			hud.dirty.score = 0x01
+			hud.dirty.rings = 0x80
+		#if !STANDALONE
+			set_status_register(0x2300)
+		#endif
+
+			u8[A0 + 0x05] = base_state.NORMAL
+			u16[A0 + 0x12] = 0
+			u16[A0 + 0x16] = 0
+			objA0.velocity.x = 0
+			objA0.velocity.y = 0
+			objA0.groundspeed = 0
+			objA0.state = char.state.RUNNING
+			u8[A0 + 0x2a] &= char.flag.FACING_LEFT
+			u8[A0 + 0x2a] |= char.flag.IN_AIR
+			u8[A0 + 0x2e] = 0
+			u8[A0 + 0x3d] = 0
+	
+			objA0.mapping_offset = debug_mode.backup.mapping_offset
+			objA0.sprite_attributes = debug_mode.backup.sprite_attributes
+			
+			if (roaringKnight_arena_floatMode)
+				Character.onRKFloatEnter()
+			else
+				Character.onRKFloatExit()
+		}
+	}
+	else
+		base.DebugMode.EvaluateInput()
+}

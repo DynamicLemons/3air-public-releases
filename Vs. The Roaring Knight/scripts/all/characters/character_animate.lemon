@@ -1,0 +1,120 @@
+//# address-hook(0x012600) end(0x01286c)
+//# translated(0x012a2a) end(0x012a6e)
+function void UpdateSonicAnimation()
+{
+	if (char.state == char.state.STANDING && enable_rk_charStance && isRoaringKnightMode)
+	{
+		if (char.state != char.state.former)
+		{
+			char.state.former = char.state
+			char.animation.frame = 0
+			char.animation.timer = 0
+			char.flags &= ~char.flag.PUSHING
+			
+		#if LEMONS_TWEAKS_ACTIVE
+			System.setGlobalVariableValueByName(stringformat("p%d_moveAnimPart", ((A0.u16 - 0xb000) / 0x4a) + 1), 0)
+		#endif
+		}
+
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+
+		constant array<u8> AniTable = 
+		{
+			5,
+			0xba,
+			0xff
+		}
+		
+		A1 = 0x800000
+		for (u8 i = 0; i < AniTable.length(); ++i)
+			u8[A1 + i] = AniTable[i]
+		D0.u8 = AniTable[0]
+		
+		updateSonicAnimationStanding()
+
+		setPlayerGlobalValue("customKey", stringformat("fightstance_%d", char.animation.frame))
+	}
+	else
+		base.UpdateSonicAnimation()
+}
+
+//# address-hook(0x015862) end(0x015aae)
+function void UpdateTailsAnimation()
+{
+	if (char.state == char.state.STANDING && enable_rk_charStance && isRoaringKnightMode)
+	{
+		if (char.state != char.state.former)
+		{
+			char.state.former = char.state
+			char.animation.frame = 0
+			char.animation.timer = 0
+			char.flags &= ~char.flag.PUSHING
+			
+		#if LEMONS_TWEAKS_ACTIVE
+			System.setGlobalVariableValueByName(stringformat("p%d_moveAnimPart", ((A0.u16 - 0xb000) / 0x4a) + 1), 0)
+		#endif
+		}
+		
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+
+		constant array<u8> AniTable = 
+		{
+			5,
+			0xad,
+			0xff
+		}
+		
+		A1 = 0x800000
+		for (u8 i = 0; i < AniTable.length(); ++i)
+			u8[A1 + i] = AniTable[i]
+		D0.u8 = AniTable[0]
+		
+		updateSonicAnimationStanding()
+		
+		setPlayerGlobalValue("customKey", stringformat("fightstance_%d", char.animation.frame))
+	}
+	else
+		base.UpdateTailsAnimation()
+}
+
+//# address-hook(0x017d30) end(0x017ef0)
+function void UpdateKnucklesAnimation()
+{
+	if (char.state == char.state.STANDING && enable_rk_charStance && isRoaringKnightMode)
+	{
+		if (char.state != char.state.former)
+		{
+			char.state.former = char.state
+			char.animation.frame = 0
+			char.animation.timer = 0
+			char.flags &= ~char.flag.PUSHING
+		
+		#if LEMONS_TWEAKS_ACTIVE
+			System.setGlobalVariableValueByName(stringformat("p%d_moveAnimPart", ((A0.u16 - 0xb000) / 0x4a) + 1), 0)
+		#endif
+		}
+		
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+
+		constant array<u8> AniTable = 
+		{
+			5,
+			0xd8, 0xd9, 0xda, 0xdb,
+			0xff
+		}
+		
+		A1 = 0x800000
+		for (u8 i = 0; i < AniTable.length(); ++i)
+			u8[A1 + i] = AniTable[i]
+		D0.u8 = AniTable[0]
+		
+		updateSonicAnimationStanding()
+		
+		setPlayerGlobalValue("customKey", stringformat("fightstance_%d", char.animation.frame))
+	}
+	else
+		base.UpdateKnucklesAnimation()
+}

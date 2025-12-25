@@ -1,0 +1,59 @@
+//# address-hook(0x02d76a) end(0x02d802)
+function void TitleCard.Wait()
+{
+	if (global.zone_act != 0x0a00 || !isRoaringKnightMode)
+	{
+		base.TitleCard.Wait()
+		return
+	}
+	
+	if (kosinski.waiting_modules)
+		return
+
+	if (allocDynamicObjectAfterA0())
+	{
+		// Normal stage
+		A2 = 0x02da6e
+		D1 = 3
+
+		while (D1.s16 >= 0)
+		{
+			++u16[A0 + 0x30]
+			objA1.update_address = u32[A2]
+			objA1.render_flags = render_flag.COMPOUND
+			u16[A1 + 0x46] = u16[A2+4]
+			objA1.position.x.u16 = u16[A2+6]
+			objA1.position.y.u16 = u16[A2+8]
+			u8[A1 + 0x22] = u8[A2+10]
+			objA1.box_size.x = u8[A2+11]
+			u8[A1 + 0x28] = u16[A2+12]
+			objA1.mapping_offset = 0x02ee10
+			u16[A1 + 0x48] = A0.u16
+			A2 += 14
+
+		#if STANDALONE
+			// Move title card elements towards screen center
+			u16 offset = getScreenExtend()
+			if (objA1.update_address == 0x02d92c) // "The Roaring Knight"
+			{
+				offset -= 4
+				objA1.position.x.u16 += 32
+			}
+			else if (objA1.update_address == 0x02d95c) // "VS."
+			{
+				objA1.position.y.u16 -= 64
+				offset -= 208
+			}
+			objA1.position.x.u16 += offset
+			if (objA1.update_address != addressof(TitleCard.RedBarElement.Update))
+				u16[A1 + 0x46] += offset
+		#endif
+
+			--D1.s16
+			if (!allocDynamicObjectAfterA1())
+				break
+		}
+
+		objA0.base_state += 2
+	}
+}

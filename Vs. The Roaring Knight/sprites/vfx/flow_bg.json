@@ -1,0 +1,4 @@
+{
+	"roaringknightfx_flow_bg_0":  { "File": "flow_bg.png", "Rect": "0,0,320,240", "Center": "160,0" },
+	"roaringknightfx_flow_bg_1":  { "File": "flow_bg.png", "Rect": "320,0,320,240", "Center": "160,0" }
+}

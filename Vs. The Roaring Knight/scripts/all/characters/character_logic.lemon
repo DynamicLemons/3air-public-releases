@@ -1,0 +1,681 @@
+function void Character.onRKFloatEnter()
+{
+	char.state = char.state.LIFTED
+	
+	char.control_flags = control_flag.DISABLE_UPDATE
+	char.hitbox_extends.x = char.hitbox.x.ROLLING
+	char.hitbox_extends.y = char.hitbox.y.ROLLING
+	
+	char.flags |= (char.flag.ROLLING | char.flag.IN_AIR)
+	char.jumping = 0
+	char.spindash = 0
+	char.double_jump_state = 0
+	char.control_flags = control_flag.DISABLE_UPDATE
+	
+	UpdateCharacterAnimation()
+}
+
+function void Character.onRKFloatExit()
+{
+	char.state = char.state.ROLLING
+	
+	char.hitbox_extends.x = char.hitbox.x.ROLLING
+	char.hitbox_extends.y = char.hitbox.y.ROLLING
+	
+	char.flags |= (char.flag.ROLLING | char.flag.IN_AIR)
+	char.jumping = 0
+	char.double_jump_state = 0
+	char.control_flags = 0
+	
+	UpdateCharacterAnimation()
+}
+
+//# address-hook(0x010d66) end(0x010dd8)
+function void Character.WriteToPositionBackup()
+{
+	// I'd perfer to run this straight from normalstate, but for the sake of compatibility, we'll run it from here
+	if (isRoaringKnightMode && roaringKnight_arena_floatMode && char.base_state == base_state.NORMAL && char.control_flags & control_flag.DISABLE_UPDATE)
+		Character.updateRKFloat()
+	base.Character.WriteToPositionBackup()
+}
+
+function void Character.updateRKFloat()
+{
+#if LEMONS_TWEAKS_ACTIVE
+	u8 input_state = Character.getControlVariable(0)
+#else
+	u8 input_state = control.player1.state
+#endif
+
+	s16 gX
+	s16 gY
+	s32 accel = 0x30
+	if (input_state & CONTROL_DPAD)
+	{
+		u8 temp 
+		s16 horz = (input_state & CONTROL_LEFT ? -1 : 0) + (input_state & CONTROL_RIGHT ? 1 : 0)
+		if (input_state & CONTROL_UP)
+			temp = 0xc0 + horz * 0x20
+		else if (input_state & CONTROL_DOWN)
+			temp = 0x40 - horz * 0x20
+		else
+			temp = (horz * 0x40) - 0x40
+		
+		gX = (s32(lookupCos(temp)) * 0x400) >> 8
+		gY = (s32(lookupSin(temp)) * 0x400) >> 8
+		accel = 0x40
+	}
+	
+	if (roaringKnight_arena_squareMode)
+		accel += 0x20
+		
+	if (char.velocity.x != gX || char.velocity.y != gY)
+	{
+		u8 angle = lookupAngleByVector(gX - char.velocity.x, gY - char.velocity.y)
+		
+		s16 accelX = (s32(lookupCos(angle)) * accel) >> 8
+		s16 accelY = (s32(lookupSin(angle)) * accel) >> 8
+		
+		if (char.velocity.x < gX)
+			char.velocity.x = min(char.velocity.x + accelX, gX)
+		else if (char.velocity.x > gX)
+			char.velocity.x = max(char.velocity.x + accelX, gX)
+			
+		if (char.velocity.y < gY)
+			char.velocity.y = min(char.velocity.y + accelY, gY)
+		else if (char.velocity.y > gY)
+			char.velocity.y = max(char.velocity.y + accelY, gY)
+	}
+	
+	Character.CheckAgainstMoveBorders()
+	UpdateMovementStraight()
+	Character.CheckCollision()
+}
+
+// could do this ""better"", but this is the least obtuse way of doing so.
+//# address-hook(0x012172) end(0x012178)
+//# address-hook(0x01560c) end(0x01569a)
+function void Character.LandingOnGround()
+{
+	if (!isRoaringKnightMode || !roaringKnight_arena_floatMode)
+		base.Character.LandingOnGround()
+}
+
+//# address-hook(0x0116de) end(0x011748)
+//# address-hook(0x014f08) end(0x014f72)
+function void Character.CheckAgainstMoveBorders()
+{
+	if (!isRoaringKnightMode)
+	{
+		base.Character.CheckAgainstMoveBorders()
+		return
+	}
+
+	// Get x-position (upper 16 bits = full pixel coordinate) after movement update
+	u16 px = (char.position.x + (s32(char.velocity.x) << 8)) >> 16
+	u16 py = (char.position.y + (s32(char.velocity.y) << 8)) >> 16
+
+	u16 leftBorder = move_area.left + char.hitbox.default.x + 1
+	u16 rightBorder = move_area.right + 400 - char.hitbox.default.x - 2
+	u16 topBorder = level.vertical_wrap + char.hitbox_extends.y + 1
+	u16 bottomBorder = move_area.bottom.current + getScreenHeight() - char.hitbox_extends.y - 1
+#if LEMONS_TWEAKS_ACTIVE
+	rightBorder += set_lt_fixedHitboxes
+#endif
+
+	if (px < leftBorder || Game.getSetting(SETTING_FIX_GLITCHES) && leftBorder <= 0x20 && s16(px) < s16(leftBorder) && s16(px) >= s16(leftBorder) - 0x80)
+	{
+		char.position.x = u32(leftBorder) << 16
+		char.velocity.x = max(objA0.velocity.x, 0)
+		char.groundspeed = max(objA0.groundspeed, 0)
+		if ((char.flags & char.flag.IN_AIR) == 0 && char.flags & char.flag.FACING_LEFT)
+			char.flags |= char.flag.PUSHING
+	}
+	else if (px > rightBorder)
+	{
+		char.position.x = u32(rightBorder) << 16
+		char.velocity.x = min(objA0.velocity.x, 0)
+		char.groundspeed = min(objA0.groundspeed, 0)
+		if ((char.flags & char.flag.IN_AIR) == 0 && (char.flags & char.flag.FACING_LEFT) == 0)
+			char.flags |= char.flag.PUSHING
+	}
+
+	if (roaringKnight_arena_floatMode)
+	{
+		if (py > bottomBorder)
+		{
+			objA0.position.y.u16 = bottomBorder
+			objA0.velocity.y = min(objA0.velocity.y, 0)
+		}
+		else if (py < topBorder)
+		{
+			objA0.position.y.u16 = topBorder
+			objA0.velocity.y = max(objA0.velocity.y, 0)
+		}
+	}
+	else
+	{
+		if (py > bottomBorder)
+		{
+			objA0.position.y.u16 = bottomBorder
+			objA0.velocity.y = -0x800
+			
+			char.hitbox_extends.x = char.hitbox.default.x
+			char.hitbox_extends.y = char.hitbox.default.y
+			char.state = char.state.GOT_HURT_PANIC
+			
+			char.flags &= ~(char.flag.PUSHING | char.flag.CONTROL_LOCK)
+			char.jumping = 0
+			char.rotation.x = 0
+			char.flags2d = 0
+			char.rotation.x.count = 0
+			char.look_up_down_timer = 0
+			
+			if (hud.dirty.timer)
+			{
+				if (char.invuln.countdown == 0)
+				{
+					charrk_dmg_damageCharacter(15, 0)
+					playSound(SFX_HITSPIKES)
+				}
+				else
+					playSound(SFX_HURT)
+			}
+		}
+		else if (py < topBorder)
+		{
+			objA0.position.y.u16 = topBorder
+			objA0.velocity.y = 0
+		}
+	}
+}
+
+//# address-hook(0x00ff06) end(0x00ff5e)
+function void Character.CheckCollisionsWithDynamicObjects_partial()
+{
+	if (!isRoaringKnightMode)
+	{
+		base.Character.CheckCollisionsWithDynamicObjects_partial()
+		return
+	}
+	
+#if LEMONS_TWEAKS_ACTIVE
+	if (set_lt_fixedHitboxes)
+	{
+		u8 quart = getRotationQuarter(char.rotation)
+		s16 x = D2.s16 - s16(char.position.x.u16)
+		s16 y = D3.s16 - s16(char.position.y.u16)
+		s16 w = D4.s16
+		s16 h = D5.s16
+		
+		if (quart == 0xc0)
+		{
+			D2.u16 = char.position.x.u16 + y
+			D3.u16 = char.position.y.u16 - w - x
+			D4.u16 = h
+			D5.u16 = w
+		}
+		else if (quart == 0x80)
+		{
+			D2.u16 = char.position.x.u16 - w - x
+			D3.u16 = char.position.y.u16 - h - y
+		}
+		else if (quart == 0x40)
+		{
+			D2.u16 = char.position.x.u16 - h - y
+			D3.u16 = char.position.y.u16 + x
+			D4.u16 = h
+			D5.u16 = w
+		}
+	}
+#endif
+	
+	rkC_collis_hX = D2.u16
+	rkC_collis_hY = D3.u16
+	rkC_collis_hW = D4.u16
+	rkC_collis_hH = D5.u16
+	rkC_collis_enable = true
+	rkC_collis_instaShield = (char.bonus_effect & char.bonus.INVINCIBLE) // probably!
+}
+
+//# address-hook(0x39B362) end(0x39B362)
+function void RK_c_collisRunner()
+{
+	// Under vanilla behavior, dynamic hitbox collision is essentially delayed by 1 frame, and in this case, I'd like to avoid that.
+	// This isn't a problem in vanilla, but it's a bit annoying to workaround in a context like this.
+	
+	if (rkC_collis_enable)
+	{
+		push(A0)
+		A0 = 0xffffb000
+		if (debugDrawFlag == 2)
+			Renderer.drawRect(rkC_collis_hX, rkC_collis_hY, rkC_collis_hW, rkC_collis_hH, 0x00ff0080, 0xfff5, true)
+		Character.rkDynamicCollision(rkC_collis_hX, rkC_collis_hY, rkC_collis_hW, rkC_collis_hH)
+		A0 = pop()
+		rkC_collis_enable = false
+	}
+}
+
+function void Character.rkDynamicCollision(u16 _boxX, u16 _boxY, u16 _boxW, u16 _boxH)
+{
+	u16 numObjects = global.dynamic_objects.size		// Actually it's twice the number of dynamic objects
+	A4 = addressof(global.dynamic_objects.size) + 2		// Resulting address: 0xffffe382
+	while (numObjects != 0)
+	{
+		// Get address of dynamic object
+		A1 = 0xffff0000 + u16[A4]
+		A4 += 2
+
+		// Offset into a list of hitbox sizes (the list looks a bit random)
+		u16 offset = objA1.collision_attributes
+		if (offset != 0)
+		{
+			u16 size = (offset & collision_attributes.size)
+			// Targets:
+			A2 = 0x00ff62 + size * 2
+			s16 hitbox.x = u8[A2]
+			s16 hitbox.y = u8[A2+1]
+			// hardcode a vanilla hitbox size to do our bidding...
+			if (size == collision.size.rk_extend)
+			{
+				hitbox.x = objA1.hitbox_extends.x
+				hitbox.y = objA1.hitbox_extends.y
+			}
+			
+			u16 px = objA1.position.x.u16 - hitbox.x
+			u16 py = objA1.position.y.u16 - hitbox.y
+			u16 sx = hitbox.x * 2
+			u16 sy = hitbox.y * 2
+			if (charrk_dmg_isUneven())
+			{
+				++sx
+				++sy
+			}
+			
+			bool collide = false
+			// handle garlics
+			if (objA1.update_address == rkaddress_star && objA1.base_state == 2) 
+			{
+				hitbox.x = Math.ceilToInt(4 * (objA1.value32 / (32.0 * rk_starScaleFactor)))
+				hitbox.y = hitbox.x
+				sx = hitbox.x * 2
+				sy = hitbox.y * 2
+
+				u8 j = 6
+				if (objA1.subtype2c == 2)
+					j = 2
+				
+				for (u8 i = 0; i < j; ++i)
+				{
+					u32 A0_o = A0
+					A0 = A1
+					rk_getStarPosition(i, j)
+					A0 = A0_o
+
+					px = (D0 >> 16) - hitbox.x
+					py = (D1 >> 16) - hitbox.y
+					
+					if (objA1.groundspeed <= D2 - 7)
+					{
+					#if LEMONS_TWEAKS_ACTIVE
+						if (debugDrawFlag == 2)
+							debugDrawRect(px, py, sx, sy, 0x800000ff)
+					#endif
+						//debugLog(stringformat("%06x, %d : %d %d %d %d", A0, i, px, py, sx, sy))
+						if (checkBoxOverlap(char.position.x.u16 - 8, char.position.y.u16 - (char.hitbox_extends.y - 3), 16, (char.hitbox_extends.y - 3) * 2, px, py, sx, sy))
+						{
+							collide = true
+							break
+						}
+					}
+				}
+			}
+			// line
+			else if (objA1.update_address == rkaddress_orbitDagger || objA1.update_address == rkaddress_circleDagger && objA1.base_state == 6 || objA1.update_address == rkaddress_daggerStationary)
+			{
+				s32 dist = 800
+				u8 angle = objA1.value26
+				if (objA1.update_address == rkaddress_circleDagger && objA1.render_flags & render_flag.FLIP_X)
+					angle = angle + 0x80
+				
+				u16 x1 = objA1.position.x.u16
+				u16 y1 = objA1.position.y.u16
+				u16 x2 = x1 + ((s32(lookupCos(angle)) * dist) >> 8)
+				u16 y2 = y1 + ((s32(lookupSin(angle)) * dist) >> 8)
+				
+			#if LEMONS_TWEAKS_ACTIVE
+				if (debugDrawFlag == 2)
+					Renderer.drawLine(x1, y1, x2, y2, 0xff000080, 0xffff, 1, true, true)
+			#endif
+			
+				collide = checkLineIntersectRectangle(x1, y1, x2, y2, char.position.x.u16 - 8, char.position.y.u16 - (char.hitbox_extends.y - 3), 16, (char.hitbox_extends.y - 3) * 2)
+			}
+			// rotated
+			else if (objA1.update_address == rkaddress_swordHallway && (objA1.base_state || objA1.subtype2c == 1) || objA1.update_address == rkaddress_lineSlash || objA1.update_address == rkaddress_circleDagger || objA1.update_address == rkaddress_swordFalling)
+			{
+				float radA
+				float radB
+				s16 rW
+				s16 rH
+				if (objA1.update_address == rkaddress_lineSlash)
+				{
+					float _angle = (u16[A1 + 0x26] * 360.0 / 65535.0) + 90.0
+					radA = Math.degreesToRadians(_angle)
+					radB = Math.degreesToRadians(_angle - 90.0)
+					rW = 3
+					rH = 550
+				}
+				else
+				{
+					radA = Math.degreesToRadians(objA1.value26 * 360.0 / 256.0)
+					radB = Math.degreesToRadians((objA1.value26 - 0x40) * 360.0 / 256.0)
+					rW = objA1.hitbox_extends.x
+					rH = objA1.hitbox_extends.y
+				}
+				
+				float sinA = Math.sin(radA)
+				float cosA = Math.cos(radA)
+				float sinB = Math.sin(radB)
+				float cosB = Math.cos(radB)
+				
+				u16 cx = objA1.position.x.u16
+				u16 cy = objA1.position.y.u16
+				
+				for (u8 i = 0; i < 4; ++i)
+				{
+					s16 tempA
+					s16 tempB
+					s16 tempC
+					s16 tempD
+					
+					if (i <= 1)
+					{
+						tempA = -rW
+						tempB = -rH
+						tempC = -rW 
+						tempD = rH
+						if (i == 1)
+						{
+							tempA *= -1
+							tempC *= -1
+						}
+					}
+					else
+					{
+						tempA = -rW
+						tempB = -rH
+						tempC = rW 
+						tempD = -rH
+						if (i == 3)
+						{
+							tempB *= -1
+							tempD *= -1
+						}
+					}
+					
+					u16 x1 = Math.roundToInt(cosA * tempB + cosB * tempA) + cx
+					u16 y1 = Math.roundToInt(sinA * tempB + sinB * tempA) + cy
+					u16 x2 = Math.roundToInt(cosA * tempD + cosB * tempC) + cx
+					u16 y2 = Math.roundToInt(sinA * tempD + sinB * tempC) + cy
+					
+				#if LEMONS_TWEAKS_ACTIVE
+					if (debugDrawFlag == 2)
+						Renderer.drawLine(x1, y1, x2, y2, 0xff00ff80, 0xffff, 1, true, true)
+				#endif
+
+					if (checkLineIntersectRectangle(x1, y1, x2, y2, char.position.x.u16 - 8, char.position.y.u16 - (char.hitbox_extends.y - 3), 16, (char.hitbox_extends.y - 3) * 2))
+					{
+						collide = true
+						break
+					}
+				}
+			}
+			// vanilla
+			else
+			{
+			#if LEMONS_TWEAKS_ACTIVE
+				if (debugDrawFlag == 2)
+				{
+					if ((offset & collision_attributes.flags) == collision.flag.ITEM)
+						Renderer.drawRect(px, py, sx, sy, 0x00ff0080, 0xffff, true)
+					else if ((offset & collision_attributes.flags) == collision.flag.SPECIAL)
+						Renderer.drawRect(px, py, sx, sy, 0x0000ff80, 0xffff, true)
+					else if ((offset & collision_attributes.flags) == collision.flag.THREAT)
+						Renderer.drawRect(px, py, sx, sy, 0xff000080, 0xffff, true)
+					else
+						Renderer.drawRect(px, py, sx, sy, 0xff00ff80, 0xffff, true)
+				}
+			#endif
+				
+				// Insta-shield and alike cases...
+				// we're making this addition due to invincibility acting as a defense buff flag rather than invincibility
+				if ((offset & collision_attributes.flags) == collision.flag.THREAT && _boxW > 16 && _boxH > (char.hitbox_extends.y - 3) * 2)
+					collide = (checkBoxOverlap(char.position.x.u16 - 8, char.position.y.u16 - (char.hitbox_extends.y - 3), 16, (char.hitbox_extends.y - 3) * 2, px, py, sx, sy))
+				else
+					collide = (checkBoxOverlap(_boxX, _boxY, _boxW, _boxH, px, py, sx, sy))
+			}
+			
+			if (collide)
+			{
+				// Copy a minor LT change over- allow for multiple collisions in one frame.
+				// This shouldn't affect much really, but just in case...
+				Character.OnCollisionWithDynamicObject()
+				if (char.base_state != base_state.NORMAL)
+					return
+			}
+		}
+
+		numObjects -= 2
+	}
+}
+
+//# address-hook(0x01021e) end(0x010288)
+function void Character.OnThreatCollision()
+{
+	if (!isRoaringKnightMode)
+	{
+		base.Character.OnThreatCollision()
+		return
+	}
+
+	// ignore everything, pass through anyway
+	u16 damage = charrk_dmg_getBulletDamage()
+		
+	if (char.invuln.countdown)
+	{
+		if (rkC_invulDmgLimit < damage)
+			damage -= rkC_invulDmgLimit
+		else
+			return
+	}
+	
+	charrk_dmg_damageCharacter(Math.ceilToInt(damage), charrk_dmg_invulTime())
+	playSound(charrk_dmg_hitSound())
+}
+
+function float charrk_dmg_getCharDmgTakeMult()
+{
+	if (rkC_collis_instaShield)
+		return 0.70
+	return 1.0
+}
+
+function void charrk_dmg_damageCharacter(u16 damage, u8 invulTime)
+{
+	if (char.invuln.countdown == 0)
+		rkC_invulDmgLimit = damage
+	else
+		rkC_invulDmgLimit += damage
+	
+	damage = Math.ceilToInt(damage * charrk_dmg_getCharDmgTakeMult())
+	
+	push(A1)
+	RoaringKnight_summonDamageNumber(damage, char.position.x.u16 - 27, char.position.y.u16 + char.hitbox.default.y - 8, 1)
+	A1 = pop()
+	
+	rkC_playBackHp = ring_counter
+	rkC_dmgfx_time = 5 + Math.floorToInt(damage / 5)
+	rkC_dmgfx_maxTime = rkC_dmgfx_time
+	
+	if (ring_counter <= damage)
+	{
+		ring_counter = 0
+		Character.Die()
+		UpdateCharacterAnimation()
+		roaringKnight_ui_hidden = true
+		hud.dirty.timer = 0
+		
+		Game.startSkippableCutscene()
+		return
+	}
+	ring_counter -= damage
+	
+	charrk_dmg_setHitMomentum()
+
+	char.invuln.countdown = invulTime
+}
+
+//# address-hook(0x0103ba) end(0x01040a)
+function void fn0103ba()
+{
+	if (objA1.update_address == rkaddress_dessHoliday)
+		Character.hitRoaringKnight()
+	else
+		base.fn0103ba()
+}
+
+function void Character.hitRoaringKnight()
+{
+	if (roaringKnight_collisionTimeout == 0)
+	{
+		Character.hitRoaringKnight_calcDamage()
+		Character.hitRoaringKnight_setSpeed()
+	}
+	else
+	{
+		u8 angle = calcAngleBetweenPoints(objA1.position.x.u16, objA1.position.y.u16, objA0.position.x.u16, objA0.position.y.u16)
+		if (roaringKnight_collisionVX != 0 || roaringKnight_collisionVY != 0)
+			angle = angle * 2 - lookupAngleByVector(roaringKnight_collisionVX, roaringKnight_collisionVY)
+		Character.hitRoaringKnight_pushOut(angle)
+	}
+	
+	roaringKnight_collisionTimeout = 5
+}
+
+function u16 charrk_getCharDmgDeal()
+{
+	s16 hitStrength = calcDist(objA0.velocity.x, objA0.velocity.y) 
+	float damage = max(hitStrength - 0x200, 0) / 75.0
+
+	// Knuckles gets a flat damage increase
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	if (char.character == CHARACTER_KNUCKLES && getECFCharBufferName() == 0)
+#else
+	if (char.character == CHARACTER_KNUCKLES)
+#endif
+		damage *= 1.35
+
+	return Math.ceilToInt(damage)
+}
+
+function void Character.hitRoaringKnight_calcDamage()
+{
+	if (Character.isAttacking())
+	{
+		if (roaringKnight_phaseQualify)
+		{
+			RoaringKnight_summonDamageNull(objA1.position.x.u16 - 27, objA1.position.y.u16 + objA1.box_size.y - 8, 0)
+			playSound(SFX_CLINK)
+		}
+		else
+		{
+			u16 damage = charrk_getCharDmgDeal()
+
+			if (damage > 30)
+				Audio.playAudio("snd_knight_hurt")
+			else if (damage > 15)
+				Audio.playAudio("snd_knight_hurtb")
+			else
+				playSound(SFX_LANDTOUGH)
+			
+			push(A1)
+			RoaringKnight_summonDamageNumber(damage, objA1.position.x.u16 - 27, objA1.position.y.u16 + objA1.box_size.y - 8, 0)
+			A1 = pop()
+			roaringKnight_health = max(roaringKnight_health - damage, 0)
+			
+			if (roaringKnight_health == 0)
+			{
+				roaringKnight_phaseQualify = true
+				level.palettefx.state = 1
+			}
+		}
+	}
+	else
+		playSound(SFX_CLINK)
+}
+
+function void Character.hitRoaringKnight_setSpeed()
+{
+	u8 knockAngle = calcAngleBetweenPoints(objA1.position.x.u16, objA1.position.y.u16, objA0.position.x.u16, objA0.position.y.u16)
+	s16 knockPower = 0x80
+	
+	if (char.flags & char.flag.IN_AIR)
+	{
+		s16 pSpeed = calcDist(objA0.velocity.x, objA0.velocity.y)
+		s16 dSpeed = calcDist(roaringKnight_collisionVX, roaringKnight_collisionVY)
+		if (dSpeed > pSpeed)
+		{
+			knockAngle = lookupAngleByVector(roaringKnight_collisionVX, roaringKnight_collisionVY)
+			knockPower += dSpeed
+		}
+		else
+			knockPower += pSpeed
+	
+		char.velocity.x = (s32(lookupCos(knockAngle)) * knockPower) >> 8
+		char.velocity.y = (s32(lookupSin(knockAngle)) * knockPower) >> 8
+		
+	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+		if (char.character == CHARACTER_KNUCKLES && getECFCharBufferName() == 0 && char.double_jump_state == 1)
+	#else
+		if (char.character == CHARACTER_KNUCKLES && char.double_jump_state == 1)
+	#endif
+		{
+			char.double_jump_state = 2
+			char.state = char.state.KNUX_FALLING
+			char.hitbox_extends.x = char.hitbox.default.x
+			char.hitbox_extends.y = char.hitbox.default.y
+		}
+	}
+	else
+	{
+		knockPower += max(abs(char.groundspeed), abs(roaringKnight_collisionVX))
+		
+		u16 px = (char.position.x - (s32(char.velocity.x) << 8)) >> 16
+		s16 mult = clamp(s16(px - objA1.position.x.u16), -1, 1)
+		if (mult == 0)
+			mult = (char.flags & char.flag.FACING_LEFT) ? -1 : 1
+			
+		char.groundspeed = mult * knockPower
+		if ((char.flags & char.flag.ROLLING) == 0)
+			char.hlock_countdown = 15
+	}
+}
+
+function void Character.hitRoaringKnight_pushOut(u8 angle)
+{
+	u32 pow = 2 << 8
+	
+	s32 pushY = (s32(lookupSin(angle)) * pow)
+	char.position.x += (s32(lookupCos(angle)) * pow) 
+	
+	if (char.flags & char.flag.IN_AIR)
+		char.position.y += pushY
+	else
+	{
+		if (pushY < 0)
+		{
+			char.position.y += pushY
+			char.flags |= char.flag.IN_AIR
+		}
+	}
+}

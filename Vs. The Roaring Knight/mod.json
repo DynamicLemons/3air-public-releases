@@ -1,0 +1,22 @@
+{
+	"Metadata":
+	{
+		"Name": "Vs. The Roaring Knight",
+		"UniqueID": "dynamic-lemons-roaringKnight",
+		"Author": "Dynamic Lemons",
+		"GameVersion": "25.02.15.0",
+		"ModVersion": "12/25/2025 Release"
+	},
+	"OtherMods":
+	{
+		"extra-character-framework":
+		{
+			"Priority": "Lower"
+		},
+
+		"dynamic-lemons-tweaks":
+		{
+			"Priority": "Lower"
+		}
+	}
+}

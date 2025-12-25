@@ -1,0 +1,272 @@
+//# address-hook(0x00db44) end(0x00dbb2)
+function void RenderHUD()
+{
+	if (isRoaringKnightMode)
+	{
+		rk_renderStageAssets()
+		if (level.wait_for_results)
+			RenderRoaringResults()
+		else
+			RenderRoaringHud()
+	}
+	else
+		base.RenderHUD()
+}
+
+function void RenderRoaringHud()
+{
+	Renderer.resetViewport(0)
+
+	string key
+	string tempString
+	s16 px = 8
+	s16 py = 8
+	u16 renderQueue = 0xe000
+	
+	// health
+	u16 mCount = rk_maxHpChar / 24
+	px += (mCount - 1) * 6
+	
+	for (u8 i = 0; i < mCount; ++i)
+	{
+		s16 deplete = ((mCount - 1) - i) * 24
+		s16 readHealth = clamp(ring_counter - deplete, 0, 24)
+		s16 readDamage = clamp(rkC_playBackHp - deplete, 0, 24)
+		//debugLog(readHealth)
+		u8 line = 0
+		py = min(roaringKnight_ui_healthY - ((mCount - 1) - i) * rk_ringoffsets, 8)
+
+		// full gold
+		if (readHealth >= 24)
+		{
+			SpriteHandle spr = Renderer.addSpriteHandle("health_ring", px, py, renderQueue)
+			spr.setPriorityFlag(true)
+			spr.setPalette("rk_pal_hud_ring", (readHealth <= 0) ? 3 : 0)
+			spr.setUseGlobalComponentTint(true)
+		}
+		// partial
+		else if (readHealth > 0)
+		{
+			line = 2 - Math.roundToInt(readHealth / 24.0 * 2)
+			
+			SpriteHandle sprA = Renderer.addSpriteHandle("health_ring", px, py, renderQueue)
+			sprA.setPriorityFlag(true)
+			sprA.setPalette("rk_pal_hud_ring", 3)
+			sprA.setUseGlobalComponentTint(true)
+			++renderQueue
+			
+			Renderer.setViewport(px, py + (24 - readHealth), 16, readHealth, renderQueue)
+			++renderQueue
+			
+			SpriteHandle sprC = Renderer.addSpriteHandle("health_ring", px, py, renderQueue)
+			sprC.setPriorityFlag(true)
+			sprC.setPalette("rk_pal_hud_ring", line)
+			sprC.setUseGlobalComponentTint(true)
+			++renderQueue
+		}
+		// empty
+		else
+		{
+			SpriteHandle spr = Renderer.addSpriteHandle("health_ring", px, py, renderQueue)
+			spr.setPriorityFlag(true)
+			spr.setPalette("rk_pal_hud_ring", 3)
+			spr.setUseGlobalComponentTint(true)
+		}
+
+		//debugLog(stringformat("%d %d", readHealth, readDamage))
+		
+		if (readDamage != readHealth)
+		{
+			if (rkC_playBackHp < ring_counter)
+				Renderer.setViewport(px, py, 16, 24 - readDamage, renderQueue)
+			else
+				Renderer.setViewport(px, py + (24 - readDamage), 16, readDamage - readHealth, renderQueue)
+			++renderQueue
+			
+			SpriteHandle chngOvrl = Renderer.addSpriteHandle("health_ring", px, py, renderQueue)
+			chngOvrl.setPriorityFlag(true)
+			chngOvrl.setPalette("rk_pal_hud_ring", (rkC_playBackHp < ring_counter) ? 5 : 4)
+			chngOvrl.setUseGlobalComponentTint(true)
+			chngOvrl.setOpacity(1.0 * rkC_dmgfx_time / rkC_dmgfx_maxTime)
+			++renderQueue
+		}
+
+		Renderer.resetViewport(renderQueue)
+		++renderQueue
+		
+		px -= 6
+	}
+	
+	//debugLog(stringformat("%d %d", ring_counter, rkC_playBackHp >> 8))
+	
+	if (rkC_dmgfx_time > 0)
+		--rkC_dmgfx_time
+	else
+		rkC_playBackHp = ring_counter
+	
+	// time
+	px = 8
+	py = getScreenHeight() - 8
+	if (!roaringKnight_ui_tooLong)
+	{
+		tempString = stringformat("%02d:%02d.%02d", timer.minutes, timer.seconds, timer.frames)
+		for (u8 i = 0; i < 4; ++i)
+			Renderer.drawText("oxyfont_small", px + (i % 2), py + i / 2, tempString, ((i == 0) ? 0xfcfcfc00 : 0x24242400) + roaringKnight_ui_timerAlpha, 7, 0, renderQueue + (i == 0), false, true)
+	}
+	
+	// debugging information
+	if (debug_mode.state)
+	{
+		px = getScreenWidth() - 8
+		py = 8
+		
+		tempString = stringformat("%d / %d", ring_counter, rk_maxHpChar)
+		for (u8 i = 0; i < 4; ++i)
+			Renderer.drawText("oxyfont_regular", px + (i % 2), py + i / 2, tempString, ((i == 0) ? 0xfcfcfc00 : 0x24242400) + roaringKnight_ui_timerAlpha, 3, 0, renderQueue + (i == 0), false, true)
+		py += 12
+		
+		tempString = stringformat("%d / %d", roaringKnight_health, rk_maxHpBoss)
+		for (u8 i = 0; i < 4; ++i)
+			Renderer.drawText("oxyfont_regular", px + (i % 2), py + i / 2, tempString, ((i == 0) ? 0xfcfcfc00 : 0x24242400) + roaringKnight_ui_timerAlpha, 3, 0, renderQueue + (i == 0), false, true)
+		py += 12
+	
+		// c
+		A0 = roaringKnight_memLoc
+		Renderer.drawText("sonic3_fontB", px, py, stringformat("cam %04x %04x", camera.position.x.u16, camera.position.y.u16), 0xfcfcfcff, 3, 0, renderQueue, false, true)
+		py += 8
+		// p1
+		A0 = 0xffffb000
+		Renderer.drawText("sonic3_fontB", px, py, stringformat("p1 %04x %04x", objA0.position.x.u16, objA0.position.y.u16), 0xfcfcfcff, 3, 0, renderQueue, false, true)
+		py += 8
+		// rk
+		A0 = roaringKnight_memLoc
+		Renderer.drawText("sonic3_fontB", px, py, stringformat("rk %04x %04x", objA0.position.x.u16, objA0.position.y.u16), 0xfcfcfcff, 3, 0, renderQueue, false, true)
+	}
+
+	// offscreen indicator
+	A0 = roaringKnight_memLoc
+	
+	// offset updates; might be bad place to update, but whatever
+	if (roaringKnight_ui_hidden)
+	{
+		roaringKnight_ui_timerAlpha = max(roaringKnight_ui_timerAlpha - 25, 0)
+		roaringKnight_ui_healthY = max(roaringKnight_ui_healthY - 12, -rk_ringoffsets)
+	}
+	else
+	{
+		roaringKnight_ui_timerAlpha = min(roaringKnight_ui_timerAlpha + 25, 255)
+		roaringKnight_ui_healthY = min(roaringKnight_ui_healthY + 6, rk_ringoffsets * 10)
+	}	
+}
+
+function void RenderRoaringResults()
+{
+	s16 px = getScreenWidth() / 2
+	s16 py = 24
+	u16 renderQueue = 0xe000
+	
+	// top text
+	string lineA = rk_completionText_A
+	string lineB = rk_completionText_B
+	
+	if (roaringKnight_attackPhase > 0)
+	{
+		if (roaringKnight_attackPhase == 1)
+		{
+			u32 lenA = strlen(lineA)
+			u32 lenB = strlen(lineB)
+			
+			u32 maxLen = lenA + lenB
+			//debugLog(maxLen)
+		
+			lineA = substring(lineA, 0, roaringKnight_tempVarA)
+			lineB = substring(lineB, 0, max(s16(roaringKnight_tempVarA - lenA), 0))
+		}
+		
+		Renderer.drawText("rk_sillyfont", px, py, lineA, 0xffffffff, 5, 0, renderQueue, false, true)
+		Renderer.drawText("oxyfont_regular:outline(0x242424ff,1,true)", px, py + 20, lineB, 0xfcfc90ff, 5, 0, renderQueue + 1, false, true)
+	}
+			
+	py += 48
+	
+	// stats
+	if (roaringKnight_attackPhase > 2)
+	{
+		string font = "oxyfont_regular:outline(0x242424ff,1,true)"
+		
+		if (roaringKnight_ui_tooLong)
+			Renderer.drawText(font, px, py, "Completed in... a long amount of time", 0xfc9090ff, 5, 0, renderQueue, false, true)
+		else
+		{
+			string textA = "Completed in "
+			string textB = stringformat("%02d:%02d.%02d.", timer.minutes, timer.seconds, timer.frames)
+			string fullTextWidth = Renderer.getTextWidth(font, stringformat("%s%s", textA, textB))
+			
+			Renderer.drawText(font, px - fullTextWidth / 2, py, textA, 0xfcfcfcff, 4, 0, renderQueue, false, true)
+			Renderer.drawText(font, px - fullTextWidth / 2 + Renderer.getTextWidth(font, textA), py, textB, 0x6c6cfcff, 4, 0, renderQueue, false, true)
+		}
+		
+		py += 16
+		Renderer.drawText(font, px, py, stringformat("With %d of %d health remaining.", ring_counter, rk_maxHpChar), 0xfcfcfcff, 5, 0, renderQueue, false, true)
+		
+		py = getScreenHeight() - 32
+		
+		string text = "Congratulations!"
+		font = "rk_sillyfont"
+		px -= Renderer.getTextWidth(font, text) / 2
+		for (u32 i = 0; i < strlen(text); ++i)
+		{
+			string letter = substring(text, i, 1)
+			Renderer.drawText(font, px, py + Math.roundToInt(Math.sin(Math.degreesToRadians(((level.framecounter * 6.5) % 360) + i * 45)) * 3.5), letter, Color.fromHSV(((level.framecounter * 3.5) % 360) + i * 8.5, .75, 1), 4, 0, renderQueue, false, true)
+			px += Renderer.getTextWidth(font, letter)
+		}
+	}
+}
+
+//# address-hook(0x00dd06) end(0x00de86)
+function void UpdateTimeAndHud()
+{
+	if (isRoaringKnightMode)
+	{
+		// Update time
+		if (hud.dirty.timer & 0x80)
+			hud.dirty.timer = 0x01
+		else if (hud.dirty.timer != 0 && !global.game.paused && !roaringKnight_ui_tooLong)
+		{
+			if (timer.alldata == 0x3b3b3b)		// That is 59:59 and 59 frames
+				roaringKnight_ui_tooLong = true
+			else
+			{
+				// Time progress
+				++timer.frames
+				if (timer.frames >= 60)
+				{
+					timer.frames = 0
+					++timer.seconds
+					if (timer.seconds >= 60)
+					{
+						timer.seconds = 0
+						++timer.minutes
+
+					#if STANDALONE
+						if (!Game.getSetting(SETTING_INFINITE_TIME))
+					#endif
+						{
+							timer.minutes = min(timer.minutes, 9)
+						}
+					}
+				}
+				
+				checkpoint.time = timer.alldata
+			}
+		}
+	}
+	else
+		base.UpdateTimeAndHud()
+}
+
+function bool GamePause.BeginPause()
+{
+	// Enter game pause
+	return (global.pause_disabled.u8 && isRoaringKnightMode) ? false : base.GamePause.BeginPause()
+}

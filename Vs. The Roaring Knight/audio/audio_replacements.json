@@ -1,0 +1,32 @@
+{
+	"snd_explosion_firework": { "File": "snd_explosion_firework.ogg", "Type": "Sound"},
+	"snd_knight_beam": { "File": "snd_knight_beam.ogg", "Type": "Sound"},
+	"snd_knight_boxbreak": { "File": "snd_knight_boxbreak.ogg", "Type": "Sound"},
+	"snd_knight_cut": { "File": "snd_knight_cut.ogg", "Type": "Sound"},
+	"snd_knight_cut2": { "File": "snd_knight_cut2.ogg", "Type": "Sound"},
+	"snd_knight_drawpower": { "File": "snd_knight_drawpower.ogg", "Type": "Sound"},
+	"snd_knight_fallingsword": { "File": "snd_knight_fallingsword.ogg", "Type": "Sound"},
+	"snd_knight_fallingsword_big": { "File": "snd_knight_fallingsword_big.ogg", "Type": "Sound"},
+	"snd_knight_hurt": { "File": "snd_knight_hurt.ogg", "Type": "Sound"},
+	"snd_knight_hurtb": { "File": "snd_knight_hurtb.ogg", "Type": "Sound"},
+	"snd_knight_jump": { "File": "snd_knight_jump.ogg", "Type": "Sound"},
+	"snd_knight_jump_quick": { "File": "snd_knight_jump_quick.ogg", "Type": "Sound"},
+	"snd_knight_laser": { "File": "snd_knight_laser.ogg", "Type": "Sound"},
+	"snd_knight_powerup_white": { "File": "snd_knight_powerup_white.ogg", "Type": "Sound"},
+	"snd_knight_puff": { "File": "snd_knight_puff.ogg", "Type": "Sound"},
+	"snd_knight_pulse": { "File": "snd_knight_pulse.ogg", "Type": "Sound"},
+	"snd_knight_pulse2": { "File": "snd_knight_pulse2.ogg", "Type": "Sound"},
+	"snd_knight_rotatingslash_line": { "File": "snd_knight_rotatingslash_line.ogg", "Type": "Sound"},
+	"snd_knight_star_explosion_close": { "File": "snd_knight_star_explosion_close.ogg", "Type": "Sound"},
+	"snd_knight_stretch": { "File": "snd_knight_stretch.ogg", "Type": "Sound"},
+	"snd_knight_teleport": { "File": "snd_knight_teleport.ogg", "Type": "Sound"},
+	"snd_knightroar": { "File": "snd_knightroar.ogg", "Type": "Sound"},
+	"snd_stardrop": { "File": "snd_stardrop.ogg", "Type": "Sound"},
+	"snd_jump_bc": { "File": "snd_jump_bc.ogg", "Type": "Sound"},
+	"snd_drake_dodge": { "File": "snd_drake_dodge.ogg", "Type": "Sound"},
+	"snd_heavy_passing": { "File": "snd_heavy_passing.ogg", "Type": "Sound"},
+	
+	"snd_knight_stretch_final": { "File": "snd_knight_stretch_final.ogg", "Type": "Sound"}, // custom sound, original final attack pitches "snd_knight_stretch" by 0.1 and increases it by 0.000535 over time.
+	
+	"mus_knight": { "File": "knight.ogg", "Type": "Music", "Name": "Black Knife (Furnace YM2612 cover) - skidwithag"},
+}

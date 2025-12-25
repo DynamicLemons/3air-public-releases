@@ -1,0 +1,2798 @@
+//# address-hook(0x39B340) end(0x39B340)
+function void RoaringKnight_baseUpdate()
+{
+	A1 = 0xffffb000
+	//debugLog(stringformat("attack %d, variation %d", roaringKnight_attackPhase, roaringKnight_difficulty))
+	//debugLog(roaringKnight_updateRoutine)
+	
+	if (roaringKnight_moveLerpBy)
+	{
+		u16 staticY = (objA0.position.y - roaringKnight_verticalShift) >> 16
+		u32 stopX = u32(roaringKnight_moveXPos) << 16
+		u32 stopY = u32(roaringKnight_moveYPos) << 16
+		
+		s32 speed = Math.ceilToInt(u32(calcDistBetweenPoints(objA0.position.x.u16, staticY, roaringKnight_moveXPos, roaringKnight_moveYPos) << 16) * .075)
+		speed = clamp(speed, 0x2000, roaringKnight_maxSpeed)
+		float angle = calcAngleBetweenPoints360(objA0.position.x.u16, staticY, roaringKnight_moveXPos, roaringKnight_moveYPos)
+		float rad = Math.degreesToRadians(angle)
+		
+		s32 shiftX = Math.roundToInt(Math.sin(rad) * speed)
+		s32 shiftY = Math.roundToInt(Math.cos(rad) * speed)
+		s32 prevX = objA0.position.x
+		s32 prevY = objA0.position.y
+		
+		if (shiftX > 0)
+			objA0.position.x = min(objA0.position.x + shiftX, stopX)
+		else if (shiftX < 0)
+			objA0.position.x = max(objA0.position.x + shiftX, stopX)
+
+		if (shiftY > 0)
+			objA0.position.y = min(objA0.position.y - roaringKnight_verticalShift + shiftY, stopY) + roaringKnight_verticalShift
+		else if (shiftY < 0)
+			objA0.position.y = max(objA0.position.y - roaringKnight_verticalShift + shiftY, stopY) + roaringKnight_verticalShift
+
+		roaringKnight_collisionVX = (objA0.position.x - prevX) >> 8
+		roaringKnight_collisionVY = (objA0.position.y - prevY) >> 8
+	}
+
+	if (roaringKnight_collisionTimeout)
+		--roaringKnight_collisionTimeout
+	
+	if (!System.callFunctionByName(stringformat("RoaringKnight_%s", roaringKnight_updateRoutine)))
+	{
+		RoaringKnight_hover()
+		DrawObject()
+	}
+}
+
+// --- intro
+function void RoaringKnight_introInit()
+{
+	roaringKnight_updateRoutine = "intro_waitTeleport"
+	roaringKnight_updateTimer = 0
+	roaringKnight_spriteIndex = "turn"
+	roaringKnight_imageIndex = 0
+	
+	RoaringKnight_sharedInit()
+}
+
+function void RoaringKnight_introInitFast()
+{
+	roaringKnight_updateRoutine = "intro_spawnSword"
+	roaringKnight_updateTimer = 0
+	roaringKnight_spriteIndex = "swordcreate"
+	roaringKnight_imageIndex = 0
+	objA0.sprite_priority = 0x100
+	
+	roaringKnight_camType = rk_camMode_dual
+	player1.control_override = 0xff
+	
+	RoaringKnight_sharedInit()
+}
+
+function void RoaringKnight_sharedInit()
+{
+	objA0.box_size.x = 32
+	objA0.box_size.y = 32
+	objA0.render_flags = render_flag.WORLD | render_flag.ALWAYS_DRAW
+	//objA0.sprite_attributes = sprite_attribute.PRIORITY
+	
+	objA0.collision_attributes = (collision.flag.SPECIAL | collision.size.rk_extend)
+	objA0.hitbox_extends.x = 12
+	objA0.hitbox_extends.y = 28
+	boss.remaining_hits = 8
+	
+	roaringKnight_areaMask = 0
+	roaringKnight_flowScroll = 0
+	roaringKnight_areaScale = 0
+	roaringKnight_verticalShift = 0
+	roaringKnight_screamSize = 0
+	
+	roaringKnight_tempVarA = 0
+	
+	roaringKnight_collisionTimeout = 0
+	
+	roaringKnight_health = rk_maxHpBoss
+	roaringKnight_phaseQualify = false
+	roaringKnight_maxSpeed = 0x100000
+	
+	Game.startSkippableCutscene()
+}
+
+// wait for player to look up to RK
+function void RoaringKnight_intro_waitTeleport()
+{
+	if (u8[A1 + 0x2e] == 0)
+	{
+		roaringKnight_updateRoutine = "intro_lookSetup"
+		cam_bound.bottom = max(camera.position.y.u16, move_area.bottom)
+	}
+}
+
+function void RoaringKnight_intro_lookSetup()
+{
+	if ((objA1.flags2a & char.flag.IN_AIR) == 0 && u8[A1 + 0x2e] == 0)
+	{
+		control.player1.state = CONTROL_UP
+		roaringKnight_updateRoutine = "intro_lookWait"
+	}
+}
+
+function void RoaringKnight_intro_lookWait()
+{
+	++roaringKnight_updateTimer
+	if (roaringKnight_updateTimer > 5)
+	{
+		roaringKnight_updateTimer = 0
+		roaringKnight_updateRoutine = "intro_pan1"
+		player1.camera_lock = 1
+	}
+}
+
+function void RoaringKnight_intro_pan1()
+{
+	u16 endX = objA0.position.x.u16 - getScreenWidth() / 2
+	u16 endY = objA0.position.y.u16 - getScreenHeight() / 2
+	
+	u16 dist = calcDistBetweenPoints(camera.position.x.u16, camera.position.y.u16, endX, endY)
+	roaringKnight_updateRoutine = "intro_pan1"
+	
+	if (dist <= 1)
+	{
+		roaringKnight_updateRoutine = "intro_executeturn"
+		camera.position.x = endX << 16
+		camera.position.y = endY << 16
+		cam_bound.left = rk_arena_inner_L
+		cam_bound.bottom = move_area.bottom
+	}
+	else
+	{
+		float angle = calcAngleBetweenPoints360(camera.position.x.u16, camera.position.y.u16, endX, endY)
+		float rad = Math.degreesToRadians(angle)
+		
+		u32 moveBy = u32(dist << 11) 
+		//moveBy = max(moveBy, (1 << 16) / 2)
+		
+		camera.position.x += Math.roundToInt(Math.sin(rad) * moveBy)
+		camera.position.y += Math.roundToInt(Math.cos(rad) * moveBy)
+	}
+
+	RoaringKnight_hover()
+		
+	DrawObject()
+}
+
+// bunch of animation progress
+function void RoaringKnight_intro_executeturn()
+{
+	if (roaringKnight_spriteIndex == "turn" || roaringKnight_spriteIndex == "intoball")
+		roaringKnight_imageIndex += 0.2
+	else if (roaringKnight_spriteIndex == "drool")
+		roaringKnight_imageIndex += 0.05
+	else
+		roaringKnight_imageIndex += 0.1
+		
+	if (RoaringKnight_ani_ended())
+	{
+		roaringKnight_imageIndex = 0
+		if (roaringKnight_spriteIndex == "turn")
+			roaringKnight_spriteIndex = "drool"
+		else if (roaringKnight_spriteIndex == "drool")
+			roaringKnight_spriteIndex = "getup"
+		else if (roaringKnight_spriteIndex == "getup")
+			roaringKnight_spriteIndex = "intoball"
+		else if (roaringKnight_spriteIndex == "intoball")
+		{
+			roaringKnight_spriteIndex = "ball"
+			roaringKnight_updateRoutine = "intro_fall"
+			objA0.velocity.y = -0x200
+		}
+	}
+
+	RoaringKnight_hover()
+	
+	DrawObject()
+}
+
+// fall towards player and move camera
+function void RoaringKnight_intro_fall()
+{
+	roaringKnight_imageIndex += 0.3
+	if (RoaringKnight_ani_ended())
+		roaringKnight_imageIndex %= 5
+		
+	UpdateMovementStraightSimple()
+	objA0.velocity.y += 0x30
+	
+	if (objA0.velocity.y > 0)
+	{
+		u16 endY = (objA0.position.y.u16 - getScreenHeight() / 2)
+		camera.position.y = valueLerpInt(camera.position.y, u32(endY << 16), .1)
+	}
+	
+	if (objA0.position.y.u16 >= 0xb78)
+	{
+		roaringKnight_updateRoutine = "intro_wiggle1"
+		objA0.value26 = 0
+		
+		control.player1.state = 0
+	}
+
+	DrawObject()
+}
+
+function void RoaringKnight_intro_wiggle1()
+{
+	roaringKnight_imageIndex += 0.2
+	if (RoaringKnight_ani_ended())
+		roaringKnight_imageIndex %= 5
+		
+	UpdateMovementStraightSimple()
+	objA0.velocity.y -= 0x40
+	objA0.value26 += 2
+
+	u16 endY = min(objA0.position.y.u16 - getScreenHeight() / 2, rk_arena_B)
+	camera.position.y = valueLerpInt(camera.position.y, u32(endY << 16), .2)
+	
+	if (objA0.velocity.y < -0x200)
+		roaringKnight_updateRoutine = "intro_wiggle2"
+
+	camera.position.x = valueLerpInt(camera.position.x, u32(rk_arena_posCenterX - getScreenWidth() / 2) << 16, .3)
+	
+	DrawObject()
+}
+
+function void RoaringKnight_intro_wiggle2()
+{
+	roaringKnight_imageIndex += 0.1
+	if (RoaringKnight_ani_ended())
+		roaringKnight_imageIndex %= 5
+		
+	UpdateMovementStraightSimple()
+	objA0.velocity.y += 0x10
+	if (objA0.velocity.y > 0x20)
+	{
+		objA0.velocity.y = 0
+		roaringKnight_spriteIndex = "outofball"
+		roaringKnight_imageIndex = 0
+		roaringKnight_updateRoutine = "intro_exitball"
+		control.player1.state = CONTROL_UP
+	}
+
+	u16 endX = 0x740 - getScreenWidth() / 2
+	camera.position.x = valueLerpInt(camera.position.x, u32(endX << 16), .3)
+	
+	DrawObject()
+}
+
+function void RoaringKnight_intro_exitball()
+{
+	roaringKnight_imageIndex += 0.2
+	if (RoaringKnight_ani_ended())
+	{
+		roaringKnight_spriteIndex = "freestance"
+		roaringKnight_imageIndex = 0 
+		roaringKnight_updateRoutine = "intro_idiotfloat"
+	}
+		
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+// aura scream
+function void RoaringKnight_intro_idiotfloat()
+{
+	++roaringKnight_updateTimer
+	if (roaringKnight_updateTimer > 20)
+	{
+		roaringKnight_spriteIndex = "roarstart"
+		roaringKnight_updateRoutine = "intro_roarstart"
+		roaringKnight_updateTimer = 0
+		
+		roaringKnight_moveLerpBy = .1
+		roaringKnight_moveYPos = 0xbae
+	}
+		
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+function void RoaringKnight_intro_roarstart()
+{
+	++roaringKnight_updateTimer
+	if (roaringKnight_updateTimer > 10)
+	{
+		roaringKnight_updateRoutine = "intro_roarshake"
+		roaringKnight_updateTimer = 0
+		roaringKnight_updateTimerSecondary = 0
+		Audio.playAudio("snd_knight_stretch")
+		
+		roaringKnight_moveLerpBy = 0
+		
+		roaringKnight_areaScreenMult = getScreenWidth() / 400.0
+		roaringKnight_areaMask = 1
+		
+		roaringKnight_areaScale = 360 * roaringKnight_areaScreenMult // objA0.position.x.u16 - camera.foreground.x.u16 + 32
+		roaringKnight_areaOpacity = 0
+		roaringKnight_areaWhiteTint = 0
+		
+		Game.endSkippableCutscene()
+	}
+	
+	DrawObject()
+}
+
+function void RoaringKnight_intro_roarshake()
+{
+	objA0.position.x.u16 = 0x7c0
+	objA0.position.y.u16 = 0xbae
+	roaringKnight_verticalShift = 0
+	
+	++roaringKnight_updateTimerSecondary
+	if (roaringKnight_updateTimerSecondary > 2)
+	{
+		float angle = System.rand() % 360
+		float rad = Math.degreesToRadians(angle)
+		objA0.position.x.u16 += Math.roundToInt(Math.sin(rad) * 1)
+		objA0.position.y.u16 += Math.roundToInt(Math.cos(rad) * 1)
+		roaringKnight_updateTimerSecondary = 0
+	}
+	
+	roaringKnight_areaOpacity = min(roaringKnight_areaOpacity + 15, 75)
+	if (roaringKnight_areaScale > 96)
+		roaringKnight_areaScale -= roaringKnight_areaScreenMult * 4
+	else if (roaringKnight_areaScale > 0)
+	{
+		roaringKnight_areaScale = max(roaringKnight_areaScale - 2 * roaringKnight_areaScreenMult, 0)
+		roaringKnight_areaWhiteTint = min(roaringKnight_areaWhiteTint + .005, .75)
+	}
+		
+	if (roaringKnight_updateTimer == 75)
+		control.player1.state = 0
+	
+	++roaringKnight_updateTimer
+	
+	u16 colStart = 15
+	u16 colEnd = 100
+	
+	if (roaringKnight_updateTimer > colStart)
+	{
+		u32 dest = 0x802000
+		u32 targetAddress = dest + 0x140
+	
+		u16 numColors = System.loadExternalPaletteData("boss_palette_roaring_knight", 0, 0x800000, 0x10)
+		
+		float blend = float(min(roaringKnight_updateTimer, colEnd) - colStart) / float(colEnd - colStart) * 256.0
+		
+		for (u8 i = 0; i < numColors; ++i)
+		{
+			u32 rgba = u32[0x800000 + i * 4]
+			
+			rgba = blendColors_RGBA32(rgba, 0xfcfcfc, Math.roundToInt(blend))
+			u16[targetAddress + i * 2] = packColorExt(rgba)
+		}
+	}
+	
+	roaringKnight_flowScroll = (roaringKnight_flowScroll + 2) % rk_flowWidth
+	if (roaringKnight_updateTimer > 130)
+	{
+		objA0.position.x.u16 = 0x7c0
+		objA0.position.y.u16 = 0xbae
+	
+		roaringKnight_spriteIndex = "roar"
+		roaringKnight_updateRoutine = "intro_roar"
+		roaringKnight_updateTimer = 0
+		Audio.playAudio("snd_knightroar")
+		RoaringKnight_resetPal()
+		
+		roaringKnight_areaMask = 0
+		Renderer.resetViewport(0)
+		
+		roaringKnight_screamSize = 0
+		roaringKnight_screamSat = 0
+		roaringKnight_screamVal = 1
+		roaringKnight_screamAlpha = 1
+	}
+	
+	DrawObject()
+}
+
+
+function void RoaringKnight_intro_roar()
+{
+	roaringKnight_imageIndex += 0.35
+	roaringKnight_imageIndex %= 2
+	
+	++roaringKnight_updateTimer
+	if (roaringKnight_updateTimer == 10)
+		control.player1.state = CONTROL_DOWN
+		
+	if (roaringKnight_updateTimer > 225)
+	{
+		roaringKnight_spriteIndex = "freestance"
+		roaringKnight_imageIndex = 0
+		roaringKnight_updateRoutine = "intro_roarFade"
+		roaringKnight_updateTimer = 0
+		
+		control.player1.state = 0
+		Game.endSkippableCutscene()
+	}
+	
+	roaringKnight_screamSize = min(roaringKnight_screamSize + 16 * roaringKnight_areaScreenMult, getScreenWidth())
+	roaringKnight_screamSat = min(roaringKnight_screamSat + .025 * roaringKnight_areaScreenMult, 1)
+	if (roaringKnight_screamSat > .5)
+		roaringKnight_screamVal = max(roaringKnight_screamVal - .0125 * roaringKnight_areaScreenMult, .75)
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+function void RoaringKnight_intro_roarFade()
+{
+	RoaringKnight_fadeOutRoar()
+	
+	++roaringKnight_updateTimer
+	if (roaringKnight_updateTimer > 5)
+	{
+		roaringKnight_spriteIndex = "swordraise"
+		roaringKnight_imageIndex = 0
+		roaringKnight_updateRoutine = "intro_handraise"
+		roaringKnight_updateTimer = 0
+	}
+	
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+function void RoaringKnight_intro_handraise()
+{
+	RoaringKnight_fadeOutRoar()
+	
+	roaringKnight_imageIndex += .2
+	if (RoaringKnight_ani_ended())
+	{
+		roaringKnight_spriteIndex = "swordcreate"
+		roaringKnight_imageIndex = 0
+		roaringKnight_updateRoutine = "intro_spawnSword"
+		objA0.sprite_priority = 0x100
+	}
+	
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+function void RoaringKnight_intro_spawnSword()
+{
+	roaringKnight_imageIndex += 1
+	if (RoaringKnight_ani_ended())
+	{
+		roaringKnight_spriteIndex = "swordraise"
+		roaringKnight_imageIndex = 2
+		roaringKnight_updateRoutine = "intro_waitForSword"
+		
+		if (allocDynamicObjectStd())
+		{
+			objA1.update_address = addressof(RoaringKnight_effect_introSword)
+			objA1.position.x.u16 = objA0.position.x.u16 - 26
+			objA1.position.y.u16 = objA0.position.y.u16 - 16
+			objA1.render_flags = render_flag.WORLD
+			
+			objA1.box_size.x = 4
+			objA1.box_size.y = 63
+			objA1.velocity.y = -0x300
+		}
+		else
+		{
+			assert(false, "Hit object limit.")
+			
+			roaringKnight_updateRoutine = "intro_swordPresent"
+			roaringKnight_spriteIndex = "swordhold"
+			roaringKnight_imageIndex = 0
+		}
+	}
+	
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+function void RoaringKnight_intro_swordPresent()
+{
+	++roaringKnight_updateTimer
+	if (roaringKnight_updateTimer > 10)
+	{
+		roaringKnight_updateTimer = 0
+		roaringKnight_updateRoutine = "intro_grabSword"
+		roaringKnight_spriteIndex = "swordgrab"
+		roaringKnight_imageIndex = 0
+	}
+	
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+function void RoaringKnight_intro_grabSword()
+{
+	if (roaringKnight_imageIndex >= 8)
+		roaringKnight_imageIndex += .2
+	else
+		roaringKnight_imageIndex += .1
+	
+	if (RoaringKnight_ani_ended())
+	{
+		roaringKnight_updateRoutine = "updateStandard"
+		roaringKnight_updateTimer = 15
+		roaringKnight_spriteIndex = "idle"
+		roaringKnight_imageIndex = 0
+		
+		enable_rk_charStance = true
+		objA1.state.former = char.state.ROLLING2
+		objA0.sprite_priority = objA1.sprite_priority
+		
+		checkpoint.number = 1
+		checkpoint.x = 0x06c0
+		checkpoint.y = 0x0bec
+		Checkpoint.SaveCurrentState()
+		
+		level.default_music = MUSIC_BIGARMS
+		playMusic(level.default_music)
+		
+		player1.control_override = 0
+		roaringKnight_ui_hidden = false
+		hud.dirty.timer = 0xff
+		
+		player1.camera_lock = 0
+		RoaringKnight_setCameraModeSD(false)
+		
+		Game.endSkippableCutscene()
+	}
+	
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+/// --- general
+function void RoaringKnight_updateStandard()
+{
+	if (!rkC_deathPause)
+	{
+		if (roaringKnight_updateTimer > 0)
+			--roaringKnight_updateTimer
+		else if (roaringKnight_loopEntered && roaringKnight_phaseQualify)
+			RoaringKnight_startFinalPhase()
+		else 
+		{
+			roaringKnight_updateTimer = 0
+			roaringKnight_updateTimerSecondary = 0
+			roaringKnight_tempVarA = 0
+			roaringKnight_tempVarB = 0
+			roaringKnight_difficulty = roaringKnight_attackPhase / 5
+			
+			constant array<u8> _attacks = 
+			{
+				0, 1, 2, 3, 4,
+				0, 2, 3, 1, 4,
+				0, 2, 1, 3, 4,
+			}
+				
+			if (roaringKnight_attackPhase < _attacks.length())
+				RoaringKnight_initAttack(_attacks[roaringKnight_attackPhase])
+		}
+	}
+	
+	if (roaringKnight_spriteIndex != "invisible")
+	{
+		RoaringKnight_hover()
+		if (roaringKnight_arena_floatMode)
+			DrawObject()
+		else
+			Enemy.DrawDynamicObject()
+	}
+}
+
+function void RoaringKnight_initAttack(u8 num)
+{
+	if (num == 0)
+	{
+		roaringKnight_updateRoutine = "attack_starPointBegin"
+		roaringKnight_spriteIndex = "starpoint"
+		roaringKnight_imageIndex = 0
+		
+		roaringKnight_moveLerpBy = .1
+		RoaringKnight_setStarPointSide()
+		roaringKnight_moveYPos = 0xbd0
+		
+		Audio.playAudio("snd_knight_drawpower")
+	}
+	else if (num == 1)
+	{
+		roaringKnight_updateRoutine = "attack_daggerSummonPerform"
+		roaringKnight_moveYPos = rk_arena_posCenterY - 18
+		if (roaringKnight_difficulty == 1)
+		{
+			if (allocDynamicObjectStd())
+			{
+				objA1.update_address = addressof(RoaringKnight_daggerCircleControl)
+				objA1.position.y.u16 = rk_arena_posCenterY - 18
+				
+				s16 distFromCenter = u16[0xffffb010] - rk_arena_posCenterX
+				objA1.countdown_value = clamp(Math.roundToInt(distFromCenter * 1.2), -0x80, 0x80)
+				
+				objA1.value26 = System.rand()
+				objA1.groundspeed = (System.rand() % 2) ? -1 : 1
+			}
+			else
+				playSound(SFX_DENY)
+		}
+		else
+		{	
+			roaringKnight_spriteIndex = "crossedarms"
+			roaringKnight_imageIndex = 0
+			roaringKnight_moveLerpBy = .1
+
+			camera.update_routine = rk_borderMode_daggerS
+			
+			roaringKnight_maxSpeed = 0x80000
+		}
+	}
+	else if (num == 2)
+	{
+		roaringKnight_updateRoutine = "attack_arenaSplitDecisionLoop"
+		roaringKnight_spriteIndex = "idle"
+		roaringKnight_imageIndex = 0
+		roaringKnight_updateTimer = 20
+		
+		RoaringKnight_decideArenaSide(0)
+
+		if (roaringKnight_perferredSide == -1)
+			objA0.render_flags |= render_flag.FLIP_X
+		else
+			objA0.render_flags &= ~render_flag.FLIP_X
+	}
+	else if (num == 3)
+	{
+		roaringKnight_updateRoutine = "attack_swordHallwayBegin"
+		roaringKnight_spriteIndex = "starpoint"
+		roaringKnight_imageIndex = 0
+		
+		RoaringKnight_decideArenaSide()
+		if (roaringKnight_perferredSide == -1)
+			objA0.render_flags |= render_flag.FLIP_X
+		else
+			objA0.render_flags &= ~render_flag.FLIP_X
+	}
+	else if (num == 4)
+	{
+		roaringKnight_updateRoutine = "attack_swordCirclePerform"
+		roaringKnight_perferredSide = 1 - (System.rand() % 2) * 2
+		if (roaringKnight_perferredSide == -1)
+			objA0.render_flags |= render_flag.FLIP_X
+		else
+			objA0.render_flags &= ~render_flag.FLIP_X
+			
+		roaringKnight_moveStyle = 1
+	}
+}
+
+// --- attacks
+function void RoaringKnight_attack_starPointBegin()
+{
+	roaringKnight_verticalShift = valueLerpInt(roaringKnight_verticalShift, 0, .1)
+	
+	roaringKnight_imageIndex += 0.2
+	if (RoaringKnight_ani_ended())
+	{
+		roaringKnight_imageIndex = 4
+		roaringKnight_updateRoutine = "attack_starPointPerform"
+		roaringKnight_updateTimer = 0
+		roaringKnight_updateTimerSecondary = 0
+		
+		roaringKnight_areaMask = 2
+		roaringKnight_areaScale = 0
+		roaringKnight_areaWhiteTint = .8
+	}
+	
+	RoaringKnight_setStarPointSide()
+	
+	if (roaringKnight_arena_floatMode)
+		DrawObject()
+	else
+		Enemy.DrawDynamicObject()
+}
+
+function void RoaringKnight_attack_starPointPerform()
+{
+	u16 fingerX = objA0.position.x.u16 - 51 * roaringKnight_perferredSide
+	s16 fingerY = objA0.position.y.u16 - 14
+	
+	if (roaringKnight_areaWhiteTint)
+		roaringKnight_areaWhiteTint = max(roaringKnight_areaWhiteTint - clamp(roaringKnight_areaWhiteTint / 10, .01, .3), 0)
+	
+	s8 prevSide = roaringKnight_perferredSide
+	RoaringKnight_setStarPointSide()
+	if (roaringKnight_perferredSide != prevSide)
+		roaringKnight_flowScroll = 0
+	
+	float expectedSize = (roaringKnight_difficulty == 2) ? 50 : (roaringKnight_difficulty == 1) ? 40 : 35
+	
+	u16 time = 8
+	u16 count = 25
+	
+	roaringKnight_flowScroll = (roaringKnight_flowScroll - 12 * s16(roaringKnight_perferredSide)) % rk_flowWidth
+	if (roaringKnight_areaScale < expectedSize)
+		roaringKnight_areaScale = min(roaringKnight_areaScale + clamp((expectedSize - roaringKnight_areaScale) / 6.75, .5, 10), expectedSize)
+	else
+	{
+		if (roaringKnight_updateTimerSecondary <= 0)
+		{
+			u8 range = Math.floorToInt(roaringKnight_areaScale - 5)
+			if (allocDynamicObjectStd())
+			{
+				objA1.update_address = rkaddress_star
+				objA1.position.x.u16 = fingerX
+				objA1.position.y.u16 = fingerY
+				objA1.render_flags = render_flag.WORLD
+				objA1.sprite_attributes = sprite_attribute.PRIORITY
+				
+				objA1.box_size.x = 64
+				objA1.box_size.y = 64
+				objA1.value26 = 8
+				s16 force = 0x1f0 + System.rand() % 0x201
+				
+				if (roaringKnight_tempVarA == 0)
+					roaringKnight_tempVarB = System.rand() % (range * 2 + 1)
+					
+				roaringKnight_tempVarB = (roaringKnight_tempVarB + 15 + (System.rand() % 10)) % (range * 2 + 1)
+				float rad = Math.degreesToRadians(roaringKnight_tempVarB - 90.0 - range)
+				
+				objA1.velocity.x = Math.roundToInt(Math.sin(rad) * force) * roaringKnight_perferredSide
+				objA1.velocity.y = Math.roundToInt(Math.cos(rad) * force)
+				objA1.groundspeed = 24
+				
+				objA1.collision_attributes = (collision.flag.THREAT | collision.size.rk_extend)
+				++roaringKnight_tempVarA
+				++roaringKnight_updateTimer
+				
+				objA1.subtype2c = roaringKnight_difficulty
+				Audio.playAudio("snd_stardrop")
+			}
+			else
+				playSound(SFX_DENY)
+					
+			roaringKnight_updateTimerSecondary = time
+		}
+		else
+			--roaringKnight_updateTimerSecondary
+		
+		if (roaringKnight_updateTimer > count)
+		{
+			roaringKnight_updateRoutine = "attack_starPointExit"
+			roaringKnight_updateTimer = 0
+			roaringKnight_tempVarB = 0
+			Audio.playAudio("snd_knight_star_explosion_close")
+		}
+	}
+	
+	if (roaringKnight_areaScale > 15 && !rkC_deathPause)
+	{
+		A1 = 0xffffb000
+		s16 pow = fingerX - objA1.position.x.u16
+		s16 oob_height = abs(Math.roundToInt(Math.sin(Math.degreesToRadians(roaringKnight_areaScale)) * pow))
+
+		//Renderer.drawRect(objA1.position.x.u16, fingerY - oob_height, 1, oob_height * 2, 0xff000080, 0xf000, true, true)
+		if (roaringKnight_perferredSide < 0)
+			pow *= -1
+		
+		if (pow <= 0 || objA1.position.y.u16 - s16(objA1.hitbox_extends.y) - 1 <= fingerY - oob_height || objA1.position.y.u16 + s16(objA1.hitbox_extends.y) >= fingerY + oob_height)
+		{
+			A0 = 0xffffb000
+			A1 = roaringKnight_memLoc
+			RoaringKnight_starWind_pushChar()
+			A0 = roaringKnight_memLoc
+			A1 = 0xffffb000
+		}
+	}
+	
+	if (roaringKnight_arena_floatMode)
+		DrawObject()
+	else
+		Enemy.DrawDynamicObject()
+}
+
+function void RoaringKnight_starWind_pushChar()
+{
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	if (char.character == CHARACTER_KNUCKLES && getECFCharBufferName() == 0 && char.double_jump_state == 1)
+#else
+	if (char.character == CHARACTER_KNUCKLES && char.double_jump_state == 1)
+#endif
+	{
+		char.groundspeed -= 0x30 * s16(roaringKnight_perferredSide)
+		if (char.flags & char.flag.FACING_LEFT && char.groundspeed >= 0 || (char.flags & char.flag.FACING_LEFT) == 0 && char.groundspeed <= 0)
+		{
+			char.double_jump_state = 2
+			char.state = char.state.KNUX_FALLING
+			char.hitbox_extends.x = char.hitbox.default.x
+			char.hitbox_extends.y = char.hitbox.default.y
+		}
+		return
+	}
+	
+	if (roaringKnight_arena_floatMode)
+		char.velocity.x -= 0x50 * s16(roaringKnight_perferredSide)
+	else
+	{
+		if (char.flags & char.flag.IN_AIR)
+			char.velocity.x -= 0x30 * s16(roaringKnight_perferredSide)
+		else
+		{
+			char.groundspeed -= 0x50 * s16(roaringKnight_perferredSide)
+			char.hlock_countdown = 1
+		}
+	}
+}
+
+function void RoaringKnight_attack_starPointExit()
+{
+	if (roaringKnight_areaScale > 0)
+	{
+		roaringKnight_flowScroll = (roaringKnight_flowScroll - 12 * s16(roaringKnight_perferredSide)) % rk_flowWidth
+		roaringKnight_areaScale = max(roaringKnight_areaScale - clamp(roaringKnight_areaScale / 6.75, .5, 10), 0.0)
+		
+		if (roaringKnight_areaWhiteTint < .8)
+			roaringKnight_areaWhiteTint = min(roaringKnight_areaWhiteTint + clamp((.8 - roaringKnight_areaWhiteTint) / 10, .01, .3), .8)
+	}
+	else
+		roaringKnight_areaMask = 0
+		
+	if (roaringKnight_imageIndex > 0)
+		roaringKnight_imageIndex = max(roaringKnight_imageIndex - 0.2, 0)
+	else
+	{
+		RoaringKnight_hover()
+		if (roaringKnight_tempVarA == 0 && roaringKnight_areaScale == 0)
+			++roaringKnight_updateTimer
+
+		if (roaringKnight_updateTimer > 60)
+		{
+			roaringKnight_updateTimer = 5
+			roaringKnight_updateRoutine = (roaringKnight_difficulty == 2) ? "attack_starPointHomingWait" : "updateStandard"
+			roaringKnight_spriteIndex = "idle"
+			roaringKnight_imageIndex = 0
+			++roaringKnight_attackPhase
+		}
+	}
+	
+	if (roaringKnight_arena_floatMode)
+		DrawObject()
+	else
+		Enemy.DrawDynamicObject()
+}
+
+function void RoaringKnight_attack_starPointHomingWait()
+{
+	if (roaringKnight_tempVarB == 0)
+	{
+		roaringKnight_updateRoutine = "updateStandard"
+		RoaringKnight_setFloatStatus(false)
+	}
+	RoaringKnight_hover()
+	if (roaringKnight_arena_floatMode)
+		DrawObject()
+	else
+		Enemy.DrawDynamicObject()
+}
+
+function void RoaringKnight_setStarPointSide()
+{
+	RoaringKnight_decideArenaSideAlt()
+	if (roaringKnight_perferredSide < 0)
+		objA0.render_flags |= render_flag.FLIP_X
+	else
+		objA0.render_flags &= ~render_flag.FLIP_X
+	roaringKnight_moveXPos = rk_arena_posCenterX + 0xC0 * s16(roaringKnight_perferredSide)
+}
+
+function void RoaringKnight_attack_daggerSummonPerform()
+{
+	if (objA0.position.x.u16 < objA1.position.x.u16)
+		objA0.render_flags |= render_flag.FLIP_X
+	else if (objA0.position.x.u16 > objA1.position.x.u16)
+		objA0.render_flags &= ~render_flag.FLIP_X
+	
+	if (!rkC_deathPause)
+	{
+		u16 time = (roaringKnight_difficulty <= 1) ? 55 : 45
+		u16 count = 10
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer % time == 0)
+		{
+			if (allocDynamicObjectStd())
+			{
+				++roaringKnight_tempVarA
+				
+				objA1.update_address = rkaddress_orbitDagger
+				objA1.render_flags = render_flag.WORLD | render_flag.ALWAYS_DRAW
+				objA1.sprite_priority = 0x180
+				objA1.sprite_attributes = sprite_attribute.PRIORITY
+				objA1.collision_attributes = (collision.flag.THREAT | collision.size.rk_extend)
+				
+				objA1.box_size.x = 38
+				objA1.box_size.y = 38
+					
+				objA1.value26 = (System.rand() % 8) * 0x20
+				Audio.playAudio("snd_knight_teleport")
+			}
+			else
+				playSound(SFX_DENY)
+			
+			if (roaringKnight_spriteIndex != "invisible")
+				roaringKnight_moveXPos = rk_arena_posCenterX + (System.rand() % 441) - 220
+		}
+		
+		if (roaringKnight_updateTimer > count * time)
+		{
+			roaringKnight_updateTimer = 0
+			if (roaringKnight_difficulty == 1)
+				roaringKnight_updateRoutine = "attack_daggerSummonExtraWait"
+			else
+			{
+				roaringKnight_updateRoutine = "attack_daggerSummonExit"
+				camera.update_routine = rk_borderMode_daggerE
+			}
+			roaringKnight_moveLerpBy = .1
+			roaringKnight_maxSpeed = 0x100000
+		}
+	}
+	
+	if (roaringKnight_spriteIndex != "invisible")
+	{
+		RoaringKnight_hover()
+		Enemy.DrawDynamicObject()
+	}
+}
+
+function void RoaringKnight_attack_daggerSummonExtraWait()
+{
+	if (roaringKnight_tempVarA == 0)
+	{
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer > 15)
+		{
+			roaringKnight_updateRoutine = "attack_daggerSummonExtraThrow"
+			roaringKnight_updateTimer = 0
+			roaringKnight_spriteIndex = "outofball"
+			roaringKnight_imageIndex = 0
+			
+			roaringKnight_moveXPos = rk_arena_posCenterX
+			roaringKnight_moveYPos = rk_arena_posCenterY - 18
+		}
+	}
+}
+
+function void RoaringKnight_attack_daggerSummonExtraThrow()
+{
+	if (roaringKnight_tempVarB == 0)
+	{
+		camera.update_routine = rk_borderMode_dagger2E
+		
+		roaringKnight_imageIndex += 0.2
+		if (RoaringKnight_ani_ended())
+		{
+			roaringKnight_updateTimer = 5
+			roaringKnight_updateRoutine = "updateStandard"
+			roaringKnight_spriteIndex = "idle"
+			roaringKnight_imageIndex = 0
+			++roaringKnight_attackPhase
+		}
+		
+		RoaringKnight_hover()
+		DrawObject()
+	}
+}
+
+function void RoaringKnight_attack_daggerSummonExit()
+{
+	if (roaringKnight_tempVarA == 0)
+	{
+		roaringKnight_updateTimer = 25
+		roaringKnight_updateRoutine = "updateStandard"
+		roaringKnight_spriteIndex = "idle"
+		roaringKnight_imageIndex = 0
+		++roaringKnight_attackPhase
+		
+		roaringKnight_moveXPos = rk_arena_posCenterX
+		roaringKnight_moveYPos = rk_arena_posCenterY
+	}
+	
+	RoaringKnight_hover()
+	Enemy.DrawDynamicObject()
+}
+
+function void RoaringKnight_attack_arenaSplitDecisionLoop()
+{
+	if (roaringKnight_spriteIndex == "slashb")
+	{
+		roaringKnight_imageIndex += (roaringKnight_imageIndex <= 1) ? .1 : .035
+		if (RoaringKnight_ani_ended())
+		{
+			roaringKnight_spriteIndex = "idle"
+			roaringKnight_imageIndex = 0
+		}
+	}
+	
+	if (roaringKnight_updateTimer > 0)
+		--roaringKnight_updateTimer
+	else if (roaringKnight_tempVarA == 8)
+	{
+		roaringKnight_updateTimer = 0
+		roaringKnight_updateRoutine = "attack_arenaSplitExit"
+		roaringKnight_spriteIndex = "idle"
+		roaringKnight_imageIndex = 0
+	}
+	else if (!rkC_deathPause)
+	{
+		roaringKnight_updateRoutine = "attack_arenaSplitQueue"
+		
+		u8 dir
+		if (roaringKnight_difficulty)
+		{
+			dir = System.rand() % 2
+			if (roaringKnight_tempVarA != 0 && dir != roaringKnight_tempVarB)
+				roaringKnight_updateTimer = 15
+			roaringKnight_tempVarB = dir
+		}
+
+		if (roaringKnight_tempVarB)
+		{
+			roaringKnight_moveXPos = rk_arena_posCenterX
+			roaringKnight_moveYPos = rk_arena_posCenterY - 32
+		}
+		else
+		{
+			RoaringKnight_decideArenaSide(0)
+			if (roaringKnight_perferredSide == -1)
+				objA0.render_flags |= render_flag.FLIP_X
+			else
+				objA0.render_flags &= ~render_flag.FLIP_X
+			roaringKnight_moveXPos = rk_arena_posCenterX + s16(roaringKnight_perferredSide) * 72
+			roaringKnight_moveYPos = rk_arena_posCenterY
+		}
+	}
+	
+	RoaringKnight_hover()
+	Enemy.DrawDynamicObject()
+}
+
+function void RoaringKnight_attack_arenaSplitQueue()
+{
+	if (roaringKnight_updateTimer > 0)
+		--roaringKnight_updateTimer
+	else
+	{
+		roaringKnight_spriteIndex = "slasha"
+		roaringKnight_updateRoutine = "attack_arenaSplitPerform"
+		roaringKnight_updateTimer = 30
+
+		if (allocDynamicObjectStd())
+		{
+			objA1.update_address = addressof(RoaringKnight_teethSlash)
+			if (roaringKnight_tempVarB)
+			{
+				objA1.position.x.u16 = rk_arena_posCenterX
+				objA1.position.y.u16 = rk_arena_inner_T + 24
+			}
+			else
+			{
+				objA1.position.x.u16 = rk_arena_posCenterX
+				objA1.position.y.u16 = rk_arena_posCenterY - 18
+			}
+			
+			objA1.render_flags = render_flag.WORLD | render_flag.ALWAYS_DRAW
+			if ((System.rand() % 2) == 1)
+				objA1.render_flags |= render_flag.FLIP_X
+			objA1.sprite_priority = 0x100
+			objA1.sprite_attributes = sprite_attribute.PRIORITY
+			
+			objA1.subtype2c = roaringKnight_tempVarB
+			objA1.value26 = (roaringKnight_tempVarB) ? 0x40 : 0
+		}
+	}
+	
+	RoaringKnight_hover()
+	Enemy.DrawDynamicObject()
+}
+
+function void RoaringKnight_attack_arenaSplitPerform()
+{
+	if (roaringKnight_spriteIndex == "slasha")
+		roaringKnight_imageIndex = min(roaringKnight_imageIndex + .2, 1)
+	
+	if (roaringKnight_updateTimer > 0)
+		--roaringKnight_updateTimer
+	else
+	{
+		roaringKnight_updateRoutine = "attack_arenaSplitDecisionLoop"
+		roaringKnight_updateTimer = (roaringKnight_difficulty == 2) ? 75 : 90
+	}
+
+	RoaringKnight_hover()
+	Enemy.DrawDynamicObject()
+}
+
+function void RoaringKnight_attack_arenaSplitExit()
+{
+	++roaringKnight_updateTimer
+	if (roaringKnight_updateTimer > 30)
+	{
+		roaringKnight_updateTimer = 30
+		roaringKnight_updateRoutine = "updateStandard"
+		roaringKnight_spriteIndex = "idle"
+		roaringKnight_imageIndex = 0
+		++roaringKnight_attackPhase
+	}
+	
+	RoaringKnight_hover()
+	Enemy.DrawDynamicObject()
+}
+
+function void RoaringKnight_attack_swordHallwayBegin()
+{
+	roaringKnight_imageIndex += 0.2
+	if (RoaringKnight_ani_ended())
+	{
+		roaringKnight_imageIndex = 4
+		roaringKnight_updateRoutine = "attack_swordHallwayPerform"
+		roaringKnight_updateTimer = 0
+		roaringKnight_updateTimerSecondary = 0
+		
+		objA1.velocity.y += ((rk_arena_posCenterY - 18) - objA1.position.y.u16) << 4
+		RoaringKnight_setFloatStatus(true)
+		
+		roaringKnight_moveXPos = rk_arena_posCenterX
+		roaringKnight_moveYPos = rk_arena_posCenterY
+		roaringKnight_moveLerpBy = .1
+		
+		objA0.render_flags &= ~render_flag.VISIBLE
+		
+		if (roaringKnight_difficulty == 1)
+			camera.update_routine = rk_borderMode_sword2S
+		return
+	}
+	
+	RoaringKnight_hover()
+	Enemy.DrawDynamicObject()
+}
+
+function void RoaringKnight_attack_swordHallwayPerform()
+{
+	u16 time = 10
+	u16 count = 64
+
+	if (roaringKnight_difficulty == 1)
+		count = 50
+	s16 dist = (roaringKnight_difficulty == 0) ? 67 : 62
+	
+	//debugLog(roaringKnight_updateTimerSecondary)
+	++roaringKnight_updateTimer
+	if (roaringKnight_updateTimerSecondary >= count)
+	{
+		roaringKnight_updateTimer = 0
+		roaringKnight_updateRoutine = "attack_swordHallwayExit"
+		roaringKnight_spriteIndex = "outofball"
+		roaringKnight_imageIndex = 0
+
+		RoaringKnight_decideArenaSide()
+		objA0.render_flags = render_flag.WORLD | render_flag.ALWAYS_DRAW
+		if (roaringKnight_perferredSide < 0)
+			objA1.render_flags |= render_flag.FLIP_X
+	}
+	else if (roaringKnight_updateTimer % time == (time - 1))
+	{
+		for (u8 i; i < 2; ++i)
+		{
+			if (allocDynamicObjectStd())
+			{
+				objA1.update_address = rkaddress_swordHallway
+				objA1.render_flags = render_flag.WORLD
+				if (roaringKnight_difficulty == 1)
+				{
+					objA1.position.x = rk_arena_posCenterX << 16
+					objA1.position.y = rk_arena_posCenterY << 16
+					
+					s32 shiftX = s16(roaringKnight_perferredSide) * 484
+					s32 shiftY = -48
+					if (i)
+					{
+						shiftY += 140
+						objA1.render_flags |= render_flag.FLIP_X
+					}
+						
+					u8 angle = -roaringKnight_updateTimerSecondary * 6 - 0x40
+					objA1.position.x += (s32(lookupSin(-angle)) * (shiftX << 8))
+					objA1.position.y += (s32(lookupCos(-angle)) * (shiftX << 8))
+					objA1.position.x += (s32(lookupCos(angle)) * (shiftY << 8))
+					objA1.position.y += (s32(lookupSin(angle)) * (shiftY << 8))
+					
+					objA1.value26 = angle
+					objA1.groundspeed = s16(roaringKnight_perferredSide) * -0x5c0
+				}
+				else
+				{
+					objA1.position.x.u16 = rk_arena_posCenterX + s16(roaringKnight_perferredSide) * 384
+					objA1.position.y.u16 = rk_arena_posCenterY - 18 + (i ? dist : -dist)
+					
+					if (roaringKnight_updateTimerSecondary < count - 16)
+						objA1.position.y.u16 += Math.roundToInt(Math.sin(Math.degreesToRadians(roaringKnight_updateTimerSecondary * 360.0 / (count - 16) * 4)) * -32)
+					objA1.value26 = (i) ? 0xc0 : 0x40
+					objA1.velocity.x = s16(roaringKnight_perferredSide) * -0x5c0
+				}
+				objA1.sprite_attributes = sprite_attribute.PRIORITY
+				
+				objA1.box_size.x = 50
+				objA1.box_size.y = 50
+				
+				objA1.collision_attributes = (collision.flag.THREAT | collision.size.rk_extend)
+				objA1.hitbox_extends.x = 2
+				objA1.hitbox_extends.y = 26
+				if (roaringKnight_difficulty == 3)
+					objA1.subtype2c = ((System.rand() % 10) == 0) ? 3 : 1
+				else
+					objA1.subtype2c = roaringKnight_difficulty
+			}
+		}
+		
+		++roaringKnight_updateTimerSecondary
+	}
+}
+
+function void RoaringKnight_attack_swordHallwayExit()
+{
+	++roaringKnight_updateTimer
+
+	if (roaringKnight_difficulty == 1)
+	{
+		if (roaringKnight_updateTimer == 50)
+			Audio.playAudio("snd_knight_cut")
+			
+		if (roaringKnight_updateTimer == 100)
+		{
+			roaringKnight_updateRoutine = "updateStandard"
+			roaringKnight_updateTimer = 0
+			roaringKnight_spriteIndex = "invisible"
+			roaringKnight_imageIndex = 0
+			++roaringKnight_attackPhase
+		}
+	}
+	else
+	{
+		if (roaringKnight_updateTimer == 50)
+			Audio.playAudio("snd_knight_cut")
+		
+		if (roaringKnight_updateTimer >= 60)
+		{
+			roaringKnight_imageIndex += 0.2
+			if (RoaringKnight_ani_ended())
+			{
+				roaringKnight_updateRoutine = "updateStandard"
+				roaringKnight_updateTimer = 0
+				roaringKnight_spriteIndex = "idle"
+				roaringKnight_imageIndex = 0
+				++roaringKnight_attackPhase
+			}
+			
+			RoaringKnight_hover()
+			DrawObject()
+		}
+	}
+}
+
+function void RoaringKnight_attack_swordCirclePerform()
+{
+	u16 time = 90
+	u16 count = 6
+
+	if (roaringKnight_tempVarA < 6)
+	{
+		if (roaringKnight_imageIndex < 1)
+			roaringKnight_imageIndex += 0.125
+		
+		if (rkC_deathPause)
+		{
+			RoaringKnight_hover()
+			DrawObject()
+			return
+		}
+		
+		if ((roaringKnight_updateTimer % time) == 0)
+		{
+			u8 j
+			if (roaringKnight_difficulty == 0)
+			{
+				constant array<u8> _num = { 1, 2, 2, 3, 3, 4 }
+				j = _num[roaringKnight_tempVarA]
+			}
+			else if (roaringKnight_difficulty == 1)
+			{
+				constant array<u8> _num = { 2, 3, 3, 4, 4, 5 }
+				j = _num[roaringKnight_tempVarA]
+			}
+			else
+			{
+				constant array<u8> _num = { 4, 4, 5, 5, 6, 6 }
+				j = _num[roaringKnight_tempVarA]
+			}
+			
+			float baseR = System.randRange(0.0, 360.0)
+			
+			u16 originX = objA1.position.x.u16
+			u16 originY = objA1.position.y.u16
+			
+			roaringKnight_perferredSide = -roaringKnight_perferredSide
+			objA0.render_flags ^= render_flag.FLIP_X
+			for (u8 i; i < j; ++i)
+			{
+				if (!RoaringKnight_summonLineSlash(originX, originY, 0, baseR + 180.0 * i / j, i))
+					break
+			}
+
+			roaringKnight_moveXPos = rk_arena_posCenterX + (System.rand() % 441) - 220
+			roaringKnight_moveYPos = rk_arena_posCenterY + (System.rand() % 129) - 64
+	
+			roaringKnight_spriteIndex = "slasha"
+			roaringKnight_imageIndex = 0
+			
+			++roaringKnight_tempVarA
+		}
+		
+		if ((roaringKnight_updateTimer % time) == 60)
+		{
+			roaringKnight_spriteIndex = "slashb"
+			roaringKnight_imageIndex = 0
+		}
+		
+		++roaringKnight_updateTimer
+	}
+	else
+	{
+		if (roaringKnight_imageIndex < 1)
+			roaringKnight_imageIndex += 0.125
+			
+		if ((roaringKnight_updateTimer % time) == 0)
+		{
+			roaringKnight_spriteIndex = "slasha"
+			roaringKnight_imageIndex = 0
+		}
+		
+		if ((roaringKnight_updateTimer % time) == 60)
+		{
+			roaringKnight_spriteIndex = "slashb"
+			roaringKnight_imageIndex = 0
+			roaringKnight_updateRoutine = "attack_swordCircleExit"
+			roaringKnight_updateTimer = 0
+		}
+		
+		++roaringKnight_updateTimer
+	}
+	
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+function bool RoaringKnight_summonLineSlash(u16 px, u16 py, u8 type, float rotation, u8 delay)
+{
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = rkaddress_lineSlash
+		objA1.position.x.u16 = px
+		objA1.position.y.u16 = py
+			
+		objA1.render_flags = render_flag.WORLD | render_flag.ALWAYS_DRAW
+		objA1.sprite_attributes = sprite_attribute.PRIORITY
+		if (System.rand() % 2 == 0)
+			objA1.render_flags |= render_flag.FLIP_Y
+		
+		objA1.collision_attributes = (collision.flag.THREAT | collision.size.rk_extend)
+		objA1.hitbox_extends.x = 2
+		objA1.hitbox_extends.y = 255
+		
+		objA1.subtype2c = type
+		u16[A1 + 0x26] = Math.roundToInt(rotation * 65536.0 / 360.0)
+		u8[A1 + 0x30] = delay
+		
+		if (type == 2)
+			objA1.base_state = 1
+		return true
+	}
+	return false
+}
+
+function void RoaringKnight_attack_swordCircleExit()
+{
+	if (!rkC_deathPause)
+	{
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer == 30) && (!roaringKnight_phaseQualify || roaringKnight_attackPhase != 14) && (roaringKnight_difficulty == 0)
+			RoaringKnight_setFloatStatus(false)
+			
+		if (roaringKnight_updateTimer > 60)
+		{
+			if (roaringKnight_phaseQualify && roaringKnight_attackPhase == 14)
+				RoaringKnight_startFinalPhase()
+			else
+			{
+				roaringKnight_updateRoutine = "updateStandard"
+				roaringKnight_updateTimer = 15
+				roaringKnight_spriteIndex = "idle"
+				roaringKnight_imageIndex = 0
+				if (roaringKnight_attackPhase == 14)
+				{
+					roaringKnight_attackPhase = 10
+					roaringKnight_loopEntered = true
+				}
+				else
+					++roaringKnight_attackPhase
+			}
+		}
+	}
+
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+function void RoaringKnight_startFinalPhase()
+{
+	roaringKnight_updateRoutine = "updateFinalPhase_slash"
+	roaringKnight_spriteIndex = "flurrystart"
+	roaringKnight_imageIndex = 0
+	
+	RoaringKnight_decideArenaSide(32)
+	if (roaringKnight_perferredSide < 0)
+		objA0.render_flags |= render_flag.FLIP_X
+	else
+		objA0.render_flags &= ~render_flag.FLIP_X
+	roaringKnight_moveXPos = rk_arena_posCenterX + 144 * s16(roaringKnight_perferredSide)
+	roaringKnight_moveYPos = rk_arena_posCenterY - 16
+	roaringKnight_moveLerpBy = .2
+	roaringKnight_maxSpeed = 0x200000
+	
+	roaringKnight_updateTimer = 0
+	roaringKnight_updateTimerSecondary = 0
+	
+	roaringKnight_attackPhase = 0
+	roaringKnight_difficulty = 3
+	
+	roaringKnight_tempVarA = 0
+	roaringKnight_tempVarB = 0
+	
+	camera.update_routine = rk_borderMode_flurryS
+	
+	if (!roaringKnight_arena_floatMode)
+		RoaringKnight_setFloatStatus(true)
+}
+
+function void RoaringKnight_updateFinalPhase_slash()
+{
+	u8 _speedUp_s = 15
+	u8 _speedUp_e = 75
+	u8 _quarterSlashes = 25
+	u8 _maxSlashes = 100
+	
+	float turnspeed = 13
+	if (roaringKnight_tempVarA > _speedUp_s)
+		turnspeed = Math.lerp(turnspeed, 18.5, min(1.0 * (roaringKnight_tempVarA - _speedUp_s) / (_speedUp_e - _speedUp_s), 1))
+	
+	// prep
+	if (roaringKnight_attackPhase == 0)
+	{
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer == 21)
+		{
+			roaringKnight_tempVarC = System.randRange(0.0, 360.0)
+			if (RoaringKnight_summonLineSlash(rk_arena_posCenterX, rk_arena_posCenterY - 16, 1, roaringKnight_tempVarC, 0))
+			{
+				roaringKnight_tempVarC += turnspeed * roaringKnight_perferredSide
+				Audio.playAudio("snd_knight_rotatingslash_line")
+			}
+			else
+			{
+				System.writeDisplayLine("Hit object limit. Waiting for empty space.")
+				--roaringKnight_updateTimer
+			}
+			RoaringKnight_hover()
+		}
+		
+		if (roaringKnight_updateTimer == 81)
+		{
+			roaringKnight_updateTimer = 0
+			roaringKnight_attackPhase = 1
+			roaringKnight_spriteIndex = "flurryloop"
+			roaringKnight_verticalShift = 0
+			objA0.value26 = 0
+		}
+	}
+	// slashing
+	else if (roaringKnight_attackPhase == 1)
+	{
+		++roaringKnight_updateTimer
+		if ((roaringKnight_updateTimer % 5) == 0)
+		{
+			if (roaringKnight_tempVarA % (_quarterSlashes + 1) == _quarterSlashes)
+			{
+				roaringKnight_attackPhase = 0
+				roaringKnight_spriteIndex = "flurrystart"
+				roaringKnight_imageIndex = 0
+				roaringKnight_updateTimer = 20
+				++roaringKnight_tempVarA
+				
+				roaringKnight_perferredSide = -roaringKnight_perferredSide
+				roaringKnight_moveXPos = rk_arena_posCenterX + 144 * s16(roaringKnight_perferredSide)
+				objA0.render_flags ^= render_flag.FLIP_X
+			}
+			else if (RoaringKnight_summonLineSlash(rk_arena_posCenterX, rk_arena_posCenterY - 16, 2, roaringKnight_tempVarC, 0))
+			{
+				roaringKnight_tempVarC += turnspeed * roaringKnight_perferredSide
+				Audio.playAudio("snd_knight_cut")
+				++roaringKnight_tempVarA
+				roaringKnight_moveLerpBy = .5
+			}
+			else
+			{
+				System.writeDisplayLine("Hit object limit. Waiting for empty space.")
+				--roaringKnight_updateTimer
+			}
+		}
+		
+		if (roaringKnight_spriteIndex != "flurrystart")
+		{
+			float rad = Math.degreesToRadians(System.randRange(0.0, 360.0))
+			float dist = System.randRange(0.0, 8.0)
+			
+			objA0.position.x.u16 = Math.roundToInt(roaringKnight_moveXPos + Math.sin(rad) * dist)
+			objA0.position.y.u16 = Math.roundToInt(roaringKnight_moveYPos + Math.cos(rad) * dist)
+			
+			roaringKnight_imageIndex = (roaringKnight_imageIndex + 0.5) % 4
+		}
+		
+		if (roaringKnight_tempVarA == _maxSlashes)
+		{
+			roaringKnight_spriteIndex = "intoball"
+			roaringKnight_imageIndex = 0
+			roaringKnight_attackPhase = 2
+			roaringKnight_updateTimer = 0
+		}
+	}
+	else if (roaringKnight_attackPhase == 2)
+	{
+		if (!rkC_deathPause)
+		{
+			++roaringKnight_updateTimer
+			roaringKnight_imageIndex += 0.2
+			if (RoaringKnight_ani_ended())
+			{
+				camera.update_routine = rk_borderMode_sword2S
+				roaringKnight_updateRoutine = "updateFinalPhase_LineToSword"
+				roaringKnight_updateTimer = 0
+				roaringKnight_attackPhase = 0
+				RoaringKnight_setFloatStatus(false)
+			}
+		}
+		RoaringKnight_hover()
+	}
+	else
+		RoaringKnight_hover()
+
+	if (roaringKnight_spriteIndex != "intoball" || roaringKnight_imageIndex < 4)
+		DrawObject()
+}
+
+function void RoaringKnight_updateFinalPhase_LineToSword()
+{
+	++roaringKnight_updateTimer
+	if (roaringKnight_updateTimer == 20)
+	{
+		roaringKnight_updateTimer = 0
+		roaringKnight_updateRoutine = "updateFinalPhase_blades"
+		roaringKnight_arena_squareMode = true
+		
+		RoaringKnight_decideArenaSide()
+		if (roaringKnight_perferredSide < 0)
+			objA0.render_flags |= render_flag.FLIP_X
+		else
+			objA0.render_flags &= ~render_flag.FLIP_X
+	}
+}
+
+function void RoaringKnight_updateFinalPhase_blades()
+{
+	++roaringKnight_updateTimer
+	
+	if (roaringKnight_updateTimer == 25)
+	{
+		RoaringKnight_spawnStationaryDagger(rk_arena_posCenterX, rk_arena_posCenterY, 25)
+		Audio.playAudio("snd_knight_teleport")
+	}
+	else if (roaringKnight_updateTimer == 40 || roaringKnight_updateTimer == 270)
+	{
+		for (u8 i; i < 2; ++i)
+		{
+			u16 dist = (100 * i) + 50
+			RoaringKnight_spawnFallingSword(rk_arena_posCenterX - dist, -0x800, 0x40)
+			RoaringKnight_spawnFallingSword(rk_arena_posCenterX + dist, -0x800, 0x40)
+		}
+		Audio.playAudio("snd_knight_fallingsword_big")
+		
+		roaringKnight_perferredSide = System.rand() % 2 ? -1 : 1
+	}
+	// tri
+	else if (roaringKnight_updateTimer == 170)
+	{
+		RoaringKnight_spawnStationaryDagger(rk_arena_posCenterX - 96 * s16(roaringKnight_perferredSide), rk_arena_posCenterY - 32, 15)
+		Audio.playAudio("snd_knight_teleport")
+	}
+	else if (roaringKnight_updateTimer == 180)
+	{
+		RoaringKnight_spawnStationaryDagger(rk_arena_posCenterX + 96 * s16(roaringKnight_perferredSide), rk_arena_posCenterY - 32, 15)
+		Audio.playAudio("snd_knight_teleport")
+	}
+	else if (roaringKnight_updateTimer == 190)
+	{
+		RoaringKnight_spawnStationaryDagger(rk_arena_posCenterX, rk_arena_posCenterY - 64, 30)
+		Audio.playAudio("snd_knight_teleport")
+		
+		roaringKnight_perferredSide = System.rand() % 2 ? -1 : 1
+	}
+	// crossfield
+	else if (roaringKnight_updateTimer == 255)
+	{
+		RoaringKnight_spawnFallingSword(rk_arena_posCenterX + 200 * s16(roaringKnight_perferredSide), -0x680, 0x40 + roaringKnight_perferredSide * 0x40)
+		Audio.playAudio("snd_knight_fallingsword")
+	}
+	else if (roaringKnight_updateTimer == 260)
+	{
+		RoaringKnight_spawnFallingSword(rk_arena_posCenterX - 200 * s16(roaringKnight_perferredSide), -0x600, 0x40 - roaringKnight_perferredSide * 0x40)
+		Audio.playAudio("snd_knight_fallingsword")
+	}
+	// x
+	else if (roaringKnight_updateTimer == 360)
+	{
+		RoaringKnight_spawnFallingSword(rk_arena_posCenterX - 160, -0x7c0, 0x40 - 0x2c)
+		RoaringKnight_spawnFallingSword(rk_arena_posCenterX + 160, -0x7c0, 0x40 + 0x2c)
+		Audio.playAudio("snd_knight_fallingsword_big")
+		
+		roaringKnight_perferredSide = System.rand() % 2 ? -1 : 1
+	}
+	// lmao
+	else if (roaringKnight_updateTimer == 400)
+	{
+		RoaringKnight_spawnStationaryDagger(rk_arena_posCenterX - 148 * s16(roaringKnight_perferredSide), rk_arena_posCenterY + 32, 15)
+		RoaringKnight_spawnStationaryDagger(rk_arena_posCenterX + 148 * s16(roaringKnight_perferredSide), rk_arena_posCenterY + 32, 35)
+		Audio.playAudio("snd_knight_teleport")
+	}
+	// exit
+	else if (roaringKnight_updateTimer == 500)
+	{
+		roaringKnight_updateRoutine = "updateFinalPhase_BladesToTeeth"
+		roaringKnight_updateTimer = 0
+		
+		roaringKnight_spriteIndex = "outofball"
+		roaringKnight_imageIndex = 0
+		
+		roaringKnight_moveLerpBy = 0
+		objA0.position.x.u16 = rk_arena_posCenterX
+		objA0.position.y.u16 = rk_arena_posCenterY_f
+		roaringKnight_moveXPos = rk_arena_posCenterX
+		roaringKnight_moveYPos = rk_arena_posCenterY
+		roaringKnight_maxSpeed = 0x60000
+	}
+	
+	//debugLog(stringformat("%d", roaringKnight_updateTimer))
+}
+
+function void RoaringKnight_spawnFallingSword(s16 px, s16 vy, u8 angle)
+{
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = rkaddress_swordFalling
+		objA1.render_flags = render_flag.WORLD | render_flag.ALWAYS_DRAW
+		//objA1.sprite_attributes = sprite_attribute.PRIORITY
+		objA1.sprite_priority = 0x300
+		
+		objA1.box_size.x = 37
+		objA1.box_size.y = 37
+		
+		objA1.position.x.u16 = px
+		objA1.position.y.u16 = rk_arena_posCenterY + getScreenHeight() / 2 + 90
+		
+		objA1.velocity.y = vy
+			
+		objA1.collision_attributes = (collision.flag.THREAT | collision.size.rk_extend)
+		objA1.hitbox_extends.x = 2
+		objA1.hitbox_extends.y = 26
+		
+		objA1.value26 = System.rand()
+		objA1.value3b = angle
+		if (System.rand() % 2)
+			u8[A1 + 0x30] = 1
+	
+		++roaringKnight_tempVarA
+	}
+}
+
+function void RoaringKnight_spawnStationaryDagger(s16 px, s16 py, u16 time)
+{
+	if (allocDynamicObjectStd())
+	{
+		A4 = 0x800000
+		
+		objA1.update_address = rkaddress_daggerStationary
+		objA1.render_flags = render_flag.WORLD | render_flag.ALWAYS_DRAW
+		objA1.sprite_priority = 0x180
+		objA1.sprite_attributes = sprite_attribute.PRIORITY
+		objA1.collision_attributes = (collision.flag.THREAT | collision.size.rk_extend)
+		
+		objA1.position.x.u16 = px
+		objA1.position.y.u16 = py
+		objA1.box_size.x = 32
+		objA1.box_size.y = 32
+				
+		float angle = -calcAngleBetweenPoints360(objA1.position.x.u16, objA1.position.y.u16, u16[0xffffb000 + 0x10], u16[0xffffb000 + 0x14]) + 90
+		u16[A1 + 0x26] = Math.roundToInt(angle * 65536.0 / 360.0)
+		if (System.rand() % 2)
+			objA1.animation.timer = 1 
+		objA1.animation.frame = System.rand() % 5
+		u16[A1 + 0x30] = time
+	}
+}
+
+
+function void RoaringKnight_updateFinalPhase_BladesToTeeth()
+{		
+	if (roaringKnight_spriteIndex == "outofball")
+	{
+		roaringKnight_imageIndex += 0.2
+		if (RoaringKnight_ani_ended())
+		{
+			roaringKnight_spriteIndex = "idle"
+			roaringKnight_imageIndex = 0
+			
+			RoaringKnight_setFloatStatus(true)
+		}
+	}
+	++roaringKnight_updateTimer
+
+	if (roaringKnight_updateTimer == 40)
+	{
+		camera.update_routine = rk_borderMode_flurryS
+		move_area.bottom -= 38
+	}
+	
+	if (cam_bound.top > rk_arena_full_top)
+	{
+		--cam_bound.top
+		if (cam_bound.top < camera.position.y.u16)
+			cam_bound.top = rk_arena_full_top
+	}
+	
+	if (roaringKnight_updateTimer == 55)
+	{
+		if (allocDynamicObjectStd())
+		{
+			roaringKnight_arena_specialControl = A1
+			roaringKnight_arena_squareMode = true
+			
+			objA1.update_address = addressof(RoaringKnight_teethFinalArenaControl)
+			objA1.position.x.u16 = rk_arena_posCenterX
+			objA1.position.y.u16 = rk_arena_posCenterY - 19
+			
+			objA1.hitbox_extends.x = 93
+			objA1.hitbox_extends.y = 93
+			
+			camera.update_routine = rk_borderMode_teethF
+			
+			roaringKnight_perferredSide = (System.rand() % 2) ? -1 : 1
+			roaringKnight_moveXPos = objA1.position.x.u16
+			roaringKnight_moveYPos = objA1.position.y.u16
+			
+			objA1.base_state = 3
+			
+			roaringKnight_updateRoutine = "updateFinalPhase_teeth"
+			roaringKnight_updateTimer = 0
+			
+			s16[0xffffb000 + 0x1a] += (objA1.position.y.u16 - s16[0xffffb000 + 0x14]) * 0x10
+			
+			roaringKnight_camType = rk_camMode_battlebox
+			roaringKnight_cam_transValue = 0
+		}
+		else
+			--roaringKnight_updateTimer
+	}
+	
+	if (roaringKnight_spriteIndex == "idle")
+		RoaringKnight_hover()
+	DrawObject()
+}
+
+function void RoaringKnight_updateFinalPhase_teeth()
+{
+	if (rkC_deathPause)
+	{
+		RoaringKnight_hover()
+		DrawObject()
+		return
+	}
+		
+	// notation:
+	// 7 0 1
+	// 6 8 2
+	// 5 4 3
+	constant array<u8> _dirCode = 
+	{
+		0, 4,
+		8,
+		6, 2,
+		7, 
+		3, 1,
+		0, 4,
+		5, 2,
+		6,
+		8,
+		9
+	}
+	
+	if (roaringKnight_spriteIndex == "slasha" || roaringKnight_spriteIndex == "slashb")
+		roaringKnight_imageIndex = min(roaringKnight_imageIndex + .075, 1)
+	roaringKnight_cam_transValue = min(roaringKnight_cam_transValue + .05, 1)
+	
+	++roaringKnight_updateTimer 
+	if (roaringKnight_updateTimer == 1)
+	{
+		if (_dirCode[roaringKnight_attackPhase] == 9)
+		{
+			roaringKnight_updateRoutine = "updateFinalPhase_teethToStar"
+			roaringKnight_updateTimer = 0
+			roaringKnight_attackPhase = 0
+			roaringKnight_spriteIndex = "idleforward"
+			roaringKnight_imageIndex = 0
+		}
+		else
+			RoaringKnight_finalJawQueue(_dirCode[roaringKnight_attackPhase])
+	}
+	// manually trigger movement
+	else if (roaringKnight_updateTimer == 31)
+	{
+		if (_dirCode[roaringKnight_attackPhase] == 8)
+		{
+			roaringKnight_moveXPos = rk_arena_posCenterX
+			roaringKnight_moveYPos = rk_arena_posCenterY_f
+			objA1.groundspeed = 0x480 
+		}
+		else
+		{
+			roaringKnight_moveXPos = rk_arena_posCenterX + ((s32(lookupCos(roaringKnight_tempVarA + 0x80)) * rk_arena_jawF_centDist) >> 8)
+			roaringKnight_moveYPos = rk_arena_posCenterY_f + ((s32(lookupSin(roaringKnight_tempVarA + 0x80)) * rk_arena_jawF_centDist) >> 8)
+			objA1.groundspeed = 0x600 
+		}
+	}
+	else if (roaringKnight_updateTimer == 140)
+	{
+		roaringKnight_updateTimer = 0
+		++roaringKnight_attackPhase
+	}
+	
+	//debugLog(stringformat("%d %d", roaringKnight_moveXPos, roaringKnight_moveYPos))
+	
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+//# address-hook(0x39B35a) end(0x39B35a)
+function void RoaringKnight_teethFinalArenaControl()
+{
+	if (rkC_deathPause)
+		return
+		
+	A1 = 0xffffb000
+
+	u32 stopX = u32(roaringKnight_moveXPos) << 16
+	u32 stopY = u32(roaringKnight_moveYPos) << 16
+	
+	float angle = calcAngleBetweenPoints360(objA0.position.x.u16, objA0.position.y.u16, roaringKnight_moveXPos, roaringKnight_moveYPos)
+	float rad = Math.degreesToRadians(angle)
+	
+	//debugLog(stringformat("%d %d", roaringKnight_moveXPos, roaringKnight_moveYPos))
+	
+	s32 speed = 12 * calcDistBetweenPoints(objA0.position.x.u16, objA0.position.y.u16, roaringKnight_moveXPos, roaringKnight_moveYPos)
+	speed = max(speed, 0x80)
+	s32 localSpd = objA0.groundspeed << 8
+	s32 shiftX = Math.roundToInt(Math.sin(rad) * localSpd)
+	s32 shiftY = Math.roundToInt(Math.cos(rad) * localSpd)
+	objA0.groundspeed = valueProgressToEnd(objA0.groundspeed, speed, clamp(abs(objA0.groundspeed - speed) / 6, 0x20, 0x100))
+	
+	//debugLog(stringformat("%x -> %x", objA0.groundspeed, speed))
+	
+	s32 diffx = objA0.position.x
+	s32 diffy = objA0.position.y
+	
+	if (shiftX > 0)
+		objA0.position.x = min(objA0.position.x + shiftX, stopX)
+	else if (shiftX < 0)
+		objA0.position.x = max(objA0.position.x + shiftX, stopX)
+
+	if (shiftY > 0)
+		objA0.position.y = min(objA0.position.y + shiftY, stopY)
+	else if (shiftY < 0)
+		objA0.position.y = max(objA0.position.y + shiftY, stopY)
+	
+	diffx = objA0.position.x - diffx
+	diffy = objA0.position.y - diffy
+	
+	move_area.left		= objA0.position.x.u16 - objA0.hitbox_extends.x
+	move_area.right		= objA0.position.x.u16 + objA0.hitbox_extends.x - 400
+	move_area.top		= objA0.position.y.u16 - objA0.hitbox_extends.y
+	move_area.bottom	= objA0.position.y.u16 + objA0.hitbox_extends.y - getScreenHeight()
+	
+	if (debug_mode.state == 0 && (shiftX || shiftY))
+	{
+		s16 oldX = objA1.position.x.u16
+		s16 oldY = objA1.position.y.u16
+		objA1.position.x += diffx
+		objA1.position.y += diffy
+		rkC_collis_hX += s16(objA1.position.x.u16) - oldX
+		rkC_collis_hY += s16(objA1.position.y.u16) - oldY
+		
+		/*
+		u32 A0_o = A0
+		A0 = 0xffffb000
+		Character.CheckAgainstMoveBorders()
+		A0 = A0_o
+		*/
+	}
+}
+
+function void RoaringKnight_finalJawQueue(u8 dir)
+{
+	if (objA1.position.x.u16 > objA0.position.x.u16)
+		objA0.render_flags |= render_flag.FLIP_X
+	else if (objA1.position.x.u16 < objA0.position.x.u16)
+		objA0.render_flags &= ~render_flag.FLIP_X
+		
+	roaringKnight_spriteIndex = "slasha"
+	roaringKnight_imageIndex = 0
+		
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = addressof(RoaringKnight_teethSlash)
+		objA1.position.x.u16 = u16[roaringKnight_arena_specialControl + 0x10]
+		objA1.position.y.u16 = u16[roaringKnight_arena_specialControl + 0x14]
+		
+		u16 _aimX
+		u16 _aimY
+		if (dir == 8)
+		{
+			roaringKnight_tempVarA = calcAngleBetweenPoints(objA1.position.x.u16, objA1.position.y.u16, rk_arena_posCenterX, rk_arena_posCenterY_f) + 0x40
+			_aimX = rk_arena_posCenterX
+			_aimY = rk_arena_posCenterY_f
+		}
+		else
+		{
+			roaringKnight_tempVarA = 0x40 + dir * 0x20
+			_aimX = rk_arena_posCenterX + ((s32(lookupCos(roaringKnight_tempVarA + 0x80)) * rk_arena_jawF_centDist) >> 8)
+			_aimY = rk_arena_posCenterY_f + ((s32(lookupSin(roaringKnight_tempVarA + 0x80)) * rk_arena_jawF_centDist) >> 8)
+		}
+
+		objA1.value26 = calcAngleBetweenPoints(objA1.position.x.u16, objA1.position.y.u16, _aimX, _aimY) + 0x80
+		roaringKnight_tempVarC = calcDistBetweenPoints(objA1.position.x.u16, objA1.position.y.u16, _aimX, _aimY) / 421.0
+		
+		s32 dist = s32(u8[roaringKnight_arena_specialControl + 0x1f]) + 24
+		objA1.position.x.u16 += (s32(lookupCos(objA1.value26)) * dist) >> 8
+		objA1.position.y.u16 += (s32(lookupSin(objA1.value26)) * dist) >> 8
+		
+		objA1.render_flags = render_flag.WORLD | render_flag.ALWAYS_DRAW
+		if ((System.rand() % 2) == 1)
+			objA1.render_flags |= render_flag.FLIP_X
+		objA1.sprite_priority = 0x100
+		objA1.sprite_attributes = sprite_attribute.PRIORITY
+	}
+}
+
+function void RoaringKnight_updateFinalPhase_teethToStar()
+{
+	++roaringKnight_updateTimer 
+	if (roaringKnight_updateTimer == 31)
+	{
+		roaringKnight_moveXPos = rk_arena_posCenterX
+		roaringKnight_moveYPos = rk_arena_posCenterY_f
+		
+		s16 offset = max(getScreenWidth() - 400, 0) / 2
+		cam_bound.left = 0x678 - offset
+		cam_bound.right = 0x678 + offset
+		cam_bound.top = camera.position.y.u16
+		cam_bound.bottom = camera.position.y.u16
+	}
+	else if (roaringKnight_updateTimer >= 32)
+	{
+		A1 = roaringKnight_arena_specialControl
+		if (roaringKnight_camType == rk_camMode_player && objA1.hitbox_extends.x == 200 && objA1.hitbox_extends.y == 200)
+		{
+			roaringKnight_updateRoutine = "updateFinalPhase_star"
+			roaringKnight_updateTimer = 0
+			roaringKnight_attackPhase = 0
+			
+			roaringKnight_tempVarA = 0
+			roaringKnight_tempVarB = 0
+			roaringKnight_tempVarC = (System.rand() % 1800) / 5.0
+			unloadObjectAt(roaringKnight_arena_specialControl)
+			
+			Audio.playAudio("snd_knight_stretch_final")
+		}
+		else
+		{
+			objA1.hitbox_extends.x = valueProgressToEnd(objA1.hitbox_extends.x, 200, 4)
+			objA1.hitbox_extends.y = valueProgressToEnd(objA1.hitbox_extends.y, 200, 2)
+			cam_bound.top		= min(cam_bound.top, objA1.position.y.u16 - objA1.hitbox_extends.y)
+			cam_bound.bottom	= max(cam_bound.bottom, objA1.position.y.u16 + objA1.hitbox_extends.y - getScreenHeight())
+	
+			roaringKnight_cam_transValue = max(roaringKnight_cam_transValue - .05, 0)
+			if (roaringKnight_cam_transValue == 0)
+				roaringKnight_camType = rk_camMode_player
+		}
+	}
+
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+function void RoaringKnight_updateFinalPhase_star()
+{
+	if (!rkC_deathPause && calcDistBetweenPoints(objA1.position.x.u16, objA1.position.y.u16, rk_arena_posCenterX, rk_arena_posCenterY_f) > 2)
+	{
+		float angle = calcAngleBetweenPoints360(objA1.position.x.u16, objA1.position.y.u16, rk_arena_posCenterX, rk_arena_posCenterY_f)
+		float rad = Math.degreesToRadians(angle)
+		
+		float pullAmount = 1.0 * 0x10000
+		if (roaringKnight_attackPhase == 0)
+			pullAmount = Math.lerp(1.0 * 0x1000, pullAmount, min(roaringKnight_tempVarA, 45) / 45.0)
+		objA1.position.x += Math.roundToInt(Math.sin(rad) * pullAmount)
+		objA1.position.y += Math.roundToInt(Math.cos(rad) * pullAmount)
+	}
+	
+	s16 dist = 400
+	
+	//debugLog(roaringKnight_attackPhase)
+	if (roaringKnight_attackPhase == 0)
+	{
+		u8 check = (roaringKnight_tempVarA > 60) ? 4 : 5
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer > check)
+		{
+			for (u8 i; i < 2; ++i)
+			{
+				float rad = Math.degreesToRadians(roaringKnight_tempVarC)
+				if (RoaringKnight_spawnFinalStar())
+				{
+					objA1.position.x.u16 += Math.roundToInt(Math.sin(rad) * dist)
+					objA1.position.y.u16 += Math.roundToInt(Math.cos(rad) * dist)
+			
+					s32 speed = 0x300
+					objA1.velocity.x = Math.roundToInt(Math.sin(rad) * -speed)
+					objA1.velocity.y = Math.roundToInt(Math.cos(rad) * -speed)
+
+					++roaringKnight_tempVarA
+					roaringKnight_tempVarC += 65 + System.randRange(-15, 15)
+					objA1.subtype2c = 3
+				}
+				else
+				{
+					System.writeDisplayLine("oopps")
+					break
+				}
+				
+				roaringKnight_updateTimer = 0
+			}
+		}
+
+		if (roaringKnight_tempVarA > 300)
+		{
+			++roaringKnight_attackPhase
+			roaringKnight_perferredSide = (System.rand() % 2) ? -1 : 1
+			
+			roaringKnight_imageIndex = 0
+			roaringKnight_updateTimer = 0
+		}
+	}
+	else if (roaringKnight_attackPhase == 1)
+	{
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer == 75)
+			roaringKnight_spriteIndex = "roarforwardprep"
+		
+		float temp = roaringKnight_imageIndex
+			
+		if (roaringKnight_updateTimer >= 75)
+		{
+			roaringKnight_imageIndex += (roaringKnight_imageIndex >= 4) ? 0.25 : 0.075
+			if (RoaringKnight_ani_ended())
+			{
+				roaringKnight_imageIndex -= 5
+				roaringKnight_spriteIndex = "roarforwardloop"
+				roaringKnight_updateTimer = 0
+				roaringKnight_updateTimerSecondary = 0
+				++roaringKnight_attackPhase
+				
+				roaringKnight_tempVarC = System.randRange(0, 360)
+			}
+			
+			if (temp < 3 && roaringKnight_imageIndex >= 3)
+				Audio.playAudio("snd_knightroar")
+		}
+	}
+	else
+	{
+		roaringKnight_imageIndex = (roaringKnight_imageIndex + 0.25) % 2
+		
+		++roaringKnight_updateTimerSecondary
+		if (roaringKnight_updateTimer == 0)
+		{
+			for (u8 i; i < 6; ++i)
+			{
+				float rad = Math.degreesToRadians(roaringKnight_tempVarC)
+				if (RoaringKnight_spawnFinalStar())
+				{	
+					s32 speed = 0x2c0
+					objA1.velocity.x = Math.roundToInt(Math.sin(rad) * speed)
+					objA1.velocity.y = Math.roundToInt(Math.cos(rad) * speed)
+
+					++roaringKnight_tempVarA
+					roaringKnight_tempVarC += System.randRange(70, 90)
+					objA1.subtype2c = 4
+				}
+				else
+				{
+					System.writeDisplayLine("oopps")
+					break
+				}
+			}
+			
+			roaringKnight_updateTimer = Math.floorToInt(Math.lerp(14, 24, roaringKnight_updateTimerSecondary / 230.0))
+			Audio.playAudio("snd_stardrop")
+		}
+		else
+			--roaringKnight_updateTimer
+		
+		if (roaringKnight_updateTimerSecondary > 230)
+		{
+			roaringKnight_updateRoutine = "updateFinalPhase_star_end"
+			roaringKnight_updateTimer = 0
+			roaringKnight_updateTimerSecondary = 0
+			
+			roaringKnight_spriteIndex = "roarforwardprep"
+			roaringKnight_imageIndex = 3
+			
+			roaringKnight_attackPhase = 0
+			
+			Audio.playAudio("snd_knight_star_explosion_close")
+		}
+	}
+	
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+function bool RoaringKnight_spawnFinalStar()
+{
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = rkaddress_star
+		objA1.position.x.u16 = rk_arena_posCenterX
+		objA1.position.y.u16 = rk_arena_posCenterY_f
+		objA1.render_flags = render_flag.WORLD
+		objA1.sprite_attributes = sprite_attribute.PRIORITY
+		objA1.sprite_priority = objA0.sprite_priority
+		
+		objA1.box_size.x = 64
+		objA1.box_size.y = 64
+		
+		objA1.collision_attributes = (collision.flag.THREAT | collision.size.rk_extend)
+		++roaringKnight_tempVarA
+		++roaringKnight_updateTimer
+		return true
+	}
+	return false
+}
+
+function void RoaringKnight_updateFinalPhase_star_end()
+{
+	++roaringKnight_updateTimer
+	if (roaringKnight_spriteIndex == "roarforwardprep")
+	{
+		roaringKnight_imageIndex -= .04
+		if (roaringKnight_imageIndex < 0)
+		{
+			roaringKnight_imageIndex = 0
+			roaringKnight_spriteIndex = "idleforward"
+			objA0.velocity.y = 0x300
+		}
+	}
+	
+	//debugLog(roaringKnight_updateTimer)
+	if (roaringKnight_updateTimer == 150 && !rkC_deathPause)
+	{
+		roaringKnight_updateRoutine = "endCutscene"
+		roaringKnight_updateTimer = 0
+		roaringKnight_spriteIndex = "slashforward"
+		roaringKnight_attackPhase = 0
+		
+		player1.control_override = 0xff
+		control.player1 = 0
+		RoaringKnight_setFloatStatus(false)
+		player1.camera_lock = 1
+		
+		cam_bound.top = camera.position.y.u16
+		move_area.bottom = rk_arena_B
+		
+		roaringKnight_ui_hidden = true
+		hud.dirty.timer = 0
+		global.pause_disabled.u8 = 0xff
+		roaringKnight_tempVarA = 0
+
+		roaringKnight_arena_specialControl = 0
+		
+		Game.startSkippableCutscene()
+		playMusic(MUSIC_CTRL_FADEOUT)
+		
+		if (roaringKnight_currentSaveCode != 0)
+		{
+			u8[0x800000] = 1
+			System.savePersistentData(0x800000, 1, "lemons_various_completions", stringformat("RoaringKnightBeaten_%s", roaringKnight_currentSaveCode), false)
+		}
+	}
+	
+	RoaringKnight_hover()
+	DrawObject()
+}
+
+function void RoaringKnight_endCutscene()
+{
+	if (rkC_deathPause)
+	{
+		RoaringKnight_hover()
+		DrawObject()
+		
+		return
+	}
+	
+	++roaringKnight_tempVarA
+	if (roaringKnight_attackPhase >= 2)
+	{
+		if (level.palettefx.state == 0)
+		{
+			if (control.pad1.pressed & CONTROL_START)
+			{
+				level.palettefx.state = 3
+				level.palettefx.timer_1 = 0
+				level.palettefx.timer_2 = 0
+				
+				for (u32 i = 0; i < 64; ++i)
+					u16[0xfffffc80 + i * 2] = u16[0xfffffc80 + i * 2]
+			}
+		}
+		else if (level.palettefx.state == 4)
+		{
+			roaringKnight_updateRoutine = "resultsUpdate"
+			roaringKnight_updateTimer = 0
+			roaringKnight_attackPhase = 0
+			level.palettefx.state = 5
+
+			objA1.flags2a &= ~char.flag.FACING_LEFT
+			objA1.position.x.u16 = rk_arena_posCenterX
+			objA1.position.y.u16 = 0xbec - char.hitbox.y.UPRIGHT + s16(u8[A1 + 0x44])
+			StartCharacterWinPose(0xffffb000)
+				
+			// fake time progressing by just shifting the background and level timer
+			u32 shift = u32(1232 - roaringKnight_tempVarA)
+			u32[0xffffa800] += shift * 0x0500 
+			level.framecounter += shift
+			
+			camera.position.y.u16 = rk_arena_posCenterY - getScreenHeight() / 2
+			return 
+		}
+	}
+	
+	if (roaringKnight_attackPhase == 0)
+	{
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer > 30)
+		{
+			roaringKnight_spriteIndex = "slashforward"
+			roaringKnight_updateTimer = 0
+			++roaringKnight_attackPhase
+		}
+		
+		camera.position.y.u16 = valueLerpInt(camera.position.y.u16, rk_arena_posCenterY_f - getScreenHeight() / 2, .1)
+		
+		RoaringKnight_hover()
+	}
+	else if (roaringKnight_attackPhase == 1)
+	{
+		if (roaringKnight_arena_floatMode)
+			camera.position.y.u16 = valueLerpInt(camera.position.y.u16, rk_arena_posCenterY_f - getScreenHeight() / 2, .1)
+		
+		float temp = roaringKnight_imageIndex
+		float fm = Math.floorToInt(roaringKnight_imageIndex)
+		roaringKnight_imageIndex += (fm <= 1) ? .07 : (fm == 2) ? .15 : 0.035
+		
+		if (fm < 2 && roaringKnight_imageIndex >= 2)
+		{
+			roaringKnight_updateTimer = 0
+			++roaringKnight_attackPhase
+			
+			cam_bound.bottom = rk_arena_B
+			level.palettefx.state = 2
+			enable_rk_charStance = false
+			objA0.velocity.y = 0x100
+			
+			Audio.playAudio("snd_knight_cut")
+
+			objA1.state = char.state.DISAPPEARED
+			objA1.position.x.u16 = rk_arena_posCenterX + 64
+			objA1.position.y.u16 = 0xbec + char.hitbox.y.UPRIGHT - s16(u8[A1 + 0x44])
+			objA1.hitbox_extends.x = u8[A1 + 0x45]
+			objA1.hitbox_extends.y = u8[A1 + 0x44]
+			objA1.animation.sprite = 0x5a
+			u8[A1 + 0x2e] = (control_flag.DISABLE_UPDATE | control_flag.DISABLE_ANIMATION)
+			objA1.flags2a &= ~char.flag.IN_AIR
+			objA1.flags2a |= char.flag.FACING_LEFT
+			objA1.groundspeed = 0
+			
+			objA1.render_flags &= ~render_flag.FLIP_X
+		}
+
+		RoaringKnight_hover()
+	}
+	else if (roaringKnight_attackPhase == 2)
+	{
+		roaringKnight_imageIndex = min(roaringKnight_imageIndex + 0.2, 4)
+		UpdateMovementStraightSimple()
+		objA0.velocity.y -= 0x28
+		
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer > 30)
+		{
+			roaringKnight_updateTimer = 0
+			++roaringKnight_attackPhase
+		}
+	}
+	else if (roaringKnight_attackPhase == 3)
+	{
+		D0 = rk_arena_posCenterY - getScreenHeight() / 2
+		camera.position.y.u16 = valueLerpInt(camera.position.y.u16, D0, .05)
+			
+		if (camera.position.y.u16 == D0)
+		{
+			++roaringKnight_updateTimer
+			if (roaringKnight_updateTimer > 30)
+			{
+				roaringKnight_updateTimer = 0
+				
+				roaringKnight_spriteIndex = "idlebackward"
+				roaringKnight_imageIndex = 0
+				
+				objA0.render_flags &= ~render_flag.FLIP_X
+				
+				objA0.position.x.u16 = rk_arena_posCenterX - 64
+				objA0.position.x.frac = 0
+				objA0.position.y.u16 = camera.position.y.u16 - objA0.box_size.y
+				objA0.value26 = 0
+				roaringKnight_verticalShift = 0
+				objA0.velocity.y = 0x400
+				
+				++roaringKnight_attackPhase
+			}
+		}
+	}
+	else if (roaringKnight_attackPhase == 4)
+	{
+		UpdateMovementStraightSimple()
+		objA0.velocity.y -= 0x10
+		
+		if (objA0.velocity.y < 0)
+		{
+			objA0.velocity.y = 0
+			++roaringKnight_attackPhase
+		}
+		
+		if (objA0.velocity.y < 0x100)
+			RoaringKnight_hover()
+	}
+	else if (roaringKnight_attackPhase == 5)
+	{
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer > 80 && roaringKnight_spriteIndex == "idlebackward")
+			roaringKnight_imageIndex = min(roaringKnight_imageIndex + 0.2, 2)
+		
+		u16 ev_turnStart = 200
+		u16 ev_headTilt = ev_turnStart + 120
+		
+		if (roaringKnight_updateTimer == ev_turnStart)
+			objA1.animation.sprite = 0x59
+		else if (roaringKnight_updateTimer == ev_turnStart + 15)
+		{
+			objA1.animation.sprite = 0x55
+			objA1.render_flags ^= render_flag.FLIP_X
+		}
+		else if (roaringKnight_updateTimer == ev_turnStart + 25)
+		{
+			objA1.state = char.state.STANDING
+			u8[A1 + 0x2e] = 0
+			
+			objA0.render_flags ^= render_flag.FLIP_X
+			roaringKnight_spriteIndex = "idle"
+			roaringKnight_imageIndex = 0
+		}
+		else if (roaringKnight_updateTimer == ev_turnStart + 35)
+		{
+			objA0.render_flags |= render_flag.FLIP_X
+			objA0.sprite_priority = objA1.sprite_priority - 0x80
+			
+			roaringKnight_moveXPos = objA1.position.x.u16 - objA1.hitbox_extends.x - 32
+			roaringKnight_moveYPos = objA1.position.y.u16 - objA1.hitbox_extends.y - 12
+			roaringKnight_moveLerpBy = .035
+			roaringKnight_maxSpeed = 0x18000
+		}
+		else if (roaringKnight_updateTimer == ev_headTilt)
+			control.player1.state = CONTROL_UP
+		else if (roaringKnight_updateTimer == ev_headTilt + 60)
+		{
+			roaringKnight_spriteIndex = "causekneel"
+			roaringKnight_imageIndex = 0
+			
+			++roaringKnight_attackPhase
+			roaringKnight_updateTimer = 0
+			
+			roaringKnight_moveYPos += 12
+		}
+		RoaringKnight_hover()
+	}
+	else if (roaringKnight_attackPhase == 6)
+	{
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer == 70)
+			control.player1.state = 0
+		else if (roaringKnight_updateTimer == 100)
+			control.player1.state = CONTROL_DOWN
+			
+		if (roaringKnight_updateTimer >= 100)
+			roaringKnight_imageIndex = min(roaringKnight_imageIndex + 0.2, 4)
+		
+		if (roaringKnight_updateTimer == 320)
+		{
+			roaringKnight_spriteIndex = "birdstart"
+			roaringKnight_imageIndex = 0
+			roaringKnight_updateTimer = 0
+			++roaringKnight_attackPhase
+			
+			roaringKnight_moveLerpBy = 0
+			objA0.velocity.x = -0x300
+			objA0.velocity.y = -0x400
+			objA0.render_flags &= ~render_flag.FLIP_X
+			
+			Audio.playAudio("snd_jump_bc")
+			Audio.playAudio("snd_drake_dodge")
+		}
+	}
+	else if (roaringKnight_attackPhase == 7)
+	{
+		UpdateMovementStraightSimple()
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer == 30)
+			control.player1.state = 0
+			
+		if (roaringKnight_updateTimer >= 45)
+			objA0.velocity.x = valueProgressToEnd(objA0.velocity.x, 0x900, (objA0.velocity.x < 0) ? 0x80 : 0x20)
+		else
+			objA0.velocity.x = valueProgressToEnd(objA0.velocity.x, 0, max(abs(objA0.velocity.x >> 6), 1))
+		objA0.velocity.y = valueProgressToEnd(objA0.velocity.y, 0, 0x18)
+		
+		float temp = roaringKnight_imageIndex
+		roaringKnight_imageIndex += .3
+		if (roaringKnight_imageIndex > 13)
+		{
+			++roaringKnight_updateTimerSecondary
+			if (roaringKnight_updateTimerSecondary == 12)
+				Audio.playAudio("snd_knight_puff")
+			else if (roaringKnight_updateTimerSecondary == 20)
+			{
+				Audio.playAudio("snd_heavy_passing")
+				roaringKnight_updateTimerSecondary = 0
+			}
+		}
+		if (RoaringKnight_ani_ended())
+		{
+			objA0.velocity.x = 0x100
+			roaringKnight_spriteIndex = "birdfly"
+			roaringKnight_imageIndex = 0
+			roaringKnight_updateTimer = 0 
+			++roaringKnight_attackPhase
+			control.player1.state = CONTROL_UP
+		}
+	}
+	else if (roaringKnight_attackPhase == 8)
+	{
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer == 45)
+			objA1.flags2a ^= char.flag.FACING_LEFT
+		else if (roaringKnight_updateTimer == 60)
+			control.player1.state = 0
+		else if (roaringKnight_updateTimer == 100)
+		{
+			control.player1.state = CONTROL_LEFT
+			move_area.left = rk_arena_full_L
+		}
+		else if (roaringKnight_updateTimer == 137)
+			control.player1.state = 0
+		else if (roaringKnight_updateTimer == 167)
+		{
+			objA1.position.x.u16 = rk_arena_posCenterX
+			objA1.flags2a &= ~char.flag.FACING_LEFT
+			objA1.groundspeed = 0 
+		}
+		
+		if (objA0.position.x.u16 < cam_bound.right + 400 + 128)
+		{
+			UpdateMovementStraightSimple()
+			roaringKnight_imageIndex = (roaringKnight_imageIndex + 0.35) % 4
+			objA0.velocity.x = valueProgressToEnd(objA0.velocity.x, 0x900, 0x20)
+			objA0.velocity.y = valueProgressToEnd(objA0.velocity.y, 0, 0x18)
+			
+			++roaringKnight_updateTimerSecondary
+			if (roaringKnight_updateTimerSecondary == 12)
+				Audio.playAudio("snd_knight_puff")
+			else if (roaringKnight_updateTimerSecondary == 20)
+			{
+				Audio.playAudio("snd_heavy_passing")
+				roaringKnight_updateTimerSecondary = 0
+			}
+		}
+		
+		if (roaringKnight_updateTimer == 175)
+		{
+			if (level.palettefx.state == 0)
+			{
+				roaringKnight_updateRoutine = "resultsUpdate"
+				roaringKnight_updateTimer = 0
+				roaringKnight_attackPhase = 0
+			}
+			else
+				++roaringKnight_attackPhase
+			
+			Game.endSkippableCutscene()
+		}
+	}
+	
+	DrawObject()
+}
+
+function void RoaringKnight_resultsUpdate()
+{
+	if (roaringKnight_attackPhase == 0)
+	{
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer == 15)
+		{
+			roaringKnight_updateTimer = 0
+			roaringKnight_updateTimerSecondary
+			++roaringKnight_attackPhase
+			roaringKnight_tempVarA = 0
+			
+			level.wait_for_results = 1 // misusing this to tell the game to bring up the results ui
+			Audio.playAudio("26", AudioContext.CONTEXT_MUSIC) // ignore music config intentionally and always use S3A credits
+			
+			StartCharacterWinPose(0xffffb000)
+		}
+	}
+	else if (roaringKnight_attackPhase == 1)
+	{
+		u32 lenA = strlen(rk_completionText_A)
+		u32 lenB = strlen(rk_completionText_B)
+			
+		if (roaringKnight_tempVarA < strlen(rk_completionText_A) + strlen(rk_completionText_B))
+		{
+			if (roaringKnight_updateTimer > 0)
+				--roaringKnight_updateTimer
+			else
+			{
+				++roaringKnight_tempVarA
+				
+				string expectedLetter = ""
+				if (roaringKnight_tempVarA > lenA)
+					expectedLetter = substring(rk_completionText_B, roaringKnight_tempVarA - lenA, 1)
+				else
+					expectedLetter = substring(rk_completionText_A, roaringKnight_tempVarA, 1)
+				//debugLog(expectedLetter)
+				
+				if (expectedLetter == " ")
+					++roaringKnight_tempVarA
+					
+				roaringKnight_updateTimer = 2
+			}
+		}
+		else
+		{
+			++roaringKnight_attackPhase
+			roaringKnight_updateTimer = 0
+			roaringKnight_tempVarA = 0
+		}
+	}
+	else if (roaringKnight_attackPhase == 2)
+	{
+		++roaringKnight_updateTimer
+		if (roaringKnight_updateTimer > 20)
+		{
+			roaringKnight_updateTimer = 0
+			++roaringKnight_attackPhase
+		}
+	}
+	else
+	{
+		if (control.pad1.pressed & CONTROL_START)
+		{
+			u32 backupA0 = A0
+			FadeOutScreenBlocking()
+			A0 = backupA0
+
+			Game.returnToMainMenu()
+			yieldExecution()
+		}
+	}
+}
+
+function bool RoaringKnight_ani_ended()
+{
+	return (!Renderer.hasCustomSprite(stringformat("roaringknight_%s_%d", roaringKnight_spriteIndex, Math.floorToInt(roaringKnight_imageIndex))))
+}
+
+// unique hover function that doesn't alter velocity values
+function void RoaringKnight_hover()
+{
+	for (u8 i; i < 3; ++i)
+	{
+		s32 calc = (s32(lookupSin(objA0.value26)) * 0x20)
+		objA0.position.y += calc
+		roaringKnight_verticalShift += calc
+		++objA0.value26
+	}
+}
+
+function void RoaringKnight_forceCameraPos()
+{
+	camera.position.x = (objA0.position.x.u16 - getScreenWidth() / 2) << 16
+	camera.position.y = (objA0.position.y.u16 - getScreenHeight() / 2) << 16
+}
+
+function void RoaringKnight_resetPal()
+{
+	u32 targetAddress = 0x802000 + rk_pal_mult * 0x40
+	
+	zeroMemory(targetAddress, 0x20)
+	u16 numColors = System.loadExternalPaletteData("boss_palette_roaring_knight", 0, 0x800000, 0x10)
+	for (u8 i = 0; i < numColors; ++i)
+	{
+		u32 rgba = u32[0x800000 + i * 4]
+		u16[targetAddress + i * 2] = packColorExt(rgba)
+	}
+}
+
+function void RoaringKnight_fadeOutRoar()
+{
+	if (roaringKnight_screamSize > 0)
+	{
+		roaringKnight_screamAlpha = max(roaringKnight_screamAlpha - .1, 0)
+		if (roaringKnight_screamAlpha == 0)
+			roaringKnight_screamSize = 0
+	}
+}
+
+//# address-hook(0x39B342) end(0x39B342)
+function void RoaringKnight_effect_introSword()
+{
+	Character.UpdateMovement()
+	
+	A1 = roaringKnight_memLoc
+	
+	if (objA0.position.y.u16 >= objA1.position.y.u16 - 12)
+	{
+		roaringKnight_updateRoutine = "intro_swordPresent"
+		roaringKnight_spriteIndex = "swordhold"
+		roaringKnight_imageIndex = 0
+		
+		UnloadObject()
+	}
+	else
+		DrawObject()
+}
+
+function bool RoaringKnight_isOutOfBounds()
+{
+	return RoaringKnight_isOutOfBounds(objA0.box_size.x, objA0.box_size.y)
+}
+
+function bool RoaringKnight_isOutOfBounds(s16 lenienceH, s16 lenienceV)
+{
+	return (objA0.position.y.u16 > move_area.bottom + getScreenHeight() + lenienceV || objA0.position.y.u16 <= move_area.top - lenienceV || objA0.position.x.u16 <= move_area.left - lenienceH || objA0.position.x.u16 > move_area.right + getScreenWidth() + lenienceH)
+}
+
+function bool RoaringKnight_isOutOfVisibleBounds()
+{
+	return RoaringKnight_isOutOfVisibleBounds(objA0.box_size.x, objA0.box_size.y)
+}
+
+function bool RoaringKnight_isOutOfVisibleBounds(s16 lenienceH, s16 lenienceV)
+{
+	return (objA0.position.y.u16 > cam_bound.bottom + getScreenHeight() + lenienceV || objA0.position.y.u16 <= cam_bound.top - lenienceV || objA0.position.x.u16 <= cam_bound.left - lenienceH || objA0.position.x.u16 > cam_bound.right + getScreenWidth() + lenienceH)
+}
+
+function void RoaringKnight_decideArenaSide()
+{
+	RoaringKnight_decideArenaSide(72)
+}
+
+function void RoaringKnight_decideArenaSide(s16 leniency)
+{
+	if (objA1.position.x.u16 > rk_arena_posCenterX + leniency)
+		roaringKnight_perferredSide = -1
+	else if (objA1.position.x.u16 < rk_arena_posCenterX - leniency)
+		roaringKnight_perferredSide = 1
+	else
+		roaringKnight_perferredSide = 1 - (System.rand() % 2) * 2
+}
+
+function void RoaringKnight_decideArenaSideAlt()
+{
+	RoaringKnight_decideArenaSideAlt(0)
+}
+
+function void RoaringKnight_decideArenaSideAlt(s16 leniency)
+{
+	if (objA1.position.x.u16 > objA0.position.x.u16 + leniency)
+		roaringKnight_perferredSide = -1
+	else if (objA1.position.x.u16 < objA0.position.x.u16 - leniency)
+		roaringKnight_perferredSide = 1
+	else
+		roaringKnight_perferredSide = 1 - (System.rand() % 2) * 2
+}
+
+function void RoaringKnight_setFloatStatus(bool state)
+{
+	roaringKnight_arena_floatMode = state
+	
+	u32 A0_o = A0
+	u32 A1_o = A1
+	A0 = A1_o
+	A1 = A0_o
+	
+	if (state)
+	{
+		Character.onRKFloatEnter()
+		playSound(SFX_HYUDORO)
+	}
+	else
+		Character.onRKFloatExit()
+		
+	A0 = A0_o
+	A1 = A1_o
+}
+
+function void RoaringKnight_setCameraModeSD(bool isDual)
+{
+	if (!isDual && roaringKnight_camType == rk_camMode_dual)
+	{
+		roaringKnight_camType = rk_camMode_dual_to_player
+		roaringKnight_cam_transValue = 1
+	}
+	else if (isDual && roaringKnight_camType == rk_camMode_player)
+	{
+		roaringKnight_camType = rk_camMode_player_to_dual
+		roaringKnight_cam_transValue = 0
+	}
+	else
+		roaringKnight_camType = (isDual) ? rk_camMode_dual : rk_camMode_player
+}

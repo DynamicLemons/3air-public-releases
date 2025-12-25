@@ -1,0 +1,20 @@
+//# address-hook(0x0455cc) end(0x0456ee)
+function void fn0455cc()
+{
+	if (isRoaringKnightMode)
+	{
+		if (checkpoint.number)
+		{
+			UnloadObject()
+			return
+		}
+		
+		++objA0.state 
+		if (objA0.state < 30 || objA0.render_flags & render_flag.VISIBLE)
+			DrawObject()
+		else
+			UnloadObject()
+	}
+	else
+		base.fn0455cc()
+}

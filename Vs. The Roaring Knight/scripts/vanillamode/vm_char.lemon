@@ -1,0 +1,128 @@
+global string p1_customKey
+
+function s64 getPlayerGlobalValue(string value)
+{
+	return getPlayerGlobalValue(A0, value)
+}
+
+function s64 getPlayerGlobalValue(u32 address, string value)
+{
+	return System.getGlobalVariableValueByName(stringformat("p%d_%s", ((u16(address) - 0xb000) / 0x4a) + 1, value))
+}
+
+function void setPlayerGlobalValue(string value, s64 input)
+{
+	setPlayerGlobalValue(A0, value, input)
+}
+
+function void setPlayerGlobalValue(u32 address, string value, s64 input)
+{
+	System.setGlobalVariableValueByName(stringformat("p%d_%s", ((u16(address) - 0xb000) / 0x4a) + 1, value), input)
+}
+
+function void UpdateCharacterAnimation()
+{
+	if (debug_mode.state && A0 == 0xffffb000)
+		return
+		
+	if (char.character == CHARACTER_SONIC)
+	{
+		UpdateSonicAnimation()
+		if (global.inv_gravity)
+			char.render_flags ^= render_flag.FLIP_Y
+		UpdateSonicSpritePatterns()
+	}
+	else if (char.character == CHARACTER_TAILS)
+	{
+		UpdateTailsAnimation()
+		if (global.inv_gravity)
+			char.render_flags ^= render_flag.FLIP_Y
+		UpdateTailsSpritePatterns()
+	}
+	else if (char.character == CHARACTER_KNUCKLES)
+	{
+		UpdateKnucklesAnimation()
+		if (global.inv_gravity)
+			char.render_flags ^= render_flag.FLIP_Y
+		UpdateKnucklesSpritePatterns()
+	}
+}
+
+function void UpdateCharacterAnimationA1()
+{
+	u32 A0_o = A0
+	u32 A1_o = A1
+	A0 = A1_o
+	A1 = A0_o
+	
+	UpdateCharacterAnimation()
+	
+	A0 = A0_o
+	A1 = A1_o
+}
+
+function bool Character.isAttacking()
+{
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	if (getECFCharBufferName(A0))
+		return ECF_isCharacterAttacking()
+	else
+#endif
+	{
+		if (char.state == char.state.ROLLING || char.state == char.state.SPINDASH)
+			return true
+		else 
+		{
+			if (char.character == CHARACTER_SONIC)
+				return (char.state == char.state.SONIC_DROPDASH)
+			else if (char.character == CHARACTER_TAILS)
+			{
+				if (char.state >= char.state.TAILS_FLYDOWN && char.state <= char.state.TAILS_FLYTIRED)
+				{
+					s16 dx = char.position.x.u16 - objA1.position.x.u16
+					s16 dy = char.position.y.u16 - objA1.position.y.u16
+					D0.u8 = lookupAngleByVector(dx, dy) - 0x20
+					return (D0.u8 < 0x40)
+				}
+			}
+			else if (char.character == CHARACTER_KNUCKLES)
+				return (char.double_jump_state == 1 || char.double_jump_state == 3)
+		}
+	}
+	
+	return false
+}
+
+// This function is here only for script mods that want to change or extend the character sprites
+function u64 Standalone.getModdedAnimationSpriteKey(u8 character, u16 animationSpriteEx)
+{
+	if (isRoaringKnightMode && A0 == 0xffffb000)
+	{
+		string cPrefixNormal
+	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+		string charName = ECF_cRenderGetName()
+		if (charName)
+			cPrefixNormal = getECFCharacterSpriteKey(charName, false)
+		else
+	#endif
+			cPrefixNormal = getCharacterSpriteKey(char.character, false)
+		string key = stringformat("%s_%s", cPrefixNormal, p1_customKey)
+		if (Renderer.hasCustomSprite(key))
+			return key
+	}
+	return base.Standalone.getModdedAnimationSpriteKey(character, animationSpriteEx)
+}
+
+function void updateSonicAnimation_shared()
+{
+	base.updateSonicAnimation_shared()
+	if (isRoaringKnightMode && A0 == 0xffffb000)
+		p1_customKey = 0
+}
+
+function void updateSonicAnimationRunning()
+{
+	base.updateSonicAnimationRunning()
+	if (isRoaringKnightMode && A0 == 0xffffb000)
+		p1_customKey = 0
+}

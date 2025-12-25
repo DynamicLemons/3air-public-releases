@@ -1,0 +1,6 @@
+#if LEMONS_TWEAKS_ACTIVE
+function u8 getSecondCharacter()
+{
+	return (isRoaringKnightMode) ? 0xff : base.getSecondCharacter()
+}
+#endif

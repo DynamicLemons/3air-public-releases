@@ -1,0 +1,62 @@
+function u8 charrk_dmg_invulTime()
+{
+	if (objA1.update_address == rkaddress_star)
+		return 40
+	else if (objA1.update_address == rkaddress_orbitDagger || objA1.update_address == rkaddress_daggerStationary || objA1.update_address == rkaddress_homingGarlic)
+		return 5
+	else if (objA1.update_address == rkaddress_tooth)
+		return 60
+	else if (objA1.update_address == rkaddress_swordHallway && objA1.base_state == 0 || objA1.update_address == rkaddress_swordFalling)
+		return 20
+	else if (objA1.update_address == rkaddress_lineSlash)
+		return 25
+	else if (objA1.update_address == rkaddress_circleDagger)
+		return (objA1.base_state == 6) ? 5 : 25
+	return 120
+}
+
+function u16 charrk_dmg_getBulletDamage()
+{
+	if (objA1.update_address == rkaddress_star) 
+		return (objA1.base_state) ? 8 : 5
+	else if (objA1.update_address == rkaddress_orbitDagger || objA1.update_address == rkaddress_daggerStationary)
+		return 10
+	else if (objA1.update_address == rkaddress_circleDagger)
+		return (objA1.base_state == 6) ? 10 : 2
+	else if (objA1.update_address == rkaddress_tooth)
+		return 8
+	else if (objA1.update_address == rkaddress_swordHallway)
+		return (objA1.base_state) ? 8 : 6
+	else if (objA1.update_address == rkaddress_lineSlash) 
+		return 12
+	else if (objA1.update_address == rkaddress_homingGarlic)
+		return 6
+	else if (objA1.update_address == rkaddress_swordFalling)
+		return 4
+	return 15
+}
+
+function void charrk_dmg_setHitMomentum()
+{
+	if (objA1.update_address == rkaddress_circleDagger && objA1.base_state < 6)
+	{
+		A2 = 0xffff0000 + u32(u16[A1 + 0x40])
+		u8 angle = calcAngleBetweenPoints(char.position.x.u16, char.position.y.u16, u16[A2 + 0x10], u16[A2 + 0x14])
+		char.velocity.x = (s32(lookupCos(angle)) * 0x500) >> 8
+		char.velocity.y = (s32(lookupSin(angle)) * 0x500) >> 8
+	}
+}
+
+function bool charrk_dmg_hitSound()
+{
+	if (objA1.update_address == rkaddress_lineSlash) 
+		return SFX_HITSPIKES
+	
+	u16 damage = charrk_dmg_getBulletDamage()
+	return (damage >= 20) ? SFX_ROUGHIMPACT : (damage >= 10) ? SFX_LANDTOUGH : SFX_HURT
+}
+
+function u8 charrk_dmg_isUneven()
+{
+	return (objA1.update_address == rkaddress_swordHallway || objA1.update_address == rkaddress_circleDagger)
+}

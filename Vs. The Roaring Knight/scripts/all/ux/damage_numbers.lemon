@@ -1,0 +1,96 @@
+// based on Deltarune's actual effect for this, but not entirely accurate.
+function bool RoaringKnight_summonDamageEffectShared(u16 px, u16 py)
+{
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = addressof(RoaringKnight_damageNumber)
+		objA1.position.x.u16 = px
+		objA1.position.y.u16 = py
+		u16[A1 + 0x34] = py
+		
+		objA1.render_flags = render_flag.WORLD
+		objA1.box_size.x = 24
+		objA1.box_size.y = 8
+		
+		u8[A1 + 0x30] = 2
+
+		objA1.velocity.y = -0x280 - (getRandomNumber() % 0x101)
+		objA1.velocity.x = 0x500
+		objA1.groundspeed = objA1.velocity.y
+		return true
+	}
+	return false
+}
+
+function bool RoaringKnight_summonDamageNumber(u16 damage, u16 px, u16 py, u8 type)
+{
+	if (RoaringKnight_summonDamageEffectShared(px, py))
+	{
+		u16[A1 + 0x32] = damage
+		objA1.subtype2c = type
+		
+		// post-mortem update
+		u32 A0_o = A0
+		A0 = A1
+		call objA0.update_address
+		A0 = A0_o
+		return true
+	}
+	return false
+}
+
+function bool RoaringKnight_summonDamageNull(u16 px, u16 py, u8 type)
+{
+	if (RoaringKnight_summonDamageEffectShared(px, py))
+	{
+		objA1.subtype2c = type
+		objA1.flags2a = 1
+		
+		// post-mortem update
+		u32 A0_o = A0
+		A0 = A1
+		call objA0.update_address
+		A0 = A0_o
+		return true
+	}
+	return false
+}
+
+//# address-hook(0x39B364) end(0x39B364)
+function void RoaringKnight_damageNumber()
+{
+	UpdateMovementStraightSimple()
+	
+	++objA0.countdown_value
+	
+	if (objA0.velocity.x < 0)
+		objA0.velocity.x = min(objA0.velocity.x + 0x80, 0)
+	else if (objA0.velocity.x > 0)
+		objA0.velocity.x = max(objA0.velocity.x - 0x80, 0)
+
+	if (objA0.countdown_value <= 36)
+	{
+		if (objA0.value26 < 2)
+		{
+			objA0.velocity.y += 0x80
+			if (objA0.position.y.u16 > u16[A0 + 0x34])
+			{
+				objA0.position.y.u16 = u16[A0 + 0x34]
+				objA0.velocity.y = objA0.groundspeed / 2
+				++objA0.value26
+			}
+		}
+		else
+		{
+			objA0.position.y.u16 = u16[A0 + 0x34]
+			objA0.velocity.y = 0
+		}
+	}
+	else if (objA0.countdown_value == 37)
+		objA0.velocity.y = -0x200
+	
+	if (RoaringKnight_isOutOfBounds() || objA0.countdown_value >= 50)
+		UnloadObject()
+	else
+		DrawObject()
+}

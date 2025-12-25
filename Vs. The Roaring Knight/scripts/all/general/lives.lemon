@@ -1,0 +1,6 @@
+function u32 Game.getSetting(u32 settingId)
+{
+	if (settingId == SETTING_INFINITE_LIVES && isRoaringKnightMode)
+		return true
+	return base.Game.getSetting(settingId)
+}

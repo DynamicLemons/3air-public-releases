@@ -1,0 +1,8 @@
+{
+	"rkz_layout": { "File": "SSZ/Layout/1.bin" },
+	"rkz_objects": { "File": "SSZ/Object Pos/1.bin" },
+	"rkz_rings": { "File": "SSZ/Ring Pos/1.bin" },
+	"rkz_chunks_p": { "File": "SSZ/Chunks/Act 1 Primary.bin" },
+	"rkz_chunks_s": { "File": "SSZ/Chunks/Act 1 Secondary.bin" },
+	"rkz_palette": { "File": "SSZ/Palettes/1.bin" },
+}

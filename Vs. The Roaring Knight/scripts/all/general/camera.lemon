@@ -1,0 +1,285 @@
+//# address-hook(0x01bfb0) end(0x01c0a4)
+function void UpdateCamera()
+{
+	if (!isRoaringKnightMode)
+	{
+		base.UpdateCamera()
+		return
+	}
+	
+	if (u8[0xffffee30] != 0)
+		return
+
+	u16[0xffffee00] = 0
+	u16[0xffffee02] = 0
+	u16[0xffffee04] = 0
+	u16[0xffffee06] = 0
+
+	if (player1.camera_lock == 0)
+	{
+		A0 = 0xffffb000
+		if (camera.locktime.player1)
+		{
+		#if LEMONS_TWEAKS_ACTIVE
+			--camera.locktime.player1
+		#else
+			camera.locktime.player1 = max(s32(camera.locktime.player1 - 0x200), 0) // speed is technically doubled, to account for timing differences between vanilla and LT.
+		#endif
+		}
+		else
+		{
+			camera.forced_target.x = rk_getPlayerCamX()
+			camera.forced_target.y = rk_getPlayerCamY()
+		}
+		
+		u16 camX
+		u16 camY 
+		
+		// unused cam types
+		if (roaringKnight_camType >= rk_camMode_dual && roaringKnight_camType <= rk_camMode_player_to_dual)
+		{
+			A1 = roaringKnight_memLoc
+			
+			s16 diffX = objA1.position.x.u16 - camera.forced_target.x
+			s16 diffY = objA1.position.y.u16 - camera.forced_target.y
+			s16 tempX = (getScreenWidth() / 2) - 24
+			s16 tempY = (getScreenHeight() / 2) - 24
+			u32 dualX = camera.forced_target.x + clamp(diffX >> 1, -tempX, tempX)
+			u32 dualY = camera.forced_target.y + clamp(diffY >> 1, -tempY, tempY)
+			
+			if (roaringKnight_camType == rk_camMode_dual_to_player || roaringKnight_camType == rk_camMode_player_to_dual)
+			{
+				if (roaringKnight_camType == rk_camMode_player_to_dual)
+					roaringKnight_cam_transValue = min(roaringKnight_cam_transValue + .05, 1)
+				else
+					roaringKnight_cam_transValue = max(roaringKnight_cam_transValue - .05, 0)
+
+				camX = Math.roundToInt(Math.lerp(camera.forced_target.x, dualX, roaringKnight_cam_transValue))
+				camY = Math.roundToInt(Math.lerp(camera.forced_target.y, dualY, roaringKnight_cam_transValue))
+					
+				if (roaringKnight_cam_transValue == 1)
+					roaringKnight_camType = rk_camMode_dual
+				else if (roaringKnight_cam_transValue == 0)
+					roaringKnight_camType = rk_camMode_player
+			}
+			else
+			{
+				camX = dualX
+				camY = dualY
+			}
+		}
+		// final teeth attack
+		else if (roaringKnight_camType == rk_camMode_battlebox)
+		{
+			A1 = roaringKnight_arena_specialControl
+			
+			s16 startPointX = camera.forced_target.x
+			s16 startPointY = camera.forced_target.y
+			s16 endPointX = objA1.position.x.u16
+			s16 endPointY = objA1.position.y.u16 - 16
+			
+			if (roaringKnight_cam_transValue == 1)
+			{
+				camX = endPointX
+				camY = endPointY
+			}
+			else if (roaringKnight_cam_transValue == 0)
+			{
+				camX = startPointX
+				camY = startPointY
+			}
+			else
+			{
+				camX = Math.roundToInt(Math.lerp(startPointX, endPointX, roaringKnight_cam_transValue))
+				camY = Math.roundToInt(Math.lerp(startPointY, endPointY, roaringKnight_cam_transValue))
+			}
+		}
+		// default
+		else
+		{
+			camX = camera.forced_target.x
+			camY = camera.forced_target.y
+		}
+		
+		A1 = addressof(camera.position.x)			// Address: 0xffffee78
+		A2 = addressof(cam_bound.left)				// Address: 0xffffee14
+		A4 = 0xffffee00								// Looks like last camera movement (delta x) gets stored here
+		A5 = addressof(camera.locktime.player1)		// Address: 0xffffee24
+		A6 = 0xffffe500								// Address of position backup
+		UpdateRkLiteCameraPositionX(camX)
+
+		A1 = addressof(camera.position.y)			// Address: 0xffffee7c
+		A4 = 0xffffee02								// Looks like last camera movement (delta y) gets stored here
+		D3.u16 = isMainCharacter(CHARACTER_TAILS) ? camera.yoffset.tails : camera.yoffset.player
+		UpdateRkLiteCameraPositionY(camY)
+	}
+
+	UpdateCameraBoundsInLevel()
+}
+
+//# address-hook(0x01c38a) end(0x01c3f4)
+function void UpdateCameraBoundsInLevel()
+{
+	if (isRoaringKnightMode)
+	{
+		if (camera.update_routine == rk_borderMode_daggerS)
+		{
+			cam_bound.left = valueLerpInt(cam_bound.left, rk_arena_inner_L - 128, .05)
+			cam_bound.right = rk_arena_inner_L - cam_bound.left + rk_arena_inner_R
+			cam_bound.bottom = valueLerpInt(cam_bound.bottom, rk_arena_B + 32, .05)
+		}
+		else if (camera.update_routine == rk_borderMode_daggerE)
+		{
+			cam_bound.left = valueLerpInt(cam_bound.left, rk_arena_inner_L, .05)
+			cam_bound.right = rk_arena_inner_L - cam_bound.left + rk_arena_inner_R
+			cam_bound.bottom = valueLerpInt(cam_bound.bottom, rk_arena_B, .05)
+			
+			camera.position.x.u16 = clamp(camera.position.x.u16, cam_bound.left, cam_bound.right)
+			camera.position.y.u16 = min(camera.position.y.u16, cam_bound.bottom)
+		
+			if (cam_bound.left == rk_arena_inner_L || cam_bound.right == rk_arena_B)
+				camera.update_routine = rk_borderMode_none
+		}
+		else if (camera.update_routine == rk_borderMode_sword2S)
+		{
+			move_area.left = valueLerpInt(move_area.left, rk_arena_inner_L + 128, .2)
+			move_area.right = rk_arena_inner_L - move_area.left + rk_arena_inner_R
+		}
+		else if (camera.update_routine == rk_borderMode_dagger2E)
+		{
+			move_area.left = valueLerpInt(move_area.left, rk_arena_inner_L, .2)
+			move_area.right = rk_arena_inner_L - move_area.left + rk_arena_inner_R
+		}
+		else if (camera.update_routine == rk_borderMode_flurryS)
+		{
+			move_area.left = valueLerpInt(move_area.left, rk_arena_inner_L + 227, .2)
+			move_area.right = rk_arena_inner_L - move_area.left + rk_arena_inner_R
+		}
+	}
+	else
+		base.UpdateCameraBoundsInLevel()
+}
+
+function u16 rk_getPlayerCamX()
+{
+	u16 px = char.position.x.u16
+	return px
+}
+
+function u16 rk_getPlayerCamY()
+{
+	u16 py = char.position.y.u16 - s16(char.hitbox.default.y) + s16(char.hitbox_extends.y)
+	return py
+}
+
+function void UpdateRkLiteCameraPositionX(u16 px)
+{
+	u16 oldCamPos = u16[A1]
+	D4.u16 = oldCamPos
+	
+	s16 limitLeft = s16[A2]		// "move_area.left"
+	s16 limitRight = s16[A2+2]	// "move_area.right"
+
+	u16 currentScreenPivot = oldCamPos + getScreenWidth() / 2
+	s16 diffx = px - currentScreenPivot
+
+	s16 movex = 0
+	if (roaringKnight_arena_squareMode)
+	{
+		s16 range = 24
+		if (abs(diffx) > 2)
+			diffx >>= 1
+		movex = clamp(diffx, -range, range)
+	}
+	else
+	{
+		if (abs(diffx) > 8)
+		{
+			diffx += (diffx < 0) ? 8 : -8
+			s16 range = 24
+			movex = clamp(diffx, -range, range)
+		}
+	}
+
+	limitRight = max(limitLeft, limitRight - (getScreenWidth() - 400))
+	px = clamp(s16(oldCamPos + movex), limitLeft, limitRight)
+
+	u16[A1] = px	// Update camera position
+	u16[A4] = s16(px - oldCamPos) << 8
+}
+
+function void UpdateRkLiteCameraPositionY(u16 py)
+{
+	D0.s16 = py - u16[A1]
+
+	D1 = D3.u16
+	D0.s16 -= D1.u16
+	D1.u16 = 0x600
+	
+	s16 threshold = (D1.u16 >> 8)
+	
+	if (roaringKnight_arena_squareMode)
+	{
+		D1 = D0.u16
+		D1.u16 += u16[A1]
+	}
+	else
+	{
+		if (D0.s16 > threshold)
+		{
+			D1.s32 = D1.s16 << 8
+			D1 += u32[A1]
+			D1 = (D1 << 16) + (D1 >> 16)
+		}
+		else if (D0.s16 < -threshold)
+		{
+			D1.s32 = (-D1.s16) << 8
+			D1 += u32[A1]
+			D1 = (D1 << 16) + (D1 >> 16)
+		}
+		else
+		{
+			D1 = D0.u16
+			D1.u16 += u16[A1]
+		}
+	}
+
+	if (D0.s16 < 0)
+	{
+		if (D1.s16 <= s16[A2 + 4])
+		{
+			if (D1.s16 <= -0x100)
+			{
+				D1.u16 &= level.height.bitmask
+			}
+			else
+			{
+				D1.u16 = u16[A2 + 4]
+			}
+		}
+	}
+	else
+	{
+		if (D1.s16 >= s16[A2 + 6])
+		{
+			u16 levelHeight = level.height.bitmask + 1
+			D1.u16 -= levelHeight
+			if (D1.s16 >= 0)
+			{
+				u16[A1] -= levelHeight
+			}
+			else
+			{
+				D1.u16 = u16[A2 + 6]
+			}
+		}
+	}
+
+	D4.u16 = u16[A1]
+	D1 = (D1 << 16) + (D1 >> 16)
+	D3 = D1 - u32[A1]
+	D3 = (D3 >> 8) + (D3 << 24)
+	
+	u16[A4] = D3.u16
+	u32[A1] = D1
+}

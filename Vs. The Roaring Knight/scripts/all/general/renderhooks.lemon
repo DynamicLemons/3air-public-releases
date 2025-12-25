@@ -1,0 +1,654 @@
+function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
+{
+	// This function gets called once when rendering an object, even if it consists of multiple VDP sprites
+	//  -> That is in contrast to e.g. "Standalone.onDrawVdpSprite" which gets called for each VDP sprite
+	//  -> So if an object's sprites should be replaced with a new loaded graphics, this here is the place to go
+
+	string key
+	u16 atex = (objA0.sprite_attributes >> 9) & 0x30
+	u8 flags = ((objA0.render_flags & render_flag.FLIP_X) ? SPRITE_FLAG_FLIP_X : 0) | ((objA0.render_flags & render_flag.FLIP_Y) ? SPRITE_FLAG_FLIP_Y : 0) | ((objA0.sprite_attributes & sprite_attribute.PRIORITY) ? SPRITE_FLAG_PRIO : 0)
+	u8 angle = 0
+	u8 alpha = 255
+	
+	u16 rk_atex = rk_pal_mult * 0x20 + 0x40
+	
+	if (!isRoaringKnightMode)
+		return base.Standalone.onWriteToSpriteTable(px, py, renderQueue)
+		
+	if (objA0.update_address == rkaddress_dessHoliday)
+	{
+		if (roaringKnight_areaMask == 1)
+			renderQueue = 0xb000
+			
+		key = stringformat("roaringknight_%s_%d", roaringKnight_spriteIndex, Math.floorToInt(roaringKnight_imageIndex))
+		if (Renderer.hasCustomSprite(key))
+		{
+			SpriteHandle spr = Renderer.addSpriteHandle(key, px, py, renderQueue)
+			spr.setPaletteOffset(rk_atex)
+			spr.setFlags(flags | SPRITE_FLAG_NO_GLOBAL_TINT)
+		}
+		//else
+		//	debugLog(key)
+
+		if (roaringKnight_screamSize)
+		{
+			SpriteHandle spr = Renderer.addSpriteHandle("roaringknightfx_scream_circle", px, py, renderQueue - 1)
+			spr.setScale(roaringKnight_screamSize / rk_scrmScale)
+			
+			u32 col = Color.fromHSV(0, roaringKnight_screamSat, roaringKnight_screamVal) >> 8
+			
+			u8 _r = (col & 0xff0000) >> 16
+			u8 _g = (col & 0xff00) >> 8
+			u8 _b = (col & 0xff)
+			spr.setTintColor(_r / 255.0, _g / 255.0, _b / 255.0, roaringKnight_screamAlpha)
+			spr.setFlags(SPRITE_FLAG_PRIO)
+		}
+
+		// cool circle
+		if (roaringKnight_areaMask == 1)
+			DeerEffect_maskCircle(px, py)
+		// cool triangle
+		else if (roaringKnight_areaMask == 2)
+			DeerEffect_maskTriangle(px, py)
+		
+		if (!roaringKnight_phaseQualify)
+			RoaringKnight_offscreenIndicator("roaringknight_offscreen_icon_dess", objA0.position.x.u16, (objA0.position.y - roaringKnight_verticalShift) >> 16, objA0.box_size.x, objA0.box_size.y)
+		return true
+	}
+	
+	else if (objA0.update_address == addressof(RoaringKnight_effect_introSword))
+	{
+		Renderer.drawSprite("roaringknight_pull_sword", px, py, rk_atex, flags, renderQueue)
+		return true
+	}
+
+	else if (objA0.update_address == rkaddress_star)
+	{
+		u8 j = 6
+		if (objA0.subtype2c == 2)
+			j = 2
+	
+		if (objA0.base_state == 2)
+		{
+			u8 frame = (objA0.groundspeed / 4) % 2
+			for (u8 i; i < j; ++i)
+			{
+				float calc = rk_getStarPosition(i, j)
+				
+				for (s16 x = -1; x <= 1; ++x)
+				{
+					for (s16 y = -1; y <= 1; ++y)
+					{
+						if ((x != 0 && y != 0) == 0)
+						{
+							SpriteHandle spr = Renderer.addSpriteHandle(stringformat("roaringknight_star_garlic_%d", frame), (D0 >> 16) - camera.foreground.x.u16 + x, (D1 >> 16) - camera.foreground.y.u16 + y, renderQueue + (x == 0 && y == 0))
+							spr.setPaletteOffset(rk_atex)
+							spr.setFlags(flags)
+							spr.setRotation(180 - calc)
+							spr.setScale(objA0.value32 / (32.0 * rk_starScaleFactor))
+							if (x == 0 && y == 0)
+								spr.setTintColorRGBA(0xfcfcfcff)
+							else
+							{
+								spr.setTintColorRGBA(0x242424ff)
+								if (frame)
+									spr.setBlendMode(3)
+							}
+							
+							if (objA0.groundspeed > D2 - 15 && objA0.subtype2c != 2)
+								spr.setOpacity(max(1.0 - (clamp(objA0.groundspeed - (D2 - 15), 0, 15) / 15.0) * (x == 0 && y == 0 ? 1 : 2), 0))
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			float scale = objA0.value32 / (64.0 * rk_starScaleFactor)
+			
+			SpriteHandle spr = Renderer.addSpriteHandle("roaringknight_star", px, py, renderQueue)
+			spr.setFlags(flags)
+			spr.setScale(scale)
+			
+			if (objA0.base_state == 1)
+			{
+				float notRed = Math.lerp(1.0, 0.0, min(objA0.countdown_value, 20) / 20.0)
+				spr.setTintColor(1.0, notRed, notRed, 1.0)
+				
+				float flash_alph = Math.lerp(0.0, 0.35, min(objA0.countdown_value, 20) / 20.0)
+				float flash_scale = scale * 1.75
+				if ((objA0.countdown_value % 4 < 2))
+				{
+					flash_scale *= 1.2
+					SpriteHandle outline = Renderer.addSpriteHandle("roaringknight_star", px, py, renderQueue)
+					outline.setFlags(flags)
+					outline.setScale(scale * 1.2)
+					outline.setBlendMode(3)
+					outline.setOpacity(.2)
+				}
+				
+				for (u8 i; i < j; ++i)
+				{
+					float calc = (360.0 / j * i) + 180.0
+					float subMult = 1.0
+					if (objA0.subtype2c == 0 && i % 2 == 1)
+						subMult = .5
+					else if (objA0.subtype2c == 2)
+						calc -= (360.0 / 6.0 * objA0.state)
+						
+					SpriteHandle flare = Renderer.addSpriteHandle("roaringknight_star_flash", px, py, renderQueue)
+					flare.setFlags(flags)
+					flare.setBlendMode(3)
+					flare.setOpacity(flash_alph)
+					flare.setScale(flash_scale * subMult)
+					flare.setRotation(calc)
+				}
+			}
+		}
+		return true
+	}
+	
+	else if (objA0.update_address == addressof(RoaringKnight_homingGarlic))
+	{
+		u16 blendFactor = Math.roundToInt(Math.lerp(0.0, 256.0, objA0.animation.timer / 20.0))
+	
+		u32 colInner = blendColors_RGBA32(0xfcfcfcff, 0x242424ff, blendFactor)
+		u32 colOuter = blendColors_RGBA32(0x242424ff, 0xfc0000ff, blendFactor)
+		
+		for (s16 x = -1; x <= 1; ++x)
+		{
+			for (s16 y = -1; y <= 1; ++y)
+			{
+				if ((x != 0 && y != 0) == 0)
+				{
+					SpriteHandle spr = Renderer.addSpriteHandle("roaringknight_star_garlic_0", px + x, py + y, renderQueue + (x == 0 && y == 0))
+					spr.setPaletteOffset(rk_atex)
+					spr.setFlags(flags)
+					spr.setRotation(objA0.value26 * 360.0 / 256.0)
+					spr.setScale(objA0.value32 / (32.0 * rk_starScaleFactor))
+
+					if (x == 0 && y == 0)
+						spr.setTintColorRGBA(colInner)
+					else
+						spr.setTintColorRGBA(colOuter)
+				}
+			}
+		}
+		
+		RoaringKnight_offscreenIndicator("roaringknight_offscreen_icon_small_red", 16, 16)
+	}
+
+	else if (objA0.update_address == rkaddress_orbitDagger || objA0.update_address == rkaddress_circleDagger || objA0.update_address == rkaddress_daggerStationary)
+	{
+		u8 _offset = (objA0.update_address == rkaddress_circleDagger) ? 3 : 0
+		angle = objA0.value26
+		if (objA0.base_state == 3 + _offset)
+		{
+			Renderer.drawSprite("roaringknight_dagger_cut", px, py, rk_atex, flags, renderQueue, angle, alpha)
+			for (s32 dist; dist < getScreenWidth(); dist += 20)
+			{
+				if (flags & SPRITE_FLAG_FLIP_X)
+					Renderer.drawSprite("roaringknight_dagger_red", px - ((s32(lookupCos(angle)) * dist) >> 8), py - ((s32(lookupSin(angle)) * dist) >> 8), rk_atex, flags, renderQueue, angle, 50)
+				else
+					Renderer.drawSprite("roaringknight_dagger_red", px + (s32(lookupCos(angle) * dist) >> 8), py + (s32(lookupSin(angle) * dist) >> 8), rk_atex, flags, renderQueue, angle, 50)
+			}
+		}
+		else if (objA0.base_state == 2 + _offset)
+		{
+			Renderer.drawSprite("roaringknight_dagger_flash", px, py, rk_atex, flags, renderQueue, angle, alpha)
+			
+			alpha = 25 * (5 - objA0.countdown_value)
+			s32 dist = objA0.countdown_value * -3
+			float scale = 1.0 + (objA0.countdown_value * 0.05)
+			Renderer.drawSpriteTinted("roaringknight_dagger_red", px + ((s32(lookupCos(angle)) * dist) >> 8), py + ((s32(lookupSin(angle)) * dist) >> 8), rk_atex, flags, renderQueue, angle, 0xffffff00 + u32(alpha), Math.roundToInt(0x10000 * scale))
+			if (flags & SPRITE_FLAG_FLIP_X)
+				dist = -dist
+				
+			RoaringKnight_offscreenIndicator("roaringknight_offscreen_icon_small_white", 16, 16)
+		}
+		else if (objA0.base_state == 1 + _offset)
+		{
+			if (objA0.update_address == rkaddress_circleDagger)
+			{
+				alpha = min(objA0.countdown_value * 20, 255)
+				Renderer.drawSprite("roaringknight_dagger_red", px, py, rk_atex, flags, renderQueue, angle, alpha)
+				Renderer.drawSprite("roaringknight_dagger", px, py, rk_atex, flags, renderQueue, angle, 255)
+			}
+			else
+				Renderer.drawSprite("roaringknight_dagger_red", px, py, rk_atex, flags, renderQueue, angle, alpha)
+			RoaringKnight_offscreenIndicator("roaringknight_offscreen_icon_small_red", 16, 16)
+		}
+		else
+		{
+			if (objA0.update_address == rkaddress_circleDagger)
+			{
+				Renderer.drawSprite("roaringknight_dagger", px, py, rk_atex, flags, renderQueue, angle, objA0.animation.timer)
+				if (objA0.base_state >= 2)
+					RoaringKnight_offscreenIndicator("roaringknight_offscreen_icon_small_white", 16, 16)
+			}
+			else
+			{
+				if (objA0.update_address == rkaddress_daggerStationary)
+					alpha = min(max(objA0.countdown_value - u16[A0 + 0x30], 0) * 20, 255)
+				else
+					alpha = min(max(objA0.countdown_value - 20, 0) * 20, 255)
+				
+				Renderer.drawSprite("roaringknight_dagger_red", px, py, rk_atex, flags, renderQueue, angle, alpha)
+				if (alpha != 255)
+				{
+					alpha = min(objA0.countdown_value * 51, 174)
+					Renderer.drawSprite("roaringknight_dagger", px, py, rk_atex, flags, renderQueue, angle, alpha)
+				}
+			}
+		}
+		return true
+	}
+	
+	else if (objA0.update_address == rkaddress_tooth)
+	{
+		Renderer.drawSprite((objA0.state) ? "roaringknight_tooth_small" : "roaringknight_tooth", px, py, rk_atex, flags, renderQueue, objA0.value26, alpha)
+		return true
+	}
+
+	else if (objA0.update_address == addressof(RoaringKnight_teethSlash))
+	{
+		float _rot = objA0.value26 * 360.0 / 256.0
+		if (objA0.base_state == 0)
+		{
+			// awkward, but accurate, I think?
+			float _ease = Math.pow(clamp(objA0.countdown_value / 30.0, 0.0, 1.0) - 1, 3) + 1
+			float spinMul = (objA0.render_flags & render_flag.FLIP_X) ? -1 : 1
+			_rot += ((_ease * 15) - 15) * spinMul
+			float rW = Math.lerp(30, 0, _ease)
+			float rH = _ease * (objA0.subtype2c ? 380 : 180)
+			
+			// there's this "tangle" effect that shows up for the initial battle box cut
+			// but it's not replicated here because it just doesn't make sense in this context
+			
+			// I also do not want to code more masking effects
+			
+			SpriteHandle spr = Renderer.addSpriteHandle("roaringknight_warningsquare", px, py, renderQueue)
+			spr.setPriorityFlag(true)
+			spr.setScale(rW, rH)
+			spr.setRotation(_rot)
+			spr.setBlendMode(3)
+		}
+		else
+		{
+			float _width = Math.lerp(20, 1, objA0.countdown_value / 10.0)
+			
+			SpriteHandle sprA = Renderer.addSpriteHandle("roaringknight_seamrip", px, py, renderQueue)
+			sprA.setPriorityFlag(true)
+			sprA.setScale(_width, 2000)
+			sprA.setRotation(_rot)
+			
+			SpriteHandle sprB = Renderer.addSpriteHandle("roaringknight_seamrip_outline", px, py, renderQueue)
+			sprB.setPriorityFlag(true)
+			sprB.setScale(_width + 1, 2000)
+			sprB.setRotation(_rot)
+		}
+		return true
+	}
+	
+	else if (objA0.update_address == rkaddress_swordHallway)
+	{
+		Renderer.drawSprite("roaringknight_sword", px, py, rk_atex, flags, renderQueue, objA0.value26, alpha)
+		if (objA0.base_state == 1 || objA0.base_state == 2)
+		{
+			alpha = u8[A0 + 0x20]
+			
+			SpriteHandle spr = Renderer.addSpriteHandle("coolrectangle", px, py, renderQueue - 0x100)
+			spr.setPriorityFlag(true)
+			spr.setRotation(objA0.value26 * 360.0 / 256.0)
+			spr.setScale(1000, 1)
+			spr.setTintColorRGBA(0xff000000 + u32(alpha))
+		}
+		return true
+	}
+
+	else if (objA0.update_address == rkaddress_swordFalling)
+	{
+		angle = objA0.value26
+		if (objA0.base_state < 2)
+			renderQueue -= 0x8000
+		Renderer.drawSprite((objA0.base_state >= 3) ? "roaringknight_sword" :  "roaringknight_sword_noncollide", px, py, rk_atex, flags, renderQueue, angle, alpha)
+		if (objA0.base_state == 2)
+		{
+			SpriteHandle spr = Renderer.addSpriteHandle("coolrectangle", px, py, renderQueue - 0x100)
+			spr.setPriorityFlag(true)
+			spr.setRotation(objA0.value3b * 360.0 / 256.0)
+			spr.setScale(1000, 1)
+			spr.setTintColorRGBA(0xff000040)
+		}
+		
+		return true
+	}
+	
+	else if (objA0.update_address == rkaddress_lineSlash)
+	{
+		float _angle = u16[A0 + 0x26] * 360.0 / 65536.0
+		// slash
+		if (objA0.base_state == 2)
+		{
+			float factor = objA0.countdown_value / 12.0
+			float width = Math.lerp(1, 0.1, factor)
+
+			SpriteHandle spr = Renderer.addSpriteHandle("roaringknight_bigslash", px, py, renderQueue)
+			spr.setFlags(flags)
+			spr.setRotation(_angle)
+			spr.setScale(width, 1)
+			spr.setTintColorRGBA(Color.lerp(0xfc0000ff, 0xfcfcfcff, factor))
+		}
+		// line
+		else
+		{
+			u32 col = 0xfc0000ff
+			float width = .5
+			if (objA0.base_state == 0)
+			{
+				float factor = min(objA0.countdown_value, 25) / 25.0
+				width = Math.lerp(1.5, .5, factor)
+				col = Color.lerp(0x6c6c6cff, 0xfc0000ff, factor)
+			}
+			
+			for (u8 i; i < 2; ++i)
+			{
+				SpriteHandle spr = Renderer.addSpriteHandle(stringformat("roaringknight_lineslash_%d", i), px, py, renderQueue - u16(i) * 0x40)
+				spr.setFlags(flags)
+				spr.setRotation(_angle)
+				spr.setScale(width, 1000)
+				if (i)
+					spr.setTintColorRGBA(col)
+			}
+		}
+		
+		return true
+	}
+
+	else if (objA0.update_address == addressof(RoaringKnight_damageNumber))
+	{
+		float val1 = min(0.2 + max(objA0.countdown_value - 1, 0) * 0.4, 1.0)
+		float val2 = 0.08 * max(objA0.countdown_value - 37, 0)
+		
+		float scaleX = 2 - val1
+		float scaleY = val1 + val2
+		float opacity = 1 - val2
+		
+		string ver = (objA0.subtype2c) ? "p" : "rk"
+		
+		if (objA0.flags2a)
+		{
+			SpriteHandle spr = Renderer.addSpriteHandle(stringformat("dmg_num_%s_null", ver), px, py, 0xe000)
+			spr.setPriorityFlag(true)
+			spr.setScale(scaleX, scaleY)
+			spr.setOpacity(opacity)
+		}
+		else
+		{
+			u16 digits
+			u16 temp = u16[A0 + 0x32]
+			while (true)
+			{
+				temp /= 10
+				++digits
+				if (temp == 0)
+					break
+			}
+				
+			px -= Math.roundToInt(scaleX * 4 * digits)
+
+			//debugLog(stringformat("%d", u16[A0 + 0x32]))
+			
+			for (u8 i; i < digits; ++i)
+			{
+				u16 pow = Math.roundToInt(Math.pow(10, digits - i - 1))
+				u16 readNum = (u16[A0 + 0x32] / pow) % 10
+				
+				SpriteHandle spr = Renderer.addSpriteHandle(stringformat("dmg_num_%s_%d", ver, readNum), px, py, 0xe000)
+				spr.setPriorityFlag(true)
+				spr.setScale(scaleX, scaleY)
+				spr.setOpacity(opacity)
+			
+				px += Math.roundToInt(scaleX * 8)
+			}
+		}
+		return true
+	}
+
+	// titlecard
+	else if (objA0.mapping_offset == 0x02ee10)
+	{
+		flags = SPRITE_FLAG_PRIO | SPRITE_FLAG_NO_GLOBAL_TINT
+		renderQueue += 0x2000
+		if (objA0.animation.sprite == 1)
+		{
+			Renderer.drawSprite("titlecard_redbar_rk", px, py, atex, flags, renderQueue)
+			return true
+		}
+		else if (objA0.animation.sprite == 3)
+		{
+			Renderer.drawSprite("titlecard_text_vs", px, py, atex, flags, renderQueue)
+			return true
+		}
+		else if (objA0.animation.sprite == 14)
+		{
+			Renderer.drawSprite("titlecard_text_roaringknight", px, py, atex, flags, renderQueue)
+			return true
+		}
+	}
+	// platform
+	else if (objA0.update_address == 0x044aa0)
+	{
+		if (objA0.position.x.u16 < move_area.left || objA0.position.x.u16 >= move_area.right)
+			return true
+			
+		SpriteHandle spr = Renderer.addSpriteHandle("rk_platform", px, py, renderQueue)
+		spr.setFlags(flags)
+		if (objA0.position.x.u16 < move_area.left || objA0.position.x.u16 >= move_area.right)
+			spr.setPalette("rk_pal_bg_null", 1)
+		else
+			spr.setPaletteOffset(0x20)
+		return true
+	}
+	
+	return base.Standalone.onWriteToSpriteTable(px, py, renderQueue)
+}
+
+function void DeerEffect_maskCircle(s16 centerX, s16 centerY)
+{
+	s16 scale = Math.roundToInt(roaringKnight_areaScale)
+	
+	s16 savedWidth = 0
+	s16 savedHeight = 0
+
+	float Angle = 0
+	
+	u16 renderQueue = 0xa000
+	
+	bool first = true
+	while (Angle <= 90)
+	{
+		s16 checkedWidth = Math.roundToInt(Math.sin(Math.degreesToRadians(Angle)) * -scale)
+		s16 checkedHeight = Math.roundToInt(Math.cos(Math.degreesToRadians(Angle)) * -scale)
+		
+		if (first)
+		{
+			savedWidth = checkedWidth
+			savedHeight = checkedHeight
+			first = false
+		}
+		else if (checkedWidth != savedWidth && savedHeight != checkedHeight)
+		{
+			//debugLog(stringformat("%d %d", savedWidth - checkedWidth, savedHeight - checkedHeight))
+			
+			s16 pivot = min(checkedWidth, savedWidth)
+			s16 width = abs(savedWidth - checkedWidth)
+			s16 height = min(checkedHeight, savedHeight)
+			
+			//Renderer.drawRect(centerX + pivot, centerY - abs(height), width, abs(height * 2), 0x00ff00ff, renderQueue, false, true)
+			//Renderer.drawRect(centerX - pivot - width, centerY - abs(height), width, abs(height * 2), 0x00ff00ff, renderQueue, false, true)
+			
+			DeerEffect_drawMaskedAreaA(centerX + pivot, centerY - abs(height), width, abs(height * 2), renderQueue)
+			renderQueue += 2
+			DeerEffect_drawMaskedAreaA(centerX - pivot - width, centerY - abs(height), width, abs(height * 2), renderQueue)
+			renderQueue += 2
+			
+			savedWidth = checkedWidth
+			savedHeight = checkedHeight
+		}
+		Angle += 1
+	}
+	
+	Renderer.resetViewport(renderQueue)
+}
+
+function void DeerEffect_drawMaskedAreaA(s16 x, s16 y, s16 w, s16 h, u16 renderQueue)
+{
+	//Renderer.drawRect(x, y, w, h, 0x00ff00ff, renderQueue, false, true)
+	Renderer.setViewport(x, y, w, h, renderQueue)
+	++renderQueue
+	
+	s16 px = (roaringKnight_flowScroll + (move_area.left - camera.foreground.x.u16)) % rk_flowWidth
+	s16 py = 0x0b3b - 8 - camera.foreground.y.u16
+	px -= rk_flowWidth
+		
+	while (px <= getScreenWidth() + rk_flowWidth / 2)
+	{
+		SpriteHandle spr = Renderer.addSpriteHandle("roaringknightfx_flow_bg_0", px + 160, py, renderQueue)
+		spr.setFlags(SPRITE_FLAG_PRIO)
+		spr.setOpacity(roaringKnight_areaOpacity / 255.0)
+		spr.setAddedColor(roaringKnight_areaWhiteTint, roaringKnight_areaWhiteTint, roaringKnight_areaWhiteTint)
+		
+		Renderer.drawRect(x, y, w, h, 0xffffff00 + Math.roundToInt(255 * roaringKnight_areaWhiteTint), renderQueue, false, true)
+		px += rk_flowWidth
+	}
+}
+
+function void DeerEffect_maskTriangle(s16 px, s16 py)
+{
+	px -= 51 * roaringKnight_perferredSide
+	py -= 14
+	
+	u16 renderQueue = 0xa000
+	
+	s16 heightSaved
+	s16 width
+	for (float i; i < 520; i += 1)
+	{
+		s16 heightChecked = Math.roundToInt(Math.sin(Math.degreesToRadians(roaringKnight_areaScale)) * i)
+		if (heightChecked != heightSaved)
+		{
+			//Renderer.drawRect(px - width, py - heightSaved - 1, width, heightSaved * 2 + 1, 0x00ff00ff, renderQueue, false, true)
+			
+			if (roaringKnight_perferredSide < 0)
+			{
+				if (px >= -width)
+				{
+					DeerEffect_drawMaskedAreaB(px, py - heightSaved - 1, width, heightSaved * 2 + 1, renderQueue)
+					renderQueue += 2
+				}
+				
+				heightSaved = heightChecked
+				px += width
+				width = 0
+				if (px > getScreenWidth())
+					break
+			}
+			else
+			{
+				if (px <= getScreenWidth() + width)
+				{
+					DeerEffect_drawMaskedAreaB(px - width, py - heightSaved - 1, width, heightSaved * 2 + 1, renderQueue)
+					renderQueue += 2
+				}
+				
+				heightSaved = heightChecked
+				px -= width
+				width = 0
+				if (px < 0)
+					break
+			}
+		}
+		++width
+	}
+	
+	Renderer.resetViewport(renderQueue)
+}
+
+function void DeerEffect_drawMaskedAreaB(s16 x, s16 y, s16 w, s16 h, u16 renderQueue)
+{
+	SpriteHandle black = Renderer.addSpriteHandle("coolpixel", x, y, 0x5000)
+	black.setScale(w, h)
+	black.setPriorityFlag(true)
+	black.setBlendMode(5)
+	black.setTintColor(.4, .4, .4, 1)
+	
+	Renderer.setViewport(x, y, w, h, renderQueue)
+	++renderQueue
+	
+	s16 py = 0x0b3b - camera.foreground.y.u16
+
+	for (u8 i; i < 2; ++i)
+	{
+		s16 px = move_area.left - camera.foreground.x.u16 + (roaringKnight_flowScroll % rk_flowWidth)
+		while (px <= getScreenWidth() + rk_flowWidth)
+		{
+			if (px + rk_flowWidth >= 0)
+			{
+				SpriteHandle spr = Renderer.addSpriteHandle(stringformat("roaringknightfx_flow_bg_%d", i), px, py, renderQueue)
+				spr.setPriorityFlag(true)
+				if (roaringKnight_perferredSide < 0)
+					spr.setFlipX(true)
+				spr.setBlendMode(3)
+			}
+			px += rk_flowWidth
+		}
+	}
+	
+	if (roaringKnight_areaWhiteTint > 0)
+	{
+		SpriteHandle white = Renderer.addSpriteHandle("coolpixel", x, y, renderQueue)
+		white.setScale(w, h)
+		white.setPriorityFlag(true)
+		white.setBlendMode(3)
+		white.setTintColor(roaringKnight_areaWhiteTint, roaringKnight_areaWhiteTint, roaringKnight_areaWhiteTint, 1)
+	}
+}
+
+function void RoaringKnight_offscreenIndicator(string key)
+{
+	RoaringKnight_offscreenIndicator(key, objA0.position.x.u16, objA0.position.y.u16, objA0.box_size.x, objA0.box_size.y)
+}
+
+function void RoaringKnight_offscreenIndicator(string key, u16 rangeX, u16 rangeY)
+{
+	RoaringKnight_offscreenIndicator(key, objA0.position.x.u16, objA0.position.y.u16, rangeX, rangeY)
+}
+
+function void RoaringKnight_offscreenIndicator(string key, s32 Opx, s32 Opy, u16 rangeX, u16 rangeY)
+{
+	if (!checkBoxOverlap(Opx - rangeX, Opy - rangeY, rangeX * 2, rangeY * 2, camera.foreground.x.u16, camera.foreground.y.u16, getScreenWidth(), getScreenHeight()))
+	{
+		s32 tempX = Opx - camera.foreground.x.u16 - getScreenWidth() / 2
+		s32 tempY = Opy - camera.foreground.y.u16 - getScreenHeight() / 2
+
+		s16 maxX = (getScreenWidth() / 2) - 16
+		s16 maxY = (getScreenHeight() / 2) - 16
+		
+		if (abs(tempX) > maxX)
+		{
+			tempY = tempY * maxX / abs(tempX)
+			tempX = (tempX > 0 ? maxX : -maxX)
+		}
+		if (abs(tempY) > maxY)
+		{
+			tempX = tempX * maxY / abs(tempY)
+			tempY = (tempY > 0 ? maxY : -maxY)
+		}
+		
+		s16 px = tempX + getScreenWidth() / 2
+		s16 py = tempY + getScreenHeight() / 2
+		
+		Renderer.drawSprite(key, px, py, 0, SPRITE_FLAG_PRIO, 0xe000, calcAngleBetweenPoints(px + camera.foreground.x.u16, py + camera.foreground.y.u16, Opx, Opy), roaringKnight_ui_timerAlpha)
+	}
+}

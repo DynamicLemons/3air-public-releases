@@ -1,0 +1,49 @@
+//# address-hook(0x01aada) end(0x01ab18)
+function void UpdateGameObjects()
+{
+	if ((global.game_mode & 0x7f) == 0x0c && isRoaringKnightMode)
+	{
+		A0 = 0xffffb000
+		rkC_deathPause = (char.base_state >= base_state.DIED)
+		
+		// Go through all 110 object slots without special handling
+		D7 = 0x6d
+		updateGameObjectLoop()
+	
+	#if LEMONS_TWEAKS_ACTIVE
+		if (set_lt_afterImagesType)
+			Lemons.writeAfterImageData()
+	#endif
+	}
+	else
+		base.UpdateGameObjects()
+}
+
+function bool GamePause.BeginPause()
+{
+	if (isRoaringKnightMode && rkC_deathPause)
+	{
+		level.restart = 1
+		return false
+	}
+
+	return base.GamePause.BeginPause()
+}
+
+//# address-hook(0x01257c) end(0x01258e)
+//# address-hook(0x0157e0) end(0x0157f2)
+//# address-hook(0x017cba) end(0x017ccc)
+function void Character.UpdateRestartDelay()
+{
+	if (isRoaringKnightMode)
+	{
+	#if STANDALONE
+		Standalone.onDeath()
+	#endif
+		// Signal restart (from last checkpoint)
+		level.restart = 1
+		Game.endSkippableCutscene()
+	}
+	else
+		base.Character.UpdateRestartDelay()
+}

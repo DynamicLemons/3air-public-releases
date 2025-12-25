@@ -1,0 +1,1124 @@
+// rkaddress_star
+//# address-hook(0x39B344) end(0x39B344)
+function void RoaringKnight_bullet_star()
+{
+	if (objA0.base_state == 2)
+	{	
+		++objA0.groundspeed
+		objA0.box_size.x = ((s32(0x140 * objA0.groundspeed) << 8) >> 16) + 8
+		objA0.box_size.y = objA0.box_size.x
+		
+		u16 time = (objA0.subtype2c == 2) ? 45 : (objA0.subtype2c == 1) ? 70 : 60
+		if (objA0.groundspeed > time)
+		{
+			if (objA0.subtype2c == 2)
+			{
+				for (u8 i; i < 2; ++i)
+				{
+					if (allocDynamicObjectAfterA0())
+					{
+						float calc = rk_getStarPosition(i, 2)
+						
+						objA1.update_address = rkaddress_homingGarlic
+						objA1.render_flags = render_flag.WORLD
+						objA1.sprite_priority = objA0.sprite_priority
+						objA1.sprite_attributes = sprite_attribute.PRIORITY
+						
+						objA1.position.x = D0
+						objA1.position.y = D1
+						
+						u8[A1 + 0x26] = Math.roundToInt((180 - calc) * 256.0 / 360.0)
+						u8[A1 + 0x27] = u8[A1 + 0x26] // turn start
+						u8[A1 + 0x2a] = calcAngleBetweenPoints(objA1.position.x.u16, objA1.position.y.u16, u16[0xffffb010], u16[0xffffb014]) + 0x40 // turn end
+						
+						objA1.value32 = objA0.value32 // scale
+						
+						if ((System.rand() % 2) == 0)
+							objA1.render_flags |= render_flag.FLIP_X
+						objA1.box_size.x = 8
+						objA1.box_size.y = 8
+						
+						objA1.collision_attributes = (collision.flag.THREAT | collision.size.rk_extend)
+						objA1.hitbox_extends.x = Math.ceilToInt(4 * (objA0.value32 / (32.0 * rk_starScaleFactor)))
+						objA1.hitbox_extends.y = objA1.hitbox_extends.x
+						
+						//debugLog(stringformat("%d : %x %x", i, objA1.position.x.u16, objA1.position.y.u16))
+						++roaringKnight_tempVarB
+					}
+					else
+						break
+				}
+			}
+			UnloadObject()
+		}
+		else
+			Enemy.DrawDynamicObject()
+	}
+	else if (objA0.base_state == 1)
+	{
+		UpdateMovementStraight()
+		
+		if (objA0.subtype2c >= 3)
+		{
+			float angle = calcAngleBetweenPoints360(objA0.position.x.u16, objA0.position.y.u16, rk_arena_posCenterX, rk_arena_posCenterY_f)
+			float rad = Math.degreesToRadians(angle)
+			
+			s32 dist = calcDistBetweenPoints(objA0.position.x.u16, objA0.position.y.u16, rk_arena_posCenterX, rk_arena_posCenterY_f)
+			objA0.value32 = Math.ceilToInt(Math.lerp(8, 64, min(dist, 400) / 400.0) * rk_starScaleFactor)
+
+			float scf = objA0.value32 / 64.0
+			objA0.hitbox_extends.x = Math.ceilToInt(7 * scf)
+			objA0.hitbox_extends.y = objA0.hitbox_extends.x
+			
+			if (dist < 4)
+			{
+				UnloadObject()
+				return
+			}
+			
+			objA0.velocity.x += Math.roundToInt(Math.sin(rad) * 0x10)
+			objA0.velocity.y += Math.roundToInt(Math.cos(rad) * 0x10)
+		}
+		else
+		{
+			A1 = roaringKnight_memLoc
+			float angle = calcAngleBetweenPoints360(objA0.position.x.u16, objA0.position.y.u16, objA1.position.x.u16, objA1.position.y.u16)
+			float rad = Math.degreesToRadians(angle)
+			
+			objA0.velocity.x += Math.roundToInt(Math.sin(rad) * 0x10)
+			objA0.velocity.y += Math.roundToInt(Math.cos(rad) * 0x10)
+		}
+		
+		--objA0.groundspeed
+		if (objA0.groundspeed <= 0)
+		{
+			objA0.base_state = 2
+			objA0.groundspeed = 0
+			objA0.box_size.x = 8
+			objA0.box_size.y = 8
+			--roaringKnight_tempVarA
+			
+			Audio.playAudio("snd_explosion_firework")
+		}
+		
+		++objA0.countdown_value
+		
+		Enemy.DrawDynamicObject()
+	}
+	else
+	{
+		UpdateMovementStraight()
+		
+		if (objA0.subtype2c >= 3)
+		{
+			s32 dist = calcDistBetweenPoints(objA0.position.x.u16, objA0.position.y.u16, rk_arena_posCenterX, rk_arena_posCenterY_f)
+			if (objA0.subtype2c == 3)
+				objA0.value32 = Math.ceilToInt(Math.lerp(8, 72, min(dist, 300) / 300.0) * rk_starScaleFactor)
+			else
+				objA0.value32 = Math.ceilToInt(Math.lerp(8, 64, min(dist, 400) / 400.0) * rk_starScaleFactor)
+
+			float scf = objA0.value32 / 64.0
+			objA0.hitbox_extends.x = Math.ceilToInt(7 * scf)
+			objA0.hitbox_extends.y = objA0.hitbox_extends.x
+			
+			if (objA0.subtype2c == 4)
+			{
+				if (roaringKnight_updateRoutine == "updateFinalPhase_star_end")
+					++objA0.base_state
+				else if (RoaringKnight_isOutOfBounds(72, 72))
+				{
+					UnloadObject()
+					return
+				}
+			}
+			else
+			{
+				if (dist <= 4 && objA0.subtype2c == 3)
+				{
+					UnloadObject()
+					return
+				}
+			}
+			
+			objA0.groundspeed = (dist / 3) + 10
+			Enemy.DrawDynamicObject()
+		}
+		else
+		{
+			objA0.value32 = min(objA0.value32 + 1, Math.floorToInt(rk_starScaleFactor * 32))
+
+			float scf = objA0.value32 / (64.0 * rk_starScaleFactor)
+			objA0.hitbox_extends.x = Math.ceilToInt(6 * scf)
+			objA0.hitbox_extends.y = objA0.hitbox_extends.x
+			
+			if (RoaringKnight_isOutOfBounds())
+			{
+				UnloadObject()
+				if (objA0.subtype2c < 3)
+					--roaringKnight_tempVarA
+			}
+			else if (roaringKnight_updateRoutine == "attack_starPointExit")
+			{
+				if (objA0.subtype2c == 2)
+					objA0.state = System.rand() % 6
+					
+				A1 = roaringKnight_memLoc
+				objA0.groundspeed = (calcDistBetweenPoints(objA0.position.x.u16, objA0.position.y.u16, objA1.position.x.u16, objA1.position.y.u16) / 10) + 15
+				++objA0.base_state
+				Enemy.DrawDynamicObject()
+			}
+			else
+				Enemy.DrawDynamicObject()
+		}
+	}
+}
+
+function float rk_getStarPosition(u8 i, u8 j)
+{
+	float calc = (360.0 / 6.0 * i) + 180.0
+	s32 px32 = objA0.position.x
+	s32 py32 = objA0.position.y 
+	
+	s16 speed = 0x100
+	u16 time = 60
+	if (objA0.subtype2c == 1)
+		speed = 0x80
+	else if (objA0.subtype2c == 0 && i % 2 == 1)
+	{
+		speed = 0x80
+		time = 40
+	}
+	else if (objA0.subtype2c == 2)
+	{
+		calc = i * 180 + (360.0 / 6.0 * objA0.state)
+		speed = 0xc0
+		time = 30
+	}
+	
+	float rad = Math.degreesToRadians(calc)
+	s16 vx = Math.roundToInt(Math.sin(rad) * speed)
+	s16 vy = Math.roundToInt(Math.cos(rad) * speed)
+	
+	px32 += (s32(vx * objA0.groundspeed)) << 8
+	py32 += (s32(vy * objA0.groundspeed)) << 8
+	D0 = px32
+	D1 = py32
+	D2 = time
+	return calc
+}
+
+// rkaddress_homingGarlic
+//# address-hook(0x39B354) end(0x39B354)
+function void RoaringKnight_homingGarlic()
+{
+	if (objA0.base_state == 0)
+	{
+		float lerpTime = objA0.animation.timer / 20.0
+		++objA0.animation.timer
+	
+		float angle = (u8[A0 + 0x27] * 360.0 / 256.0) + 90
+		float rad = Math.degreesToRadians(angle)
+		objA0.velocity.x = Math.roundToInt(Math.cos(rad) * objA0.groundspeed)
+		objA0.velocity.y = Math.roundToInt(Math.sin(rad) * objA0.groundspeed)
+		
+		objA0.groundspeed = Math.roundToInt(Math.lerp(-0x200, 0, lerpTime))
+		objA0.value26 = Math.roundToInt(lerp_angle(u8[A0 + 0x27], u8[A0 + 0x2a], lerpTime))
+		
+		if (objA0.animation.timer >= 20)
+			++objA0.base_state
+		
+		UpdateMovementStraight()
+	}
+	else
+	{
+		float angle = (objA0.value26 * 360.0 / 256.0) + 90
+		float rad = Math.degreesToRadians(angle)
+		objA0.velocity.x = Math.roundToInt(Math.cos(rad) * objA0.groundspeed)
+		objA0.velocity.y = Math.roundToInt(Math.sin(rad) * objA0.groundspeed)
+			
+		UpdateMovementStraight()
+		
+		objA0.groundspeed = max(objA0.groundspeed - 0x30, -0x700)
+
+		if (RoaringKnight_isOutOfBounds())
+		{
+			--roaringKnight_tempVarB
+			UnloadObject()
+			return
+		}
+	}
+	
+	Enemy.DrawDynamicObject()
+}
+
+// rkaddress_orbitDagger
+//# address-hook(0x39B346) end(0x39B346)
+function void RoaringKnight_bullet_orbitDagger()
+{
+	if (rkC_deathPause && objA0.base_state <= 1)
+	{
+		DrawObject()
+		return
+	}
+		
+	A1 = 0xffffb000
+	// fade in + pull back
+	if (objA0.base_state == 0)
+	{
+		s32 dist = 80
+		if (objA0.countdown_value > 20)
+			dist += min(objA0.countdown_value - 20, 15)
+			
+		objA0.position.x.u16 = objA1.position.x.u16
+		objA0.position.y.u16 = objA1.position.y.u16 - (s16(u8[A1 + 0x44] - objA1.hitbox_extends.y))
+		objA0.position.x.u16 += (s32(lookupCos(objA0.value26)) * -dist) >> 8
+		objA0.position.y.u16 += (s32(lookupSin(objA0.value26)) * -dist) >> 8
+		
+		++objA0.countdown_value
+			
+		if (objA0.countdown_value > 35)
+		{
+			objA0.countdown_value = 0
+			++objA0.base_state
+		}
+	}
+	// wait
+	else if (objA0.base_state == 1)
+	{
+		u16 time = 8 - roaringKnight_difficulty
+		
+		++objA0.countdown_value
+		if (objA0.countdown_value > time)
+		{
+			objA0.countdown_value = 0
+			++objA0.base_state
+		}
+	}
+	// flash
+	else if (objA0.base_state == 2)
+	{
+		++objA0.countdown_value
+		if (objA0.countdown_value > 5)
+		{
+			objA0.countdown_value = 0
+			++objA0.base_state
+			Audio.playAudio("snd_knight_cut2")
+			Enemy.DrawDynamicObject()
+			return
+		}
+	}
+	// strike
+	else if (objA0.base_state == 3)
+	{
+		++objA0.countdown_value
+		if (objA0.countdown_value > 2)
+		{
+			objA0.countdown_value = 0
+			--roaringKnight_tempVarA
+			UnloadObject()
+		}
+		else
+			Enemy.DrawDynamicObject()
+		return
+	}
+	
+	DrawObject()
+}
+
+//# address-hook(0x39B34e) end(0x39B34e)
+function void RoaringKnight_daggerCircleControl()
+{
+	if (objA0.base_state == 0)
+	{
+		++objA0.animation.timer
+		if (objA0.animation.timer == 12)
+		{
+			for (u8 i; i < 2; ++i)
+			{
+				if (allocDynamicObjectAfterA0())
+				{
+					objA1.update_address = rkaddress_circleDagger
+					objA1.render_flags = render_flag.WORLD
+					objA1.sprite_priority = 0x180
+					objA1.sprite_attributes = sprite_attribute.PRIORITY
+					objA1.collision_attributes = (collision.flag.THREAT | collision.size.rk_extend)
+					
+					objA1.box_size.x = 38
+					objA1.box_size.y = 38
+					
+					objA1.hitbox_extends.x = 4
+					objA1.hitbox_extends.y = 32
+					u16[A1 + 0x40] = A0.u16
+					
+					if (objA0.groundspeed < 0)
+						objA1.render_flags |= render_flag.FLIP_X
+						
+					objA1.subtype2c = (6 - objA0.state + i * 3) % 6
+					Audio.playAudio("snd_knight_teleport")
+					++roaringKnight_tempVarB
+				}
+				else
+				{
+					playSound(SFX_DENY)
+					break
+				}
+			}
+			objA0.animation.timer = 0
+			++objA0.state
+		}
+		
+		if (objA0.state > 2)
+		{
+			objA0.state = 0
+			++objA0.base_state
+			// in the god awful edge case that this happens
+			if (roaringKnight_tempVarB == 0)
+			{
+				UnloadObject()
+				return
+			}
+		}
+	}
+	else
+	{
+		if (roaringKnight_updateRoutine == "attack_daggerSummonExtraThrow")
+		{
+			if (roaringKnight_tempVarB == 0)
+			{
+				UnloadObject()
+				return
+			}
+			
+			if (rkC_deathPause)
+				return
+			
+			A1 = 0xffffb000
+			if (objA0.animation.timer == 10)
+			{
+				objA0.position.x.u16 = objA1.position.x.u16
+				objA0.position.y.u16 = objA1.position.y.u16
+				
+				if (!objA0.animation.frame)
+				{
+					objA0.value26 += 1
+					
+					u16 tempA = objA0.value26 + 256
+					for (u8 i; i < 6; ++i)
+					{
+						float tempB = ((256.0 / 6.0) * i) + 256
+						if (tempA >= Math.floorToInt(tempB) && tempA <= Math.ceilToInt(tempB))
+						{
+							objA0.animation.frame = 1
+							objA0.value26 = 0
+							break
+						}
+					}
+					
+				}
+			}
+			else
+			{
+				objA0.countdown_value += objA0.groundspeed
+				objA0.countdown_value %= 256
+				objA0.hitbox_extends.y = 96 - ((s32(lookupCos(objA0.countdown_value * 2)) * 16) >> 8)
+				objA0.position.x.u16 = rk_arena_posCenterX + ((s32(lookupCos(objA0.countdown_value)) * 100) >> 8)
+				objA0.position.y.u16 = rk_arena_posCenterY - 18
+				
+				++objA0.animation.timer
+				float val = objA0.animation.timer / 10.0
+				objA0.position.x.u16 = Math.roundToInt(Math.lerp(objA0.position.x.u16, objA1.position.x.u16, val))
+				objA0.position.y.u16 = Math.roundToInt(Math.lerp(objA0.position.y.u16, objA1.position.y.u16, val))
+				
+				objA0.value26 += 2
+			}
+			
+			objA0.hitbox_extends.y = valueProgressToEnd(objA0.hitbox_extends.y, 96, 5)
+			return
+		}
+	}
+	
+	objA0.countdown_value += objA0.groundspeed
+	objA0.countdown_value %= 256
+	objA0.hitbox_extends.y = 108 - ((s32(lookupCos(objA0.countdown_value * 2)) * 16) >> 8)
+	objA0.position.x.u16 = rk_arena_posCenterX + ((s32(lookupCos(objA0.countdown_value)) * 100) >> 8)
+	objA0.value26 += 2
+}
+
+// rkaddress_circleDagger
+//# address-hook(0x39B350) end(0x39B350)
+function void RoaringKnight_bullet_circleDagger()
+{
+	A1 = 0xffff0000 + u32(u16[A0 + 0x40])
+	s32 dist = objA1.hitbox_extends.y
+	u8 cycleAngle = Math.roundToInt(objA1.value26 + (256.0 / 6.0) * objA0.subtype2c) * objA1.groundspeed
+			
+	if (objA0.base_state <= 1)
+	{
+		objA0.value26 = cycleAngle
+		objA0.position.x.u16 = objA1.position.x.u16 + ((s32(lookupCos(objA0.value26 + 0x40)) * -dist) >> 8)
+		objA0.position.y.u16 = objA1.position.y.u16 + ((s32(lookupSin(objA0.value26 + 0x40)) * -dist) >> 8)
+		
+		if (objA0.base_state == 1)
+		{
+			if (roaringKnight_updateRoutine == "attack_daggerSummonExtraThrow")
+			{
+				bool reroll = true
+				while (reroll)
+				{
+					objA0.flags2a = System.rand() % 6
+					reroll = false
+					for (A2 = A0 - 0x4a; A2 > A1; A2 -= 0x4a)
+					{
+						if (objA0.flags2a == u8[A2 + 0x2a] && u32[A2] == rkaddress_circleDagger)
+						{
+							reroll = true
+							break
+						}
+					}
+				}
+				objA0.base_state = 2
+				//objA0.render_flags |= render_flag.ALWAYS_DRAW
+			}
+			Enemy.DrawDynamicObject()
+		}
+		else
+		{
+			objA0.animation.timer = min(u16(objA0.animation.timer + 25), 255)
+			if (objA0.animation.timer == 255)
+				objA0.base_state = 1
+			DrawObject()
+		}
+	}
+	else if (objA0.base_state <= 3)
+	{
+		if (rkC_deathPause)
+		{
+			DrawObject()
+			return
+		}
+		
+		if (objA0.base_state == 4)
+			dist += min(objA0.countdown_value, 15)
+			
+		objA0.position.x.u16 = objA1.position.x.u16 + ((s32(lookupCos(cycleAngle + 0x40)) * -dist) >> 8)
+		objA0.position.y.u16 = objA1.position.y.u16 + ((s32(lookupSin(cycleAngle + 0x40)) * -dist) >> 8)
+		
+		u8 aim = calcAngleBetweenPoints(objA0.position.x.u16, objA0.position.y.u16, objA1.position.x.u16, objA1.position.y.u16)
+		if (objA1.groundspeed < 0)
+			aim += 0x80
+		
+		// init
+		if (objA0.base_state == 2)
+		{
+			objA0.countdown_value = (s16(objA0.flags2a + 1) * 45) + 5
+			++objA0.base_state
+		}
+		// wait
+		else if (objA0.base_state == 3)
+		{
+			if (objA0.animation.frame < 5)
+				++objA0.animation.frame 
+			
+			if (objA0.countdown_value)
+				--objA0.countdown_value
+			else
+				++objA0.base_state
+		}
+
+		objA0.value26 = Math.roundToInt(lerp_angle(cycleAngle, aim, objA0.animation.frame / 5.0))
+		
+		DrawObject()
+	}
+	// pull back
+	else if (objA0.base_state == 4)
+	{
+		if (objA0.countdown_value <= 15)
+		{
+			objA0.position.x.u16 = objA1.position.x.u16 + ((s32(lookupCos(cycleAngle + 0x40)) * -dist) >> 8)
+			objA0.position.y.u16 = objA1.position.y.u16 + ((s32(lookupSin(cycleAngle + 0x40)) * -dist) >> 8)
+		}
+		else
+		{
+			objA0.position.x += (s32(lookupCos(cycleAngle + 0x40)) * -(1 << 8))
+			objA0.position.y += (s32(lookupSin(cycleAngle + 0x40)) * -(1 << 8))
+			//debugLog(stringformat("%x %x", objA0.position.x, objA0.position.y))
+		}
+		
+		++objA0.countdown_value
+		if (objA0.countdown_value > 20)
+		{
+			++objA0.base_state
+			objA0.countdown_value = 0
+		}
+		
+		DrawObject()
+	}
+	// flash
+	else if (objA0.base_state == 5)
+	{
+		++objA0.countdown_value
+		if (objA0.countdown_value > 5)
+		{
+			objA0.countdown_value = 0
+			++objA0.base_state
+			Audio.playAudio("snd_knight_cut2")
+			Enemy.DrawDynamicObject()
+		}
+		else
+			DrawObject()
+	}
+	// strike
+	else if (objA0.base_state == 6)
+	{
+		++objA0.countdown_value
+		if (objA0.countdown_value > 2)
+		{
+			objA0.countdown_value = 0
+			--roaringKnight_tempVarB
+			UnloadObject()
+		}
+		else
+			Enemy.DrawDynamicObject()
+		return
+	}
+	else
+		Enemy.DrawDynamicObject()
+}
+
+// rkaddress_daggerStationary
+//# address-hook(0x39B358) end(0x39B358)
+function void RoaringKnight_bullet_daggerFinal()
+{
+	A1 = 0xffffb000
+	
+	float angle = -calcAngleBetweenPoints360(objA0.position.x.u16, objA0.position.y.u16, objA1.position.x.u16, objA1.position.y.u16) + 90
+	if (objA0.base_state == 0)
+	{
+		++objA0.countdown_value
+		
+		if (objA0.countdown_value > 20 + u16[A0 + 0x30])
+		{
+			objA0.countdown_value = 0
+			++objA0.base_state
+		}
+		
+		u16[A0 + 0x26] = Math.roundToInt(lerp_angle360(u16[A0 + 0x26] * 360.0 / 65536.0, angle, .1) * 65536.0 / 360.0)
+	}
+	else if (objA0.base_state == 1)
+	{
+		++objA0.countdown_value
+		if (objA0.countdown_value > 20)
+		{
+			++objA0.base_state
+			objA0.countdown_value = 0
+		}
+		
+		//debugLog(u16[A0 + 0x26])
+		u16[A0 + 0x26] = Math.roundToInt(lerp_angle360(u16[A0 + 0x26] * 360.0 / 65536.0, angle, .08) * 65536.0 / 360.0)
+	}
+	else if (objA0.base_state == 2)
+	{
+		++objA0.countdown_value
+		if (objA0.countdown_value > 5)
+		{
+			++objA0.base_state
+			objA0.countdown_value = 0
+			Audio.playAudio("snd_knight_cut2")
+			Enemy.DrawDynamicObject()
+			return
+		}
+	}
+	else
+	{
+		++objA0.countdown_value
+		if (objA0.countdown_value > 2)
+		{
+			UnloadObject()
+			return
+		}
+		Enemy.DrawDynamicObject()
+		return
+	}
+	DrawObject()
+}
+
+//# address-hook(0x39B352) end(0x39B352)
+function void RoaringKnight_teethSlash()
+{
+	if (objA0.base_state == 0)
+	{
+		++objA0.countdown_value
+		
+		if (objA0.countdown_value > 30)
+		{
+			++objA0.base_state
+			objA0.countdown_value = 0
+			
+			if (roaringKnight_difficulty == 3)
+				RoaringKnight_spawnTeethFinal()
+			else if (objA0.subtype2c == 1)
+				RoaringKnight_spawnTeethV(false, 19)
+			else
+			{
+				bool flip = (roaringKnight_perferredSide == -1)
+				s16 pivot
+				for (u8 i; i < 2; ++i)
+				{
+					RoaringKnight_spawnTeethH(flip, pivot)
+					pivot -= 17
+					flip = !flip
+				}
+			}
+
+			roaringKnight_spriteIndex = "slashb"
+			roaringKnight_imageIndex = 0
+
+			if (roaringKnight_difficulty != 3)
+				++roaringKnight_tempVarA
+			Audio.playAudio("snd_knight_boxbreak")
+		}
+		
+		DrawObject()
+	}
+	else if (objA0.base_state == 1)
+	{
+		++objA0.countdown_value
+		if (objA0.countdown_value > 10)
+			UnloadObject()
+		else
+			DrawObject()
+	}
+}
+
+function void RoaringKnight_spawnTeethH(bool flip, s16 pivot)
+{
+	u16 space = 34
+	
+	u8 patterncount = (System.rand() % 2)
+	bool fast = (System.rand() % 2)
+	
+	for (u8 i; i < 7; ++i)
+	{
+		if (allocDynamicObjectStd())
+		{
+			objA1.update_address = rkaddress_tooth
+			objA1.position.x.u16 = objA0.position.x.u16
+			objA1.position.y.u16 = rk_arena_inner_T - (i * space) + 188 - (space / 2) + pivot
+			if (roaringKnight_difficulty == 3)
+				objA1.position.y.u16 += 24
+			objA1.render_flags = render_flag.WORLD
+			if (flip)
+				objA1.render_flags |= render_flag.FLIP_X
+			objA1.sprite_priority = 0x100
+			objA1.sprite_attributes = sprite_attribute.PRIORITY
+			
+			objA1.hitbox_extends.x = 10
+			objA1.hitbox_extends.y = 8
+			
+			objA1.subtype2c = fast
+			if (roaringKnight_difficulty == 3)
+				objA1.velocity.x = (objA1.subtype2c) ? -0x440 : -0x380
+			else
+				objA1.velocity.x = (objA1.subtype2c) ? -0x2c0 : -0x100
+			if (flip)
+				objA1.velocity.x *= -1
+
+			objA1.box_size.x = 27
+			objA1.box_size.y = 27
+			objA1.collision_attributes = (collision.flag.THREAT | collision.size.rk_extend)
+			
+			if (patterncount == 0)
+			{
+				patterncount = (System.rand() % 2)
+				fast = !fast
+			}
+			else
+				--patterncount
+		}
+		else
+		{
+			System.writeDisplayLine("spawning incomplete")
+			break
+		}
+	}
+}
+
+function void RoaringKnight_spawnTeethV(bool flip, u8 j)
+{
+	u16 space = 34
+	
+	u8 patterncount = (System.rand() % 2)
+	bool fast = (System.rand() % 2)
+	
+	s16 offset
+	for (u8 i; i < j; ++i)
+	{
+		if (allocDynamicObjectStd())
+		{
+			objA1.update_address = rkaddress_tooth
+			if (roaringKnight_difficulty == 3)
+				objA1.position.x.u16 = objA0.position.x.u16 + space * i + (space / 2) - (space * j) / 2
+			else
+				objA1.position.x.u16 = rk_arena_inner_L + space * i + (space / 2)
+			objA1.position.y.u16 = objA0.position.y.u16
+			objA1.value26 = -0x40
+
+			objA1.render_flags = render_flag.WORLD
+			objA1.sprite_priority = 0x100
+			objA1.sprite_attributes = sprite_attribute.PRIORITY
+			
+			objA1.hitbox_extends.x = 8
+			objA1.hitbox_extends.y = 10
+			
+			objA1.subtype2c = fast
+			objA1.velocity.y = (objA1.subtype2c) ? 0x180 : 0x40
+			if (flip)
+				objA1.velocity.y = -objA1.velocity.y
+				
+			objA1.animation.timer = 1
+			
+			objA1.box_size.x = 27
+			objA1.box_size.y = 27
+			objA1.collision_attributes = (collision.flag.THREAT | collision.size.rk_extend)
+			
+			if (patterncount == 0)
+			{
+				patterncount = (System.rand() % 2)
+				fast = !fast
+			}
+			else
+				--patterncount
+		}
+		else
+		{
+			System.writeDisplayLine("spawning incomplete")
+			break
+		}
+	}
+}
+
+function void RoaringKnight_spawnTeethFinal()
+{
+	u16 space = 32
+	
+	u8 patterncount = (System.rand() % 2)
+	bool fast = (System.rand() % 2)
+	
+	s16 offset
+	u8 j = 8
+	for (u8 i; i < j; ++i)
+	{
+		if (allocDynamicObjectStd())
+		{
+			objA1.update_address = rkaddress_tooth
+			objA1.position.x.u16 = objA0.position.x.u16
+			objA1.position.y.u16 = objA0.position.y.u16
+			
+			s16 dist = (space * i) - (j * space) / 2 + (space / 2)
+			objA1.position.x.u16 += (s32(lookupCos(objA0.value26 + 0x40)) * dist) >> 8
+			objA1.position.y.u16 += (s32(lookupSin(objA0.value26 + 0x40)) * dist) >> 8
+			
+			objA1.value26 = objA0.value26
+			
+			objA1.hitbox_extends.x = 8
+			objA1.hitbox_extends.y = 8
+			
+			objA1.subtype2c = fast
+			
+			objA1.groundspeed = Math.floorToInt(((objA1.subtype2c) ? 0x480 : 0x400) * roaringKnight_tempVarC)
+			
+			objA1.velocity.x = (s32(lookupCos(objA0.value26)) * -objA1.groundspeed) >> 8
+			objA1.velocity.y = (s32(lookupSin(objA0.value26)) * -objA1.groundspeed) >> 8
+			
+			objA1.render_flags = render_flag.WORLD
+			objA1.sprite_priority = 0x100
+			objA1.sprite_attributes = sprite_attribute.PRIORITY
+			
+			objA1.box_size.x = 27
+			objA1.box_size.y = 27
+			objA1.collision_attributes = (collision.flag.THREAT | collision.size.rk_extend)
+			objA1.state = 1
+			
+			if (patterncount == 0)
+			{
+				patterncount = (System.rand() % 2)
+				fast = !fast
+			}
+			else
+				--patterncount
+		}
+		else
+		{
+			System.writeDisplayLine("spawning incomplete")
+			break
+		}
+	}
+}
+
+// rkaddress_tooth
+//# address-hook(0x39B348) end(0x39B348)
+function void RoaringKnight_bullet_tooth()
+{
+	UpdateMovementStraight()
+	
+	if (roaringKnight_difficulty == 3)
+	{
+		s16 acc = (objA0.subtype2c) ? 0x8 : 0x4
+		objA0.velocity.x += (s32(lookupCos(objA0.value26)) * -acc) >> 8
+		objA0.velocity.y += (s32(lookupSin(objA0.value26)) * -acc) >> 8
+	}
+	else
+	{
+		s16 acc = (objA0.subtype2c) ? 0x10 : 0x8
+		if (objA0.animation.timer)
+			objA0.velocity.y += acc
+		else
+			objA0.velocity.x += clamp(objA0.velocity.x, -1, 1) * acc
+	}
+	
+	if (RoaringKnight_isOutOfVisibleBounds())
+		UnloadObject()
+	else
+		Enemy.DrawDynamicObject()
+}
+
+// rkaddress_swordHallway
+//# address-hook(0x39B34a) end(0x39B34a)
+function void RoaringKnight_bullet_swordHallway()
+{
+	A1 = 0xffffb000
+	if (objA0.base_state == 0)
+	{
+		// circle
+		if (objA0.subtype2c == 1)
+		{
+			objA0.velocity.x = (s32(lookupCos(objA0.value26 + 0x40)) * objA0.groundspeed) >> 8
+			objA0.velocity.y = (s32(lookupSin(objA0.value26 + 0x40)) * objA0.groundspeed) >> 8
+			objA0.groundspeed += s16(roaringKnight_perferredSide) * -0xa
+			
+			UpdateMovementStraight()
+			
+			++objA0.countdown_value
+			if (objA0.subtype2c == 1)
+			{
+				if (objA0.countdown_value > 256)
+				{
+					UnloadObject()
+					return
+				}
+			}
+		}
+		else
+		{
+			objA0.velocity.x += clamp(objA0.velocity.x, -1, 1) * 0xa
+			UpdateMovementStraight()
+		}
+		
+		if (roaringKnight_updateRoutine != "attack_swordHallwayPerform")
+		{
+			u32 predictX = objA0.position.x
+			s16 predictH = objA0.velocity.x
+			while (predictH != 0)
+			{
+				predictX += s32(predictH) << 8
+				predictH = valueProgressToEnd(predictH, 0, 0xc0)
+			}
+			
+			if (objA0.subtype2c == 1 || objA0.subtype2c == 3)
+			{
+				if (objA0.render_flags & render_flag.FLIP_X)
+				{
+					objA0.value26 += 0x80
+					objA0.render_flags &= ~render_flag.FLIP_X
+					objA0.groundspeed = -objA0.groundspeed
+				}
+			}
+			else
+				objA0.velocity.y = (objA0.value26 == 0xc0) ? 0x300 : -0x300
+			u8[A0 + 0x32] = objA0.value26
+			u8[A0 + 0x27] = lerp_angleInt(objA0.value26 + System.randRange(-0x10, 0x10), calcAngleBetweenPoints(objA0.position.x.u16, objA0.position.y.u16, rk_arena_posCenterX, rk_arena_posCenterY), .5)
+			
+			objA0.render_flags |= render_flag.ALWAYS_DRAW
+			++objA0.base_state
+			objA0.countdown_value = 0
+			
+			Enemy.DrawDynamicObject()
+		}
+		else if (objA0.subtype2c != 1) && (objA0.position.x.u16 <= move_area.left - 128 && objA0.velocity.x < 0 || objA0.position.x.u16 > move_area.right + getScreenWidth() + 128 && objA0.velocity.x > 0)
+			UnloadObject()
+		else
+			Enemy.DrawDynamicObject()
+	}
+	else if (objA0.base_state == 1)
+	{
+		UpdateMovementStraight()
+		if (objA0.subtype2c == 1)
+		{
+			objA0.groundspeed = valueProgressToEnd(objA0.groundspeed, 0, 0xc0)
+			objA0.velocity.x = (s32(lookupCos(objA0.value26 + 0x40)) * objA0.groundspeed) >> 8
+			objA0.velocity.y = (s32(lookupSin(objA0.value26 + 0x40)) * objA0.groundspeed) >> 8
+		}
+		else
+		{
+			objA0.velocity.x = valueProgressToEnd(objA0.velocity.x, 0, 0xc0)
+			objA0.velocity.y = valueProgressToEnd(objA0.velocity.y, 0, clamp(abs(objA0.velocity.y) >> 2, 0x10, 0x40))
+		}
+		
+		if (objA0.countdown_value != 0)
+		{
+			objA0.value26 = lerp_angleInt(u8[A0 + 0x32], u8[A0 + 0x27], min(objA0.countdown_value, 10) / 10.0)
+			u8[A0 + 0x20] = min(u16(u8[A0 + 0x20]) + 10, 100)
+		}
+		
+		//debugLog(stringformat("%d (%d -> %d)", objA0.value26, u8[A0 + 0x32], u8[A0 + 0x27]))
+		++objA0.countdown_value
+		if (objA0.countdown_value >= 45)
+		{
+			++objA0.base_state
+			objA0.countdown_value = 0
+		}
+		Enemy.DrawDynamicObject()
+	}
+	else if (objA0.base_state == 2)
+	{
+		objA0.velocity.x = (s32(lookupCos(objA0.value26)) * -0x400) >> 8
+		objA0.velocity.y = (s32(lookupSin(objA0.value26)) * -0x400) >> 8 
+		UpdateMovementStraight()
+		
+		++objA0.countdown_value
+		if (objA0.countdown_value >= 5)
+		{
+			++objA0.base_state
+			objA0.countdown_value = 0
+			
+			objA0.velocity.x = (s32(lookupCos(objA0.value26)) * 0x1000) >> 8
+			objA0.velocity.y = (s32(lookupSin(objA0.value26)) * 0x1000) >> 8 
+		}
+		
+		Enemy.DrawDynamicObject()
+	}
+	else if (objA0.base_state == 3)
+	{
+		UpdateMovementStraight()
+		if (RoaringKnight_isOutOfVisibleBounds())
+			UnloadObject()
+		else
+			Enemy.DrawDynamicObject()
+	}
+}
+
+// rkaddress_swordFalling
+//# address-hook(0x39B356) end(0x39B356)
+function void RoaringKnight_bullet_swordFalling()
+{
+	if (objA0.base_state == 0)
+	{
+		UpdateMovementStraight()
+		u16[A0 + 0x26] += abs(objA0.velocity.y) * (u8[A1 + 0x30] ? -1 : 1)
+		objA0.velocity.y += 0x1f
+		
+		if (objA0.velocity.y >= 0)
+		{
+			++objA0.base_state
+			objA0.velocity.y = 0
+			objA0.value3a = objA0.value26
+		}
+	}
+	else if (objA0.base_state == 1)
+	{
+		++objA0.countdown_value
+		objA0.value26 = lerp_angleInt(objA0.value3a, objA0.value3b, objA0.countdown_value / 10.0)
+		
+		if (objA0.countdown_value == 10)
+		{
+			objA0.velocity.x = (s32(lookupCos(objA0.value3b)) * 0xf00) >> 8
+			objA0.velocity.y = (s32(lookupSin(objA0.value3b)) * 0xf00) >> 8
+			++objA0.base_state
+			objA0.countdown_value = 0
+		}
+	}
+	else if (objA0.base_state == 2)
+	{
+		++objA0.countdown_value
+		if (objA0.countdown_value == 35)
+			++objA0.base_state
+	}
+	else
+		UpdateMovementStraight()
+	
+	if (objA0.base_state >= 3)
+	{
+		if (RoaringKnight_isOutOfVisibleBounds())
+			UnloadObject()
+		else
+			Enemy.DrawDynamicObject()
+	}
+	else
+		DrawObject()
+}
+
+// rkaddress_lineSlash
+//# address-hook(0x39B34c) end(0x39B34c)
+function void RoaringKnight_bullet_swordSlash()
+{
+	bool hitbox = false
+	if (objA0.base_state == 0)
+	{
+		u16 maxtime = 60
+		
+		float lerpV = 1.0 * min(objA0.countdown_value, maxtime) / maxtime
+		s16 rotSpd = Math.roundToInt(Math.lerp(800.0, 50.0, lerpV))
+
+		u16[A0 + 0x26] += rotSpd * s16(roaringKnight_perferredSide)
+		if (objA0.subtype2c == 1)
+			roaringKnight_tempVarC += rotSpd * s16(roaringKnight_perferredSide) * 360.0 / 65536.0 
+		++objA0.countdown_value 
+		
+		if (u8[A0 + 0x30] == 0)
+			hitbox = (objA0.countdown_value >= maxtime)
+		else if (u8[A0 + 0x30] == 1)
+			hitbox = (objA0.countdown_value > maxtime)
+			
+		if (objA0.countdown_value > maxtime)
+		{
+			++objA0.base_state
+			if (u8[A0 + 0x30] == 0)
+			{
+				Audio.playAudio("snd_knight_cut")
+				++objA0.base_state
+				objA0.countdown_value = 0
+				Enemy.DrawDynamicObject()
+			}
+			else
+			{
+				objA0.countdown_value = u8[A0 + 0x30] - 1
+				DrawObject()
+			}
+		}
+		else
+			DrawObject()
+	}
+	else if (objA0.base_state == 1)
+	{
+		if (objA0.countdown_value > 0)
+		{
+			--objA0.countdown_value
+			DrawObject()
+		}
+		else
+		{
+			++objA0.base_state
+			Enemy.DrawDynamicObject()
+		}
+	}
+	else
+	{
+		++objA0.countdown_value
+		if (objA0.countdown_value > 12)
+			UnloadObject()
+		else if (objA0.countdown_value < 8)
+			Enemy.DrawDynamicObject()
+		else
+			DrawObject()
+	}
+}

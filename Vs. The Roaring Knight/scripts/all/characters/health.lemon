@@ -1,0 +1,23 @@
+//# address-hook(0x0860f2) end(0x086148)
+function void AddRings()
+{
+	if (!isRoaringKnightMode)
+	{
+		base.AddRings()
+		return
+	}
+	
+	ring_counter = min(ring_counter + D0.u16, rk_maxHpChar)
+	player.total_rings = min(player.total_rings + D0.u16, rk_maxHpChar)
+	hud.dirty.rings |= 0x01
+
+	if (checkForExtraLifeByRings())
+	{
+		++player.item_count
+		gainExtraLife()
+	}
+	else
+	{
+		playMusic(SFX_RING)
+	}
+}

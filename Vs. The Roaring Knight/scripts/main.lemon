@@ -1,0 +1,175 @@
+include all/?
+#if !LEMONS_TWEAKS_ACTIVE
+	include vanillamode/?
+#endif
+
+global bool isRoaringKnightMode
+
+// RK Boss vars
+global u32 roaringKnight_memLoc
+// wouldn't usually do this, but this boss is complicated enough where it pays it's worth.
+global string roaringKnight_updateRoutine
+global s16 roaringKnight_updateTimer
+global s16 roaringKnight_updateTimerSecondary
+global string roaringKnight_spriteIndex
+global float roaringKnight_imageIndex
+
+global s8 roaringKnight_perferredSide
+global u32 roaringKnight_verticalShift
+global u8 roaringKnight_attackPhase
+global u8 roaringKnight_difficulty
+global u16 roaringKnight_tempVarA
+global u16 roaringKnight_tempVarB
+global float roaringKnight_tempVarC
+
+global u8 roaringKnight_moveStyle
+global u16 roaringKnight_moveXPos
+global u16 roaringKnight_moveYPos
+global float roaringKnight_moveLerpBy
+global u32 roaringKnight_maxSpeed
+
+global s16 roaringKnight_collisionVX
+global s16 roaringKnight_collisionVY
+global s16 roaringKnight_collisionTimeout
+
+global s16 roaringKnight_health
+global bool roaringKnight_phaseQualify
+global bool roaringKnight_loopEntered
+
+// both charge sphere and bullet triangle.
+global u8 roaringKnight_areaMask
+global float roaringKnight_areaScale
+global s16 roaringKnight_areaOpacity
+global float roaringKnight_areaScreenMult
+global s16 roaringKnight_flowScroll
+global float roaringKnight_areaWhiteTint
+
+// scream
+global float roaringKnight_screamSize
+global float roaringKnight_screamSat
+global float roaringKnight_screamVal
+global float roaringKnight_screamAlpha
+
+// player data
+global bool enable_rk_charStance
+
+global bool rkC_collis_enable
+global u16 rkC_collis_hX
+global u16 rkC_collis_hY
+global u16 rkC_collis_hW
+global u16 rkC_collis_hH
+global bool rkC_collis_instaShield
+
+global u16 rkC_playBackHp
+global u16 rkC_invulDmgLimit
+global s16 rkC_dmgfx_time
+global s16 rkC_dmgfx_maxTime
+
+global bool rkC_deathPause
+
+// camera stuff
+global u8 roaringKnight_camType
+global float roaringKnight_cam_transValue
+global float roaringKnight_camPeekH
+global float roaringKnight_camPeekV
+
+// arena
+global u16 roaringKnight_arena_type
+global bool roaringKnight_arena_floatMode
+global u32 roaringKnight_arena_specialControl
+global bool roaringKnight_arena_squareMode
+
+// ui
+global bool roaringKnight_ui_hidden
+global s16 roaringKnight_ui_timerAlpha
+global s16 roaringKnight_ui_healthY
+global bool roaringKnight_ui_tooLong
+
+// saving
+global string roaringKnight_currentSaveCode
+
+// --- consts ---
+
+constant u16 rk_maxHpChar = 240
+constant u16 rk_maxHpBoss = 235
+
+constant u16 rk_pal_mult = 5
+constant u8 render_flag.ALWAYS_DRAW = 0x08 // replaces render_flag.COMPETITION_P1_SCREEN
+constant u8 collision.size.rk_extend = 0x15
+
+// asset sizes
+constant u16 rk_flowWidth = 320
+constant u16 rk_flowHeight = 240
+constant u16 rk_scrmScale = 200
+constant u16 rk_ringoffsets = 30
+
+constant float rk_starScaleFactor = 2
+
+// how much I was willing to move the boss arena
+constant s16 arenaShiftX = 0x5C0
+constant s16 arenaShiftY = -0x80
+// cam
+constant u8 rk_camMode_player			= 0
+constant u8 rk_camMode_dual				= 1
+constant u8 rk_camMode_dual_to_player	= 2
+constant u8 rk_camMode_player_to_dual	= 3
+
+constant u8 rk_camMode_battlebox		= 4
+
+// borders
+constant s16 rk_arena_full_L	= 0x400
+constant s16 rk_arena_full_R	= 0x940
+constant s16 rk_arena_full_top	= 0x980
+
+constant s16 rk_arena_inner_L	= 0x600
+constant s16 rk_arena_inner_R	= 0x6f0
+constant s16 rk_arena_inner_T	= 0xb46
+
+constant s16 rk_arena_B	= 0xb46
+
+constant s16 rk_borderMode_none		= 0
+constant s16 rk_borderMode_daggerS	= 1
+constant s16 rk_borderMode_daggerE	= 2
+constant s16 rk_borderMode_sword2S	= 3
+constant s16 rk_borderMode_dagger2E	= 4
+constant s16 rk_borderMode_flurryS	= 5
+constant s16 rk_borderMode_teethF	= 6
+
+constant s16 rk_arena_posCenterX	= 0x740
+constant s16 rk_arena_posCenterY	= 0xbb6
+
+constant s16 rk_arena_posCenterY_f	= 0xac6
+
+constant s16 rk_arena_jawF_centDist = 128
+
+// addressof jankiness workarounds
+constant u32 rkaddress_dessHoliday		= 0x39B340
+constant u32 rkaddress_star				= 0x39B344
+constant u32 rkaddress_orbitDagger		= 0x39B346
+constant u32 rkaddress_tooth			= 0x39B348
+constant u32 rkaddress_swordHallway		= 0x39B34a
+constant u32 rkaddress_lineSlash		= 0x39B34c
+constant u32 rkaddress_circleDagger		= 0x39B350
+constant u32 rkaddress_homingGarlic		= 0x39B354
+constant u32 rkaddress_swordFalling		= 0x39B356
+constant u32 rkaddress_daggerStationary	= 0x39B358
+
+// syncing
+constant string rk_completionText_A = "The Roaring Knight..."
+constant string rk_completionText_B = "Has been dueled strife by strife."
+
+// I just don't like how these are titled in vanilla
+define move_area.top		= u16[0xffffee18]
+define move_area.bottom		= u16[0xffffee1a]
+// some data misappropriation 
+define cam_bound.left		= u16[0xffffee0c]
+define cam_bound.right		= u16[0xffffee0e]
+define cam_bound.top		= u16[0xffffee10]
+define cam_bound.bottom		= u16[0xffffee12]
+// wtf
+define objA1.countdown_value		 = s16[A1 + 0x2e]
+
+// settings
+global u8 rk_setting_dualCam
+
+#define ROARING_KNIGHT_ACTIVE = 1
