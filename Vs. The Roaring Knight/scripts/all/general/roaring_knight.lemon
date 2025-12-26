@@ -2284,7 +2284,7 @@ function void RoaringKnight_endCutscene()
 
 			objA1.flags2a &= ~char.flag.FACING_LEFT
 			objA1.position.x.u16 = rk_arena_posCenterX
-			objA1.position.y.u16 = 0xbec - char.hitbox.y.UPRIGHT + s16(u8[A1 + 0x44])
+			objA1.position.y.u16 = 0xbec + char.hitbox.y.UPRIGHT - s16(u8[A1 + 0x44])
 			StartCharacterWinPose(0xffffb000)
 				
 			// fake time progressing by just shifting the background and level timer
@@ -2328,6 +2328,7 @@ function void RoaringKnight_endCutscene()
 			cam_bound.bottom = rk_arena_B
 			level.palettefx.state = 2
 			enable_rk_charStance = false
+			p1_customKey = 0
 			objA0.velocity.y = 0x100
 			
 			Audio.playAudio("snd_knight_cut")
