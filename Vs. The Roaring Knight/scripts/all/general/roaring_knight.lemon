@@ -94,6 +94,7 @@ function void RoaringKnight_sharedInit()
 	
 	roaringKnight_health = rk_maxHpBoss
 	roaringKnight_phaseQualify = false
+	roaringKnight_loopEntered = false
 	roaringKnight_maxSpeed = 0x100000
 	
 	Game.startSkippableCutscene()
