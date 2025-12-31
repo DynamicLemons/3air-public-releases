@@ -1,4 +1,4 @@
-global string p1_customKey
+global u64 p1_customKey
 
 function s64 getPlayerGlobalValue(string value)
 {
