@@ -1,0 +1,23 @@
+{
+	"ess_chaos_emerald_0":  { "File": "emeralds.png", "Rect": "0,0,16,16", "Center": "8,8" },
+	"ess_chaos_emerald_1":  { "File": "emeralds.png", "Rect": "16,0,16,16", "Center": "8,8" },
+	"ess_chaos_emerald_2":  { "File": "emeralds.png", "Rect": "32,0,16,16", "Center": "8,8" },
+	"ess_chaos_emerald_3":  { "File": "emeralds.png", "Rect": "48,0,16,16", "Center": "8,8" },
+	"ess_chaos_emerald_4":  { "File": "emeralds.png", "Rect": "64,0,16,16", "Center": "8,8" },
+	"ess_chaos_emerald_5":  { "File": "emeralds.png", "Rect": "80,0,16,16", "Center": "8,8" },
+	"ess_chaos_emerald_6":  { "File": "emeralds.png", "Rect": "96,0,16,16", "Center": "8,8" },
+	"ess_traded_emerald_0":  { "File": "emeralds.png", "Rect": "0,16,16,16", "Center": "8,8" },
+	"ess_traded_emerald_1":  { "File": "emeralds.png", "Rect": "16,16,16,16", "Center": "8,8" },
+	"ess_traded_emerald_2":  { "File": "emeralds.png", "Rect": "32,16,16,16", "Center": "8,8" },
+	"ess_traded_emerald_3":  { "File": "emeralds.png", "Rect": "48,16,16,16", "Center": "8,8" },
+	"ess_traded_emerald_4":  { "File": "emeralds.png", "Rect": "64,16,16,16", "Center": "8,8" },
+	"ess_traded_emerald_5":  { "File": "emeralds.png", "Rect": "80,16,16,16", "Center": "8,8" },
+	"ess_traded_emerald_6":  { "File": "emeralds.png", "Rect": "96,16,16,16", "Center": "8,8" },
+	"ess_super_emerald_0":  { "File": "emeralds.png", "Rect": "0,32,16,16", "Center": "8,8" },
+	"ess_super_emerald_1":  { "File": "emeralds.png", "Rect": "16,32,16,16", "Center": "8,8" },
+	"ess_super_emerald_2":  { "File": "emeralds.png", "Rect": "32,32,16,16", "Center": "8,8" },
+	"ess_super_emerald_3":  { "File": "emeralds.png", "Rect": "48,32,16,16", "Center": "8,8" },
+	"ess_super_emerald_4":  { "File": "emeralds.png", "Rect": "64,32,16,16", "Center": "8,8" },
+	"ess_super_emerald_5":  { "File": "emeralds.png", "Rect": "80,32,16,16", "Center": "8,8" },
+	"ess_super_emerald_6":  { "File": "emeralds.png", "Rect": "96,32,16,16", "Center": "8,8" }
+}

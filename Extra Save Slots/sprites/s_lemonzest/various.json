@@ -1,0 +1,16 @@
+{
+	"ESS_SaveBox":  { "File": "SaveBox.png", "Rect": "0,0,96,200", "Center": "48,0" },
+	"ESS_SaveBox_alt":  { "File": "SaveBox.png", "Rect": "96,0,96,184", "Center": "48,0" },
+	"ESS_SaveBox_empty":  { "File": "SaveBox.png", "Rect": "192,208,96,160", "Center": "48,0" },
+	"ESS_SaveBox_empty_open":  { "File": "SaveBox.png", "Rect": "192,0,96,160", "Center": "48,0" },
+	"ESS_SaveBox_tag_tri":  { "File": "SaveBox.png", "Rect": "96,272,8,11", "Center": "0,0" },
+	"ESS_SaveBox_zonename_tri":  { "File": "SaveBox.png", "Rect": "0,296,16,7", "Center": "0,0" },
+	"ESS_SaveBox_scoreBack":  { "File": "SaveBox.png", "Rect": "0,288,64,8", "Center": "32,2" },
+	"ESS_NoSaveBox":  { "File": "SaveBox.png", "Rect": "0,208,96,80", "Center": "48,0" },
+	"ESS_charbgcolor":  { "File": "SaveBox.png", "Rect": "96,208,90,64", "Center": "0,0" },
+	"ESS_EggBox":  { "File": "eggybox.png", "Rect": "0,0,90,74", "Center": "45,0" },
+	"ESS_Zone_StaticMono_0":  { "File": "ZoneIcon_static_mono.png", "Rect": "0,0,80,56", "Center": "0,0" },
+	"ESS_Zone_StaticMono_1":  { "File": "ZoneIcon_static_mono.png", "Rect": "88,0,80,56", "Center": "0,0" },
+	"ESS_Zone_StaticMono_2":  { "File": "ZoneIcon_static_mono.png", "Rect": "176,0,80,56", "Center": "0,0" },
+	"ESS_Zone_StaticMono_3":  { "File": "ZoneIcon_static_mono.png", "Rect": "264,0,80,56", "Center": "0,0" }
+}

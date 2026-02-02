@@ -1,0 +1,22 @@
+{
+	"ESS_smalldigit_0":  { "File": "numbers.png", "Rect": "0,0,8,8", "Center": "0,0" },
+	"ESS_smalldigit_1":  { "File": "numbers.png", "Rect": "8,0,8,8", "Center": "0,0" },
+	"ESS_smalldigit_2":  { "File": "numbers.png", "Rect": "16,0,8,8", "Center": "0,0" },
+	"ESS_smalldigit_3":  { "File": "numbers.png", "Rect": "24,0,8,8", "Center": "0,0" },
+	"ESS_smalldigit_4":  { "File": "numbers.png", "Rect": "32,0,8,8", "Center": "0,0" },
+	"ESS_smalldigit_5":  { "File": "numbers.png", "Rect": "0,8,8,8", "Center": "0,0" },
+	"ESS_smalldigit_6":  { "File": "numbers.png", "Rect": "8,8,8,8", "Center": "0,0" },
+	"ESS_smalldigit_7":  { "File": "numbers.png", "Rect": "16,8,8,8", "Center": "0,0" },
+	"ESS_smalldigit_8":  { "File": "numbers.png", "Rect": "24,8,8,8", "Center": "0,0" },
+	"ESS_smalldigit_9":  { "File": "numbers.png", "Rect": "32,8,8,8", "Center": "0,0" },
+	"ESS_smalldigit_y_0":  { "File": "numbers_y.png", "Rect": "0,0,8,8", "Center": "0,0" },
+	"ESS_smalldigit_y_1":  { "File": "numbers_y.png", "Rect": "8,0,8,8", "Center": "0,0" },
+	"ESS_smalldigit_y_2":  { "File": "numbers_y.png", "Rect": "16,0,8,8", "Center": "0,0" },
+	"ESS_smalldigit_y_3":  { "File": "numbers_y.png", "Rect": "24,0,8,8", "Center": "0,0" },
+	"ESS_smalldigit_y_4":  { "File": "numbers_y.png", "Rect": "32,0,8,8", "Center": "0,0" },
+	"ESS_smalldigit_y_5":  { "File": "numbers_y.png", "Rect": "0,8,8,8", "Center": "0,0" },
+	"ESS_smalldigit_y_6":  { "File": "numbers_y.png", "Rect": "8,8,8,8", "Center": "0,0" },
+	"ESS_smalldigit_y_7":  { "File": "numbers_y.png", "Rect": "16,8,8,8", "Center": "0,0" },
+	"ESS_smalldigit_y_8":  { "File": "numbers_y.png", "Rect": "24,8,8,8", "Center": "0,0" },
+	"ESS_smalldigit_y_9":  { "File": "numbers_y.png", "Rect": "32,8,8,8", "Center": "0,0" }
+}

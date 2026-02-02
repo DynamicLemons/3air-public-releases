@@ -1,0 +1,69 @@
+#define EXTRA_SAVE_SLOTS_ACTIVE = 1
+
+include dataselect
+include saveslots
+include fading
+
+global u8 ESS_save_entered
+global u8 ESS_save_page
+global u8 ESS_robotnik_timer
+global s16 ESS_scroll_x
+global double ESS_scroll_x_d
+global s16 ESS_scroll_y
+global double ESS_scroll_y_d
+global u16 ESS_s3kfaithful_cursorX
+global u16 ESS_s3kfaithful_cursorSize
+
+global u32 ESS_bg_colorP
+global u32 ESS_bg_colorS
+global u32 ESS_bg_colorP_BlendA
+global u32 ESS_bg_colorP_BlendB
+global u32 ESS_bg_colorS_BlendA
+global u32 ESS_bg_colorS_BlendB
+global u16 ESS_bg_color_blendFactor
+
+global u8 ESS_fadingOutOfDS
+global s8 ESS_fadingIntoDS
+global u8 ESS_queueMainMenu
+
+global u8 ESS_devModeActive
+global s16 ESS_devModeStatus
+global u8 ESS_devModeEmSel
+global u16 ESS_devModeZone
+global u16 ESS_devModeSelM
+global s8 ESS_devModeHoldTime
+global u16 ESS_devModeNSZone
+global u16 ESS_devModeNSAct
+
+global string ESS_tempECFChar_name
+global u16 ESS_tempECFChar_id
+global u16 ESS_realHover
+
+global u8 ESS_set_visstyle
+global u8 ESS_set_horzPage
+global u8 ESS_set_seamless
+
+global bool ESS_set_controlguide
+global u8 ESS_set_loadscores
+
+// consts
+constant u8 ESS_page_count = 5
+constant u8 ESS_maxcontent = 50
+constant u8 ESS_STYLE_LEMONZEST	= 0 
+constant u8 ESS_STYLE_S3K		= 1 
+
+// define
+define dataselect_eggman_active = u8[0xffffeee4]
+
+function string ESS_getSaveStr(string input, u8 page)
+{
+	u64 returnstr = stringformat("%s_ess%d", input, page)
+	if (page == 0)
+		returnstr = input
+	return returnstr
+}
+
+function string ESS_getSaveStr(string input)
+{
+	return ESS_getSaveStr(input, ESS_save_page)
+}

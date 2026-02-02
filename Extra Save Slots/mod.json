@@ -1,0 +1,77 @@
+{
+	"Metadata":
+	{
+		"Name": "Extra Save Slots",
+		"UniqueID": "dynamic-lemons-extra-save-slots",
+		"Author": "Dynamic Lemons",
+		"Description": "Adds more save slots to the game.",
+		"ModVersion": "1.0 - 12/12/25",
+		"GameVersion": "24.12.05.0"
+	},
+	"UsesFeatures": { "Controls_LR": true },
+	"Settings":
+	{
+		"Settings":
+		[
+			{
+				"InternalName": "Controls",
+				"DisplayName": "Navigation",
+				"Variable": "ESS_set_horzPage",
+				"DefaultValue": "0",
+				"Category": "Controls",		
+				"Options":
+				{
+					"0": "Horizontal + Vertical",
+					"1": "Horizontal Only"
+				}
+			},
+			
+			{
+				"InternalName": "LoadScores",
+				"DisplayName": "Completed-Save Scores",
+				"Variable": "ESS_set_loadscores",
+				"DefaultValue": "1",
+				"Category": "Gameplay",		
+				"Options":
+				{
+					"0": "No",
+					"1": "Yes"
+				}
+			},
+			
+			{
+				"InternalName": "style",
+				"DisplayName": "Style",
+				"Variable": "ESS_set_visstyle",
+				"DefaultValue": "0",
+				"Category": "Visuals",		
+				"Options":
+				{
+					"0": "Lemon Zest",
+					"1": "Sonic 3"
+				}
+			},
+			
+			{
+				"InternalName": "seamless",
+				"DisplayName": "Seamless Mode",
+				"Variable": "ESS_set_seamless",
+				"DefaultValue": "1",
+				"Category": "Visuals",		
+				"Options":
+				{
+					"0": "Off",
+					"1": "On"
+				}
+			}
+		]
+	},
+	
+	"OtherMods":
+	{
+		"extra-character-framework":
+		{
+			"Priority": "Lower"
+		}
+	}
+}

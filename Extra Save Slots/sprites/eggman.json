@@ -1,0 +1,12 @@
+{
+	"ESS_eggman_0":  { "File": "eggman.png", "Rect": "0,0,64,64", "Center": "33,54" },
+	"ESS_eggman_1":  { "File": "eggman.png", "Rect": "64,0,64,64", "Center": "33,54" },
+	"ESS_eggman_2":  { "File": "eggman.png", "Rect": "0,64,64,64", "Center": "33,54" },
+	"ESS_eggman_3":  { "File": "eggman.png", "Rect": "64,64,64,64", "Center": "33,54" },
+	"ESS_eggman_4":  { "File": "eggman.png", "Rect": "0,128,64,64", "Center": "33,54" },
+	"ESS_eggman_sign_0":  { "File": "eggman_sign.png", "Rect": "0,0,48,24", "Center": "27,72" },
+	"ESS_eggman_sign_1":  { "File": "eggman_sign.png", "Rect": "48,0,48,24", "Center": "27,72" },
+	"ESS_eggman_sign_2":  { "File": "eggman_sign.png", "Rect": "96,0,48,24", "Center": "27,72" },
+	"ESS_eggman_sign_3":  { "File": "eggman_sign.png", "Rect": "144,0,48,24", "Center": "27,72" },
+	"ESS_eggman_sign_4":  { "File": "eggman_sign.png", "Rect": "192,0,48,24", "Center": "27,72" }
+}

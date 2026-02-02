@@ -1,0 +1,14 @@
+{
+	"ESS_SaveBox_s3k":  { "File": "SaveBox_s3k.png", "Rect": "0,0,96,184", "Center": "48,0" },
+	"ESS_SaveBox_s3k_shadow":  { "File": "SaveBox_s3k.png", "Rect": "0,184,96,184", "Center": "48,0" },
+	"ESS_SaveBox_s3k_alt":  { "File": "SaveBox_s3k.png", "Rect": "96,0,96,160", "Center": "48,0" },
+	"ESS_SaveBox_s3k_alt_shadow":  { "File": "SaveBox_s3k.png", "Rect": "96,160,96,160", "Center": "48,0" },
+	"ESS_NoSaveBox_s3k":  { "File": "SaveBox_s3k.png", "Rect": "192,0,80,88", "Center": "40,0" },
+	"ESS_NoSaveBox_s3k_shadow":  { "File": "SaveBox_s3k.png", "Rect": "192,88,80,88", "Center": "40,0" },
+	"ESS_EggBox_s3k":  { "File": "SaveBox_s3k.png", "Rect": "192,0,80,88", "Center": "40,0" },
+	"ESS_EggBox_s3k_shadow":  { "File": "SaveBox_s3k.png", "Rect": "192,88,80,88", "Center": "40,0" },
+	"ESS_s3k_selection":  { "File": "SaveBox_s3k.png", "Rect": "352,0,80,184", "Center": "0,0" },
+	"ESS_s3k_selection_alt":  { "File": "SaveBox_s3k.png", "Rect": "432,0,80,184", "Center": "0,0" },
+	"ESS_s3k_selection_nosave":  { "File": "SaveBox_s3k.png", "Rect": "512,0,80,88", "Center": "0,5" },
+	"ESS_s3k_selection_eggman":  { "File": "SaveBox_s3k.png", "Rect": "512,0,80,88", "Center": "0,5" }
+}

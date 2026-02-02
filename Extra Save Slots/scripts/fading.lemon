@@ -1,0 +1,317 @@
+//# address-hook(0x003af0) end(0x003b12)
+function void Menu.FadeInAfterInit()
+{
+	if (global.game_mode != 0x4c)
+	{
+		base.Menu.FadeInAfterInit()
+		return
+	}
+	
+	ESS_fadingIntoDS = 1
+	
+	u8 lastGameMode = global.game_mode
+
+	SetPaletteFadedOut(0x003f)
+	D4.u16 = 0x15
+	while (D4.s16 >= 0)
+	{
+		global.frame_state = 0x12
+		waitForNextFrame()
+		
+		if (global.game_mode == 0x4c)
+			FadeInPalette_ESS()
+		else
+			FadeInPalette()
+		LoadRequiredSpritePatterns()
+		--D4.s16
+
+	#if STANDALONE
+		// SEGA logo
+		if (global.game_mode == 0x04)
+		{
+			Renderer.resetSprites()
+			Renderer.drawCustomSprite("original_game_by", getScreenWidth() / 2 - 85, 60, 0x00, 0, 0x2000, 0, u16(u8[0xfffffc01] & 0x0e) * 96 / 0x0e)
+		}
+
+		if (global.game_mode == 0x4c || lastGameMode == 0x4c) // Data Select
+		{
+			// Quick scroll-in effect
+			if (ESS_scroll_y < 0)
+			{
+				ESS_scroll_y += 40
+				if (ESS_scroll_y >= 0)
+					ESS_scroll_y = 0
+			}
+
+			ESS_updateCamScroll()
+			
+			// Draw our own widescreen version of the background
+			//  -> For this to work, we need to update the sprites as well
+			u16 backupD4 = D4.u16
+			//UpdateGameObjects()
+			RenderSprites()
+
+			// Update scroll offset (if the player scrolls during fade-in already)
+			u16[0xffffe002] = -camera.foreground.x.u16
+
+			DataSelect.drawCustomPlanes()
+			ESS_drawScreen()
+			D4.u16 = backupD4
+		}
+	#endif
+	}
+	
+	ESS_fadingIntoDS = 0
+}
+
+function void FadeInPalette_ESS()
+{
+	if (globalComponentTintColorB < 0xff)
+		globalComponentTintColorB = min(globalComponentTintColorB + 0x25, 0xff)
+	else if (globalComponentTintColorG < 0xff)
+		globalComponentTintColorG = min(globalComponentTintColorG + 0x25, 0xff)
+	else if (globalComponentTintColorR < 0xff)
+		globalComponentTintColorR = min(globalComponentTintColorR + 0x25, 0xff)
+
+	// Fading from a black screen to the target palette
+
+	// Go through primary (k==0) and secondary (k==1) palette
+	u8 numPalettes = (level.water_present != 0) ? 2 : 1
+	for (u8 k = 0; k < numPalettes; ++k)
+	{
+		A0 = ((k == 0) ? 0xfffffc00 : 0xfffff080) + palette_fade.offset
+		A1 = ((k == 0) ? 0xfffffc80 : 0xfffff000) + palette_fade.offset
+		for (u8 i = 0; i <= palette_fade.count; ++i)
+		{
+			u16[A0] = u16[A1]
+			A0 += 2
+			A1 += 2
+		}
+	}
+
+#if STANDALONE
+	if (EXTENDED_CHARACTER_PALETTES)
+	{
+		for (u8 k = 0; k < numPalettes; ++k)
+		{
+			A0 = ((k == 0) ? 0x802000 : 0x802300)
+			A1 = ((k == 0) ? 0x802180 : 0x802480)
+			for (u16 i = 0; i < 0xc0; ++i)
+			{
+				u16[A0] = u16[A1]
+				A0 += 2
+				A1 += 2
+			}
+		}
+	}
+#endif
+}
+
+function void FadeInColor_ESS()
+{
+	u16 color = u16[A0]
+	u16 target = u16[A1]
+	if (color != target)
+	{
+		u8 b
+		u8 g
+		u8 r
+		
+	#if STANDALONE
+		// Handle extended packed color format for target
+		if (target & 0x8000)
+		{
+			b = (target & 0x7c00) >> 7
+			g = (target & 0x03e0) >> 2
+			r = (target & 0x001f) << 3
+		}
+		else
+	#endif
+		{
+			b = (((target & 0x0e00) >> 4) >> 4) * 18
+			g = ((target & 0x00e0) >> 4) * 18
+			r = (((target & 0x000e) << 4) >> 4) * 18
+		}
+		
+		b = min(b, globalComponentTintColorB)
+		g = min(g, globalComponentTintColorG)
+		r = min(r, globalComponentTintColorR)
+		
+		u32 newColor = (b << 16) + (g << 8) + r
+		u16[A0] = packColorExt(newColor)
+	}
+	A0 += 2
+	A1 += 2
+}
+
+
+// yeah, this is just for character shadows to render correctly
+//# address-hook(0x003be4) end(0x003c02)
+function void FadeOutScreenBlocking()
+{
+	if (!ESS_fadingOutOfDS)
+	{
+		base.FadeOutScreenBlocking()
+		return
+	}
+	
+	u8 lastGameMode = global.game_mode
+	
+	palette_fade.range = 0x003f
+	D4.u16 = 0x15
+	while (D4.s16 >= 0)
+	{
+	#if STANDALONE
+		// Preserve former custom plane setup
+		enableCustomPlaneReset = false
+	#endif
+
+		global.frame_state = 0x12
+		waitForNextFrame()
+
+	@EntryPoint:
+		FadeOutPalette_ESS()
+		LoadRequiredSpritePatterns()
+		--D4.s16
+		
+		// Draw our own widescreen version of the background
+		//  -> For this to work, we need to update the sprites as well
+		u16 backupD4 = D4.u16
+		RenderSprites()
+
+		// Update scroll offset (if the player scrolls during fade-in already)
+		u16[0xffffe002] = -camera.foreground.x.u16
+	
+		if (globalComponentTintColorR != 0 || globalComponentTintColorG != 0 || globalComponentTintColorB != 0)
+		{
+			DataSelect.drawCustomPlanes()
+			ESS_drawScreen()
+		}
+		else
+		{
+			ESS_fadingOutOfDS = 0
+		}
+		D4.u16 = backupD4
+	}
+	
+	if (ESS_queueMainMenu)
+	{
+		Game.returnToMainMenu() 
+		ESS_queueMainMenu = 0
+	}
+	ESS_fadingOutOfDS = 0
+}
+
+//# address-hook(0x003d30) end(0x003d4e)
+function void FadeScreenToWhiteBlocking()
+{
+	ESS_fadingOutOfDS = 0
+	base.FadeScreenToWhiteBlocking()
+}
+
+function void FadeOutPalette_ESS()
+{
+	if (globalComponentTintColorR > 0)
+		globalComponentTintColorR = max(globalComponentTintColorR - 0x25, 0)
+	else if (globalComponentTintColorG > 0)
+		globalComponentTintColorG = max(globalComponentTintColorG - 0x25, 0)
+	else if (globalComponentTintColorB > 0)
+		globalComponentTintColorB = max(globalComponentTintColorB - 0x25, 0)
+
+	if (globalComponentAddedColorR > 0)
+		globalComponentAddedColorR = max(globalComponentAddedColorR - 0x25, 0)
+	else if (globalComponentAddedColorG > 0)
+		globalComponentAddedColorG = max(globalComponentAddedColorG - 0x25, 0)
+	else if (globalComponentAddedColorB > 0)
+		globalComponentAddedColorB = max(globalComponentAddedColorB - 0x25, 0)
+}
+
+//# address-hook(0x000c50) end(0x000d0a)
+function void fn000c50()
+{
+	if (!ESS_fadingOutOfDS && !ESS_fadingIntoDS)
+	{
+		base.fn000c50()
+		return
+	}
+	
+	base.fn000c50()
+	
+	VDP.setupCRAMWrite(0)
+	u32 paletteAddress = (water.fullscreen) ? 0xfffff080 : 0xfffffc00
+	for (u8 i = 0; i < 0x40; ++i)
+	{
+		VDP.writeData16(ESS_colorFunnyMoment(u16[paletteAddress + i * 2]))
+	}
+	u16[0xfffff640] = 0x80
+		
+	// Also update additional palettes
+	paletteAddress = (water.fullscreen) ? 0x802300 : 0x802000
+	for (u16 i = 0; i < 0xc0; ++i)
+	{
+		Renderer.setPaletteEntryPacked(i + 0x40, ESS_colorFunnyMoment(u16[paletteAddress + i * 2]))
+	}
+}
+
+function u32 ESS_colorFunnyMoment(u16 color)
+{
+	u8 b
+	u8 g
+	u8 r
+
+	if (color & 0x8000)
+	{
+		b = (color & 0x7c00) >> 7
+		g = (color & 0x03e0) >> 2
+		r = (color & 0x001f) << 3
+	}
+	else
+	{
+		b = (((color & 0x0e00) >> 4) >> 4) * 18
+		g = ((color & 0x00e0) >> 4) * 18
+		r = (((color & 0x000e) << 4) >> 4) * 18
+	}
+
+	b = Math.ceilToInt(globalComponentTintColorB / 255.0 * b)
+	g = Math.ceilToInt(globalComponentTintColorG / 255.0 * g)
+	r = Math.ceilToInt(globalComponentTintColorR / 255.0 * r)
+			
+	u32 nColor = (b << 16) + (g << 8) + r
+	
+	return packColorExt(nColor)
+}
+
+function void Renderer.drawSpriteTinted(u64 key, s16 px, s16 py, u16 atex, u8 flags, u16 renderQueue, u8 angle, u32 tintColor, s32 scale)
+{
+	if (ESS_fadingOutOfDS || ESS_fadingIntoDS)
+	{
+		flags |= SPRITE_FLAG_NO_GLOBAL_TINT
+		tintColor = ESS_applyFadingToColorU32(tintColor)
+	}
+	base.Renderer.drawSpriteTinted(key, px, py, atex, flags, renderQueue, angle, tintColor, scale)
+}
+
+function void Renderer.drawSpriteTinted(u64 key, s16 px, s16 py, u16 atex, u8 flags, u16 renderQueue, u8 angle, u32 tintColor, s32 scaleX, s32 scaleY)
+{
+	if (ESS_fadingOutOfDS || ESS_fadingIntoDS)
+	{
+		flags |= SPRITE_FLAG_NO_GLOBAL_TINT
+		tintColor = ESS_applyFadingToColorU32(tintColor)
+	}
+	base.Renderer.drawSpriteTinted(key, px, py, atex, flags, renderQueue, angle, tintColor, scaleX, scaleY)
+}
+
+function u32 ESS_applyFadingToColorU32(u32 color)
+{
+	u32 r = (color & 0xff000000) >> 24
+	u32 g = (color & 0x00ff0000) >> 16
+	u32 b = (color & 0x0000ff00) >> 8
+	u32 a = (color & 0x000000ff)
+	
+	b = Math.roundToInt(globalComponentTintColorB / 255.0 * b)
+	g = Math.roundToInt(globalComponentTintColorG / 255.0 * g)
+	r = Math.roundToInt(globalComponentTintColorR / 255.0 * r)
+	
+	u32 nColor = (r << 24) + (g << 16) + (b << 8) + a
+	return nColor
+}

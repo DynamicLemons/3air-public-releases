@@ -1,0 +1,2640 @@
+function void loadupDataSelect()
+{
+	// Load save states
+	InitSaveSlots()
+
+	// Go to Data Select
+	global.game_mode = 0x4c
+	DataSelect.setup()
+	Menu.FadeInAfterInit()
+
+	DataSelect.update()
+}
+
+function void DataSelect.setup()
+{
+#if !STANDALONE
+	set_status_register(0x2700)
+#endif
+
+	VDP.Config.setActiveDisplay(false)
+	fn0011ca()
+
+	VDP.setWriteIncrement(1)
+	VDP.fillVRAMbyDMA(0, 0xd000, 0x2000)
+	VDP.setWriteIncrement(2)
+
+	VDP.Config.enableHInt(false)
+	VDP.Config.setNameTableBasePlaneA(0xe000)
+	VDP.Config.setNameTableBasePlaneB(0xc000)
+	VDP.Config.setNameTableBasePlaneW(0xe000)
+	VDP.Config.setBackdropColor(0)
+	VDP.Config.setVerticalScrolling(true, 0)	// Horizontal scrolling mode without scroll mask
+	VDP.Config.setRenderingModeConfiguration(false)
+	VDP.Config.setPlayfieldSizeInPixels(1024, 256)
+	VDP.Config.setupWindowPlane(true, 0)
+
+	zeroMemory(0xffffac00, 0x400)
+	zeroMemory(0xffffb000, 0x2000)
+
+	u16[0xfffffb00] = 0
+	u32[0xfffffbfc] = 0xfffffb00
+	level.framecounter = 0
+	u16[0xffffeee2] = 0
+	u16[0xffffeee4] = 0
+
+	A0 = 0xffffb000
+	A1 = 0x00d13e
+	D0 = 0x0b
+	while (D0.s16 >= 0)
+	{
+		objA0.update_address = u32[(A1+=4)-4]
+		objA0.sprite_attributes = (sprite_attribute.PRIORITY | 0x029f)
+		objA0.mapping_offset = 0x00ce0e
+		objA0.position.x.u16 = u16[A1] + getScreenExtend()		// Adding the screen extend only really has an effect on the "Data Select" text
+		u16[A0 + 0x12] = u16[(A1+=2)-2]
+		objA0.position.y.u16 = u16[(A1+=2)-2]
+		objA0.animation.sprite = u8[(A1+=1)-1]
+		objA0.flags2e = u8[(A1+=1)-1]
+		objA0.render_flags = render_flag.COMPOUND
+
+		A0 += 0x4a
+		--D0.s16
+	}
+	
+	// text that says "DATASELECT"
+	unloadObjectAt(0xffffb000) 
+
+	ESS_save_entered = 0
+	u8[0xffffe654] = 0
+	ESS_s3kfaithful_cursorX = 104
+	ESS_s3kfaithful_cursorSize = 0
+	
+	ESS_devModeActive = 0
+	ESS_devModeStatus = 0
+	ESS_devModeEmSel = 0
+	ESS_devModeZone = 0
+	ESS_devModeSelM = 0
+	ESS_devModeHoldTime = 0
+	ESS_devModeNSZone = 0
+	ESS_devModeNSAct = 0
+	
+	ESS_resetBgColor()
+
+	// actual save boxes
+	for (u8 num = 0; num < 8; ++num)
+	{
+		A0 = 0xffffb128 + (num*0x4a)
+		objA0.groundspeed = ESS_getsaveboxyoff(num+1)
+	}
+	
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	ExChar_P1 = 0
+	ExChar_P1_id = 0
+	ExChar_P2 = 0
+	ExChar_P2_id = 0
+	global_ExChar_P1 = 0
+	global_ExChar_P1_id = 0
+	global_ExChar_P2 = 0
+	global_ExChar_P2_id = 0
+	levelselect_ExChar_P1_id = 0
+	levelselect_ExChar_P2_id = 0
+	noSave_ExChar_P1_id = 0
+	noSave_ExChar_P2_id = 0
+	
+	System.callFunctionByName("ECF_loadIdValues")
+#endif
+
+	copyMemory(0xfffffc80, 0x39d262, 0x20)
+	copyMemory(0xfffffca0, 0x00ca78, 0x40)
+	// Load characters extended palettes
+	loadCharacterPalette(CHARACTER_SONIC,    0x802180, 0)
+	loadCharacterPalette(CHARACTER_TAILS,    0x8021c0, 0)
+	loadCharacterPalette(CHARACTER_KNUCKLES, 0x802200, 0)
+	
+	fn01aa6e()
+	UpdateGameObjects()
+	RenderSprites()
+
+	if (ESS_set_visstyle == ESS_STYLE_S3K)
+	{
+		ESS_scroll_x = -getScreenExtend()
+		u16[0xffffe002] = getScreenExtend()
+		if (ESS_set_seamless && ESS_set_horzPage)
+		{
+			ESS_scroll_x += 104
+			ESS_s3kfaithful_cursorX += 104
+		}
+	}
+	else
+		ESS_scroll_x = ESS_getScrollEnd(1)
+	ESS_scroll_x_d = ESS_scroll_x
+	ESS_scroll_y = 0
+	ESS_scroll_y_d = 0
+	
+	playMusic(MUSIC_DATASELECT)
+	u32[0xffffef44] = 0x00c890
+	global.frame_state = 0x1e
+	waitForNextFrame()
+
+	// Check save slots to unlock DDZ in Act Select when DDZ was reached once
+	for (u32 slotIndex = 0; slotIndex < 8; ++slotIndex)
+	{
+		u32 slotAddress = 0xffffe6ac + slotIndex * 0x0a
+		u8 characters = (u8[slotAddress + 0x02] >> 4)
+		if (characters == CHARS_SONIC_AND_TAILS || characters == CHARS_SONIC_ALONE)
+		{
+			if ((u8[slotAddress] & 0x7f) != 0 || u8[slotAddress + 0x03] >= 0x0e)
+			{
+				Game.setSecretUnlocked(SECRET_DOOMSDAY_ZONE)
+			}
+		}
+	}
+	
+	VDP.Config.setActiveDisplay(true)
+}
+
+function void DataSelect.update()
+{
+	while (true)
+	{
+		global.frame_state = 0x1e
+		waitForNextFrame()
+	@EntryPoint:
+		
+		u8 lastggm = global.game_mode
+	#if STANDALONE
+		DataSelect.drawCustomPlanes()
+		ESS_updateCamScroll()
+	#endif
+		
+		++level.framecounter
+		UpdateGameObjects()
+		RenderSprites()
+		ESS_updateEmeraldColors()
+		ESS_drawScreen()
+		
+		if (global.game_mode != 0x4c)
+		{
+			if (global.game_mode != lastggm)
+				ESS_fadingOutOfDS = 1
+			break
+		}
+	}
+}
+
+function void ESS_updateEmeraldColors()
+{
+	A0 = 0xfffffc42
+	++emerald.animframe
+	if (emerald.animframe >= 3)
+		emerald.animframe = 0
+	
+	if (Game.getSetting(SETTING_GFX_ANTIFLICKER) >= 1)
+	{
+		// This version is a bit less flickery
+		copyMemory(A0, 0x00ca9a, 0x1e)
+		if (emerald.animframe != 0)
+		{
+			for (u8 i = 0; i < 0x1e; i += 2)
+			{
+				u16 weight = abs(s16(emerald.animframe) - 2) + 1
+
+				// Mix color_prmy with white
+				u16 r = u16[A0+i] & 0x0e
+				u16 g = (u16[A0+i] >> 4) & 0x0e
+				u16 b = (u16[A0+i] >> 8) & 0x0e
+				r = (r * weight + 0x0e * (3 - weight)) / 3
+				g = (g * weight + 0x0e * (3 - weight)) / 3
+				b = (b * weight + 0x0e * (3 - weight)) / 3
+				u16[A0+i] = r + (g << 4) + (b << 8)
+			}
+		}
+	}
+	else
+	{
+		if (emerald.animframe == 0)
+			fillMemory_u16(A0, 0x1e, 0x0eee)
+		else
+			copyMemory(A0, 0x00ca9a, 0x1e)
+	}
+}
+
+//# address-hook(0x00d30c) end(0x00d39a)
+function void fn00d30c()
+{
+	if (ESS_devModeActive && dataselect.slot_selected == 0) // EDITOR MODE
+	{
+		if (ESS_devModeStatus == 1) // chars
+		{
+			D0.u16 = dataselect.nosave_characters
+			fn00d6d0()
+			dataselect.nosave_characters = D0.u16
+		}
+		else if (ESS_devModeStatus == 2) // zone
+		{
+			if (control.pad1.pressed & CONTROL_UP)
+			{
+				if (ESS_devModeNSZone == 0x0c) // Death Egg Boss -> Angel Island
+				{
+					ESS_devModeNSZone = 0x0d
+					ESS_devModeNSAct = 1
+				}
+				else if (ESS_devModeNSZone == 0x0d) // Ending -> Hidden Palace
+				{
+					ESS_devModeNSZone = 0x16
+					ESS_devModeNSAct = 0
+				}
+				else if (ESS_devModeNSZone == 0x17) // Death Egg Boss -> Angel Island
+				{
+					ESS_devModeNSZone = 0
+					ESS_devModeNSAct = 0
+				}
+				else if (ESS_devModeNSAct == 1)
+				{
+					ESS_devModeNSAct = 0
+					++ESS_devModeNSZone
+				}
+				else
+					++ESS_devModeNSAct
+				playSound(SFX_CLICK)
+			}
+			else if (control.pad1.pressed & CONTROL_DOWN)
+			{
+				if (ESS_devModeNSZone == 0x0c) // The Doomsday -> Death Egg 2
+				{
+					ESS_devModeNSZone = 0x0b
+					ESS_devModeNSAct = 1
+				}
+				else if (ESS_devModeNSZone == 0x0d) // Ending -> The Doomsday
+				{
+					ESS_devModeNSZone = 0x0c
+					ESS_devModeNSAct = 0
+				}
+				else if (ESS_devModeNSZone == 0x16) // Hidden Palace -> Ending
+				{
+					ESS_devModeNSZone = 0x0d
+					ESS_devModeNSAct = 1
+				}
+				else if (ESS_devModeNSZone == 0 && ESS_devModeNSAct == 0) // Angel Island -> Death Egg Boss
+				{
+					ESS_devModeNSZone = 0x17
+					ESS_devModeNSAct = 0
+				}
+				else if (ESS_devModeNSAct == 0)
+				{
+					ESS_devModeNSAct = 1
+					--ESS_devModeNSZone
+				}
+				else
+					--ESS_devModeNSAct
+				playSound(SFX_CLICK)
+			}
+		}
+		else if (ESS_devModeStatus == 3) // emeralds
+		{
+			// the important bit
+			if (control.pad1.pressed & CONTROL_LEFT && ESS_devModeEmSel > 0)
+				--ESS_devModeEmSel
+			else if (control.pad1.pressed & CONTROL_RIGHT && ESS_devModeEmSel < 6)
+				++ESS_devModeEmSel
+
+			// the unimportant bit
+			s16 shift = 0
+			if (control.pad1.pressed & CONTROL_DOWN)
+				shift = -1
+			else if (control.pad1.pressed & CONTROL_UP)
+				shift = 1
+
+			if (shift != 0)
+			{
+				A1 = 0xffffffb2 + ESS_devModeEmSel
+				s8 newV = u8[A1] + shift
+				if (newV == -1)
+					newV = 3
+				else if (newV == 4)
+					newV = 0
+				u8[A1] = newV
+				playSound(0x7b)
+			}
+		}
+		else if (ESS_devModeStatus == 4)
+		{
+			levelselect.characters = dataselect.nosave_characters
+		#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+			levelselect_ExChar_P1_id = noSave_ExChar_P1_id
+			levelselect_ExChar_P2_id = noSave_ExChar_P2_id
+			levelselect_ExChar_P3_id = noSave_ExChar_P3_id
+			levelselect_ExChar_P4_id = noSave_ExChar_P4_id
+		#endif
+		
+			global.active_saveslot = 0
+			DataSelect.sharedNewGameStartup()
+			DataSelect.SharedGameSlotContinue()
+			
+			System.setGlobalVariableValueByName("ccp_subway_tempZoneVal", ESS_devModeNSZone * 0x0100 + ESS_devModeNSAct)
+			global.zone_act = ESS_devModeNSZone * 0x0100 + ESS_devModeNSAct
+			global.zone_act.apparent = global.zone_act
+		}
+		return
+	}
+	
+	objA0.compound.sprite1.animation.sprite = 0x0f
+	objA0.animation.sprite = dataselect.nosave_characters + 4
+
+	if (dataselect.slot_selected == 0 && u16[0xffffb04a + 0x2e] == 0 && u16[0xffffeee4] == 0)
+	{
+		if (control.pad1.pressed & DataSelect.CONTROLS_ACCEPT)
+		{
+			levelselect.characters = dataselect.nosave_characters
+		#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+			levelselect_ExChar_P1_id = noSave_ExChar_P1_id
+			levelselect_ExChar_P2_id = noSave_ExChar_P2_id
+			levelselect_ExChar_P3_id = noSave_ExChar_P3_id
+			levelselect_ExChar_P4_id = noSave_ExChar_P4_id
+		#endif
+				
+			global.active_saveslot = 0
+			DataSelect.sharedNewGameStartup()
+			DataSelect.SharedGameSlotContinue()
+			
+			playSound(0xaf)
+			
+			return
+		}
+
+		D0.u16 = dataselect.nosave_characters
+		fn00d6d0()
+		dataselect.nosave_characters = D0.u16
+
+		objA0.animation.sprite = D0.u8 + 4
+		objA0.compound.count = 1
+	}
+}
+
+function void DataSelect.sharedNewGameStartup()
+{
+	if (global.active_saveslot != 0 || !ESS_devModeActive)
+	{
+		base.DataSelect.sharedNewGameStartup()
+		return
+	}
+	
+	global.game_mode = 0x0c
+	global.next_bluespheres = 0
+	u16[0xfffffe17] = 0			// Possibly not needed at all
+	u16[0xffffffb0] = 0
+	level.giantrings_clear = 0
+	global.traded_emeralds = 0
+	global.chaos_emeralds = 0
+	global.super_emeralds = 0
+
+	A1 = 0xffffffb2
+	D1.u8 = 0
+	D2.u8 = 0
+	for (u8 step = 0; step < 7; ++step)
+	{
+		D0.u8 = u8[A1]
+		if (D0.u8 != 0)
+		{
+			++global.chaos_emeralds
+			if (D0.u8 == 3)
+				++global.super_emeralds
+		}
+		
+		if (D0.u8 >= 2)
+			global.traded_emeralds = 0xff
+		++A1
+	}
+
+#if STANDALONE
+	if (!Game.isTimeAttack())
+	{
+		// Intentionally not using the (more deterministic) "getRandomNumber" here
+		global.game_random_base = 1 + (System.rand() % 0xff)		// Avoid the 0 value
+	}
+#endif
+	playSound(0xaf)
+}
+
+//# address-hook(0x00d70c) end(0x00d77c)
+function void fn00d70c()
+{
+	// the emeralds
+	// fuck this object
+	UnloadObject()
+}
+
+//# address-hook(0x00d42c) end(0x00d69a)
+function void fn00d42c()
+{
+	objA0.compound.count = 0
+	A1 = u32[A0 + 0x30]
+	
+	u8 result = 0
+	
+	D0.u8 = dataselect.slot_selected - 1
+	if (D0.u8 != objA0.flags2e)
+	{
+		u8[A0 + 0x37] = u8[A1 + 0x03]
+		u16[A0 + 0x38] = 0
+	}
+	else
+	{
+		if (ESS_devModeActive) // EDITOR MODE
+		{
+			A1 = 0xffffe6ac + ((A0 - 0xffffb128) / 0x4a) * 0x0a
+			//debugLog(ESS_devModeStatus)
+			if (ESS_devModeStatus == 1) // char
+			{
+				D0.u16 = u16[A0 + 0x34]
+				fn00d6d0()
+				u16[A0 + 0x34] = D0.u16
+				u8[A1 + 0x02] = (D0.u16 << 4)
+				u8[0x8fe660 + u32(dataselect.slot_selected - 0x01)] = objA0.animation.timer
+			}
+			else if (ESS_devModeStatus == 2) // lives
+			{
+				if (control.pad1.pressed & CONTROL_DOWN)
+				{
+					u8[A0 + 0x3e] = (u8[A0 + 0x3e] == 0) ? 99 : u8[A0 + 0x3e] - 1
+					playSound(SFX_CLICK)
+				}
+				else if (control.pad1.pressed & CONTROL_UP)
+				{
+					u8[A0 + 0x3e] = (u8[A0 + 0x3e] == 99) ? 0 : u8[A0 + 0x3e] + 1
+					playSound(SFX_CLICK)
+				}
+				u8[A1 + 0x08] = u8[A0 + 0x3e]
+			}
+			else if (ESS_devModeStatus == 3) // continues
+			{
+				if (control.pad1.pressed & CONTROL_DOWN)
+				{
+					u8[A0 + 0x3f] = (u8[A0 + 0x3f] == 0) ? 99 : u8[A0 + 0x3f] - 1
+					playSound(SFX_CLICK)
+				}
+				else if (control.pad1.pressed & CONTROL_UP)
+				{
+					u8[A0 + 0x3f] = (u8[A0 + 0x3f] == 99) ? 0 : u8[A0 + 0x3f] + 1
+					playSound(SFX_CLICK)
+				}
+				u8[A1 + 0x09] = u8[A0 + 0x3f]
+			}
+			else if (ESS_devModeStatus == 4) // emeralds
+			{
+				// the important bit
+				if (control.pad1.pressed & CONTROL_LEFT && ESS_devModeEmSel > 0)
+				{
+					--ESS_devModeEmSel
+					playSound(0x7b)
+				}
+				else if (control.pad1.pressed & CONTROL_RIGHT && ESS_devModeEmSel < 6)
+				{
+					++ESS_devModeEmSel
+					playSound(0x7b)
+				}
+				
+				// the unimportant bit
+				s16 shift = 0
+				if (control.pad1.pressed & CONTROL_DOWN)
+					shift = -1
+				else if (control.pad1.pressed & CONTROL_UP)
+					shift = 1
+
+				if (shift != 0)
+				{
+					D0.u16 = u16[A1 + 0x06]
+					for (u8 step = 0; step < 7; ++step)
+					{
+						u16[A1 + 0x06] = (u16[A1 + 0x06] << 2) + (u16[A1 + 0x06] >> 14)	// Shift emerald collection state bits (2 for each emerald) around to get the appropriate one on least significant digits
+						if (step == ESS_devModeEmSel)
+						{
+							D4.u16 = u16[A1 + 0x06] & 0x03
+							u16[A1 + 0x06] &= ~D4.u16
+							
+							u16 temp = D4.u16
+							if (shift == 1)
+								temp = (temp == 3) ? 0 : temp + 1
+							else
+								temp = (temp == 0) ? 3 : temp - 1
+							u16[A1 + 0x06] |= temp
+						}
+					}
+					u16[A1 + 0x06] = (u16[A1 + 0x06] << 2) + (u16[A1 + 0x06] >> 14) // one final shift back
+					playSound(SFX_CLICK)
+				}
+				
+				ESS_getEmeraldCount()
+				if (u8[A0 + 0x3b] > 0 && u8[A0 + 0x3b] != 0x80)
+				{
+					u8[A0 + 0x3b] = (D2 == 7) ? 3 : (D1 == 7) ? 2 : 1
+					u8[A1] = u8[A0 + 0x3b]
+				}
+			}
+			else if (ESS_devModeStatus == 5) // score
+			{
+				u32 slotIndex = (A1 - 0xffffe6ac) / 0x0a
+				u32 address = 0x801100 + slotIndex * 0x20
+				
+				if (control.pad1.state & CONTROL_DOWN)
+					ESS_devModeHoldTime = max(ESS_devModeHoldTime - 1, -25)
+				else if (control.pad1.state & CONTROL_UP)
+					ESS_devModeHoldTime = min(ESS_devModeHoldTime + 1, 25)
+				else if (ESS_devModeHoldTime > 0)
+					ESS_devModeHoldTime = max(ESS_devModeHoldTime - 1, 0)
+				else
+					ESS_devModeHoldTime = min(ESS_devModeHoldTime + 1, 0)
+				
+				if (control.pad1.pressed & CONTROL_DOWN || ESS_devModeHoldTime <= -25)
+					u32[address] = (u32[address] == 0) ? 999999 : u32[address] - 1
+				else if (control.pad1.pressed & CONTROL_UP || ESS_devModeHoldTime >= 25)
+					u32[address] = (u32[address] == 999999) ? 0 : u32[address] + 1
+			}
+			else if (ESS_devModeStatus == 6) // zone
+			{
+				if (control.pad1.pressed & CONTROL_DOWN || control.pad1.pressed & CONTROL_UP)
+				{
+					ESS_getEmeraldCount()
+					u16 maxZone = (D1 == 7) ? 13 : 12
+					if (control.pad1.pressed & CONTROL_DOWN)
+						u16[A0 + 0x36] = (u16[A0 + 0x36] == 0) ? maxZone : u16[A0 + 0x36] - 1
+					else if (control.pad1.pressed & CONTROL_UP)
+						u16[A0 + 0x36] = (u16[A0 + 0x36] == maxZone) ? 0 : u16[A0 + 0x36] + 1
+					
+					u8[A0 + 0x3a] = u16[A0 + 0x36]
+					u8[A1] = u8[A0 + 0x3b]
+					
+					ESS_devModeZone = u16[A0 + 0x36]
+					ESS_devModeSelM = u8[A0 + 0x3a]
+				}
+			}
+			else if (ESS_devModeStatus == 7) // completion status
+			{
+				if (control.pad1.pressed & CONTROL_DOWN || control.pad1.pressed & CONTROL_UP)
+					u8[A0 + 0x3b] = !u8[A0 + 0x3b]
+				
+				if (u8[A0 + 0x3b] != 0)
+				{
+					ESS_getEmeraldCount()
+					u8[A0 + 0x3b] = (D2 == 7) ? 3 : (D1 == 7) ? 2 : 1
+					u16[A0 + 0x36] = ESS_devModeSelM + 1
+					u8[A0 + 0x3a] = ESS_devModeSelM + 1
+
+					u8[A1] = u8[A0 + 0x3b]
+					u8[A1 + 0x03] = u8(ESS_devModeSelM) + 1
+				}
+				else
+				{
+					u8[A0 + 0x3b] = 0
+					u16[A0 + 0x36] = ESS_devModeZone
+					u8[A0 + 0x3a] = ESS_devModeZone
+						
+					u8[A1] = 0
+					u8[A1 + 0x03] = u8(ESS_devModeZone)
+				}
+			}
+			
+			return
+		}
+	
+		if (ESS_save_entered == 2)
+			return
+		
+		result = fn00d458()
+		if (result == 0)
+			return
+		
+		if (ESS_save_entered == 0)
+			return
+		
+		if (result == 1)
+		{
+			if (control.pad1.pressed & DataSelect.CONTROLS_ACCEPT)
+			{
+				levelselect.characters = u16[A0 + 0x34]
+			#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+				levelselect_ExChar_P1_id = ECF_dataselect_getNum()
+			#endif
+			
+				// Initialize the new save state
+				u32[A1] = 0
+			#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+				if (u16[A0 + 0x34] == 5)
+					u8[A1 + 0x02] = u16(getECFGlobalCharId(getECFCharNameAtId(levelselect_ExChar_P1_id))) << 4
+				else
+			#endif
+					u8[A1 + 0x02] = (levelselect.characters << 4)
+				u32[A1 + 0x04] = 0
+				u16[A1 + 0x08] = 0x0300
+				u8[A0 + 0x3c] = 1
+				
+				DataSelect.sharedNewGameStartup()
+				global.active_saveslot = A1
+				DataSelect.SharedGameSlotContinue()
+
+			#if STANDALONE
+				u8[A1 + 0x01] = global.game_random_base
+			#endif
+				
+				sram.block_interrupts.u8 = 0xff
+				SaveGameSlot()
+
+				return
+			}
+
+			D0.u16 = u16[A0 + 0x34]
+			fn00d6d0()
+			u16[A0 + 0x34] = D0.u16
+
+			objA0.compound.count = (level.framecounter.low & 0x10) ? 1 : 0
+		}
+	}
+}
+
+function void ESS_drawScreen()
+{
+	pushAll()
+	
+	// number
+	if ((ESS_set_horzPage && ESS_set_seamless) == 0)
+		Renderer.drawText("oxyfont_regular:outline(0x000000ff,1,true)", getScreenWidth() - 4, getScreenHeight() - 4, stringformat("%d/%d", ESS_save_page + 1, ESS_page_count + 1), 0xfcfcfcff, 9, 0, 0xe000, false, true)
+	
+	if (ESS_devModeActive) // EDITOR MODE
+	{
+		A1 = 0xffffe6ac + (dataselect.slot_selected - 1) * 0x0a
+		A0 = 0xffffb128 + (dataselect.slot_selected - 1) * 0x4a
+		
+		string mode = stringformat("Editor Mode %d", ESS_devModeStatus)
+		if (dataselect.slot_selected != 0 && ESS_devModeStatus)
+		{
+			constant array<string> _n = 
+			{
+				"character",
+				"lives",
+				"continues",
+				"emeralds",
+				"score",
+				"zone",
+				"completion status",
+			}
+			string read = _n[ESS_devModeStatus - 1]
+			if (read)
+				mode = stringformat("%s (%s)", mode, read)
+		}
+		
+		string fontKey = "ess_smallfont_o"
+		
+		Renderer.drawText("ess_smallfont_o", 8, 8, mode, 0xffffffff, 1, 0, 0xf00f, false, true)
+		Renderer.drawSpriteTinted("coolpixel", 4, 4, 0, SPRITE_FLAG_PRIO, 0xf00e, 0, 100, 0x10000 * (Renderer.getTextWidth(fontKey, mode) + 8), 0x10000 * 16)
+		
+		if (dataselect.slot_selected == 0 && ESS_devModeStatus == 2)
+		{
+			string realName = stringformat("%s%d", getZoneInitials(ESS_devModeNSZone), ESS_devModeNSAct+1)
+			string internalName = stringformat("%04x", ESS_devModeNSZone * 0x0100 + ESS_devModeNSAct)
+			if (ESS_devModeNSZone == 0x0d)
+				realName = "ending"
+			else if (ESS_devModeNSZone == 0x0c)
+				realName = "TDZ"
+			else if (ESS_devModeNSZone == 0x17)
+				realName = "DEZB"
+			
+			string full = stringformat("%s (%s)", realName, internalName)
+			fontKey = "ess_smallfont_w"
+			Renderer.drawText(fontKey, 8, 24, full, 0xffffffff, 1, 0, 0xf00f, false, true)
+			Renderer.drawSpriteTinted("coolpixel", 4, 20, 0, SPRITE_FLAG_PRIO, 0xf00e, 0, 100, 0x10000 * (Renderer.getTextWidth(fontKey, full) + 8), 0x10000 * 16)
+		}
+		else if (dataselect.slot_selected == 0 && ESS_devModeStatus == 3)
+		{
+			A1 = 0xffffffb2
+			
+			s16 px = 8
+			for (u8 num = 0; num < 7; ++num)
+			{
+				fontKey = (ESS_devModeEmSel == num) ? "ess_smallfont_y" : "ess_smallfont_w"
+				Renderer.drawText(fontKey, px, 24, stringformat("%x", u8[A1]), 0xffffffff, 1, 0, 0xf00f, false, true)
+				px += 8
+				A1 += 1
+			}
+			
+			Renderer.drawSpriteTinted("coolpixel", 4, 20, 0, SPRITE_FLAG_PRIO, 0xf00e, 0, 100, 0x10000 * 64, 0x10000 * 16)
+		}
+	}
+	
+	// handle the ability to "infinitely" scroll
+	if (ESS_set_horzPage && ESS_set_seamless)
+	{
+		s16 px = 0
+		s16 py = 0
+		
+		s16 centerPoint = Math.roundToInt(ESS_scroll_x / 104.0)
+		
+		s16 asset = centerPoint
+		while (true)
+		{
+			px = 147 + (asset * 104) - ESS_scroll_x
+			if (px + 100 > 0 && px - 100 < getScreenWidth())
+				--asset
+			else
+				break
+		}
+		
+		asset += ESS_save_page * 8
+		s16 origPage = ESS_save_page
+
+		while (px - 48 < getScreenWidth())
+		{
+			if (px < -48)
+			{
+				px += 104
+				++asset
+				continue
+			}
+				
+			s16 content = (asset + ESS_maxcontent) % ESS_maxcontent
+			if (content == ESS_maxcontent - 1)
+			{
+				py = ESS_getsaveboxyoff(9)
+				ESS_drawEggmanBox(px, py)
+			}
+			else if (content == 0)
+			{
+				ESS_drawNoSaveBox(px, ESS_getsaveboxyoff(0))
+			}
+			else
+			{
+				u8 sav = (content - 1) % 8
+				// save that we're keeping track of
+				if (content > origPage * 8 && content <= origPage * 8 + 8)
+				{
+					A0 = 0xffffb128 + (sav * 0x4a)
+					A1 = 0xffffe6ac + (sav * 0x0a)
+					A2 = 0x801100 + (sav * 0x20)
+					ESS_drawSaveBox(sav, px, ESS_getsaveboxyoff(sav+1))
+				}
+				// fake save
+				else
+					ESS_drawFakeSave(sav, px, ESS_getsaveboxyoff(255), (content - sav) / 8)
+			}
+			px += 104
+			++asset
+		}
+	}
+	// regular scrolling, nothing too fancy
+	else
+	{
+		s16 px
+		s16 py 
+		
+		if (ESS_set_visstyle == ESS_STYLE_LEMONZEST)
+		{
+			if (ESS_scroll_x < 16 + 96)
+				ESS_drawNoSaveBox(16 - ESS_scroll_x + 48, ESS_getsaveboxyoff(0))
+		}
+		else
+		{
+			if (ESS_scroll_x < 16 + 96)
+				ESS_drawNoSaveBox(51 - ESS_scroll_x, ESS_getsaveboxyoff(0))
+		}
+		
+		for (u8 num = 0; num < 8; ++num)
+		{
+			px = 99 + (num*104) + 48 - ESS_scroll_x
+			if (ESS_set_visstyle != ESS_STYLE_S3K)
+				px += 21
+			py = ESS_scroll_y + ESS_getsaveboxyoff(num+1)
+			
+			if (px + 100 > 0 && px - 100 < getScreenWidth())
+			{
+				A0 = 0xffffb128 + (num * 0x4a)
+				A1 = 0xffffe6ac + (num * 0x0a)
+				A2 = 0x801100 + (num * 0x20)
+				ESS_drawSaveBox(num, px, py)
+			}
+		}
+		
+		if (ESS_set_seamless && ESS_scroll_y != 0)
+		{
+			u16 temp = abs(ESS_scroll_y)
+			s16 mult = 1
+			while (temp > getScreenHeight())
+			{
+				++mult
+				temp -= getScreenHeight()
+			}
+			
+			s16 vert = ((ESS_scroll_y < 0) ? -1 : 1) * mult
+			if (vert == 0)
+				vert = (ESS_scroll_y < 0) ? -1 : 1
+
+			while (vert != 0)
+			{
+				s16 pageRead = (ESS_page_count + 1 + ESS_save_page + vert) % (ESS_page_count + 1)
+				
+				for (u8 num = 0; num < 8; ++num)
+				{
+					px = 99 + (num*104) + 48 - ESS_scroll_x
+					if (ESS_set_visstyle != ESS_STYLE_S3K)
+						px += 21
+					py = ESS_scroll_y + ESS_getsaveboxyoff(255) - vert * getScreenHeight()
+					
+					if (px + 100 > 0 && px - 100 < getScreenWidth())
+						ESS_drawFakeSave(num, px, py, pageRead)
+				}
+				
+				if (vert < 0)
+					++vert
+				else
+					--vert
+			}
+		}
+
+		// eggman
+		if (ESS_set_visstyle == ESS_STYLE_LEMONZEST)
+			ESS_drawEggmanBox(997 - ESS_scroll_x, ESS_getsaveboxyoff(9))
+		else
+			ESS_drawEggmanBox(971 - ESS_scroll_x, ESS_getsaveboxyoff(9))
+	}
+	
+	ESS_drawEggman()
+	
+	// S3K theme cursor
+	if (ESS_set_visstyle == ESS_STYLE_S3K)
+	{
+		if (level.framecounter.low & 0x04)
+		{
+			string key
+			if (ESS_s3kfaithful_cursorSize == 2)
+				key = "ESS_s3k_selection_eggman"
+			else if (ESS_s3kfaithful_cursorSize == 1)
+				key = "ESS_s3k_selection_nosave"
+			else
+				key = (Game.getSetting(SETTING_INFINITE_LIVES)) ? "ESS_s3k_selection_alt" : "ESS_s3k_selection"
+			Renderer.drawSpriteTinted(key, ESS_s3kfaithful_cursorX - ESS_scroll_x, ESS_getsaveboxyoff(dataselect.slot_selected), 0, 0, 0x7000, 0, (dataselect.slot_selected == 9) ? 0xffff00ff : 0xffffffff, 0x10000)
+		}
+		
+		Renderer.drawSprite("dataselect_text", getScreenWidth() / 2, getScreenHeight() - 20, 0, 0, 0x6f00)
+	}
+
+	popAll()
+}
+
+function s16 ESS_getsaveboxyoff(u8 num)
+{
+	s16 py
+	if (ESS_set_visstyle == ESS_STYLE_S3K)
+	{
+		py = 11
+		if (Game.getSetting(SETTING_INFINITE_LIVES))
+			py += 16
+	}
+	else
+	{
+		py = 18
+		if (num == 0)
+			py += 8
+		else if (num == 9)
+			py += 12
+		if (ESS_isSaveHovered(num))
+			py -= 8
+	}
+	return py
+}
+
+function void ESS_drawSaveBox(u8 num, s16 px, s16 py)
+{
+	D6.u8 = num
+	
+	u8 chars = u16[A0 + 0x34]
+	u32 score = u32[A2]
+	u8 playthroughStatus = u8[A0 + 0x3b]
+	
+	bool empty = (u8[A1] == 0x80 || u8[A0 + 0x3c] == 1)
+	if (empty)
+		score = 0
+		
+	ESS_saveBoxGetColors(num + 1)
+	u32 color_prmy = (D0.u32 << 8) + 0xff
+	u32 color_scnd = (D1.u32 << 8) + 0xff
+	
+	string fontKey
+	
+	u8 savNum = (num % 8) + (8 * ESS_save_page) + 1
+	string text = stringformat("save %d", savNum)
+	
+	bool selected
+	if (num < 8)
+		selected = ESS_isSaveHovered(num + 1)
+	
+	if (ESS_set_visstyle == ESS_STYLE_S3K)
+	{
+		Renderer.drawSprite((Game.getSetting(SETTING_INFINITE_LIVES)) ? "ESS_SaveBox_s3k_alt" : "ESS_SaveBox_s3k", px, py, 0, 0, 0x4000)
+		SpriteHandle shadow = Renderer.addSpriteHandle((Game.getSetting(SETTING_INFINITE_LIVES)) ? "ESS_SaveBox_s3k_alt_shadow" : "ESS_SaveBox_s3k_shadow", px, py, 0x4000)
+		shadow.setBlendMode(5)
+		
+		s16 livshift = (Game.getSetting(SETTING_INFINITE_LIVES) && !ESS_set_loadscores ? 10 : ESS_set_loadscores ? -2 : 0)
+		
+		ESS_drawCharacters(px - 3, py + 105 + livshift)
+		if (empty && ESS_save_entered == 1 || ESS_devModeStatus == 1) && (selected)
+		{
+			if (level.framecounter.low & 0x10)
+			{
+				Renderer.drawSprite("ESS_Arrow", px - 3, py + 70, 0, 0, 0x7000, 0, 255)
+				Renderer.drawSprite("ESS_Arrow", px - 3, py + 135, 0, SPRITE_FLAG_FLIP_Y, 0x7000, 0, 255)
+			}
+		}
+		
+		if (!Game.getSetting(SETTING_INFINITE_LIVES) && !empty)
+			ESS_drawCharIcons(chars, px - 15, py + 133, num)
+		
+		if (ESS_set_loadscores && !empty)
+			Renderer.drawText("ess_smallfont_o", px - 3, py + (Game.getSetting(SETTING_INFINITE_LIVES) ? 138 : 125), stringformat("*: %d", score), 0xffffffff, 2, 0, 0x6000, false, true)
+		
+		if (empty)
+		{
+			SpriteHandle sprI = Renderer.addSpriteHandle("saveimage_new", px - 3, py + 5, 0x5010)
+			sprI.setPalette("saveimage_new", 0)
+			sprI.setUseGlobalComponentTint(true)
+		}
+		else
+			ESS_drawZone(px - 3, py + 5, num, color_prmy, color_scnd, selected)
+		ESS_DrawEmeralds(px - 3, py + 125 + livshift)
+	}
+	else
+	{
+		if (empty)
+		{
+			py += (Game.getSetting(SETTING_INFINITE_LIVES)) ? 20 : 24
+			bool open = (selected && ESS_save_entered)
+			py += (open) ? 12 : 30
+				
+			// the "Save [num]" tag
+			fontKey = (selected) ? "ess_smallfont_y" : "ess_smallfont_w"
+			Renderer.drawText(fontKey, px - 40, py + 11, text, 0xffffffff, 7, 0, 0x4001, false, true)
+			
+			s16 triSize = max(Renderer.getTextWidth(fontKey, text) - 40, 0)
+			if (triSize)
+				Renderer.drawSpriteTinted("coolpixel", px, py+4, 0, SPRITE_FLAG_PRIO, 0x4000, 0, color_scnd, 0x10000 * u32(triSize), 0x10000 * 8)
+			Renderer.drawSpriteTinted("ESS_SaveBox_tag_tri", px + triSize, py+4, 0, 0, 0x4000, 0, color_scnd, 0x10000, 0x10000)
+			
+			// if selected, show character
+			if (open)
+			{
+				Renderer.drawSpriteTinted("ESS_SaveBox_empty_open", px, py, 0, 0, 0x4000, 0, color_scnd, 0x10000, 0x10000)
+				Renderer.drawSpriteTinted("coolpixel", px - 42, py + 78, 0, SPRITE_FLAG_PRIO, 0x4000, 0, color_prmy, 0x10000 * 84, 0x10000 * 55)
+				
+				ESS_drawCharacters(px, py + 111)
+
+				if (level.framecounter.low & 0x10)
+				{
+					Renderer.drawSprite("ESS_Arrow", px, py + 72, 0, 0, 0x7000, 0, 255)
+					Renderer.drawSprite("ESS_Arrow", px, py + 139, 0, SPRITE_FLAG_FLIP_Y, 0x7000, 0, 255)
+				}
+			}
+			else
+				Renderer.drawSpriteTinted("ESS_SaveBox_empty", px, py, 0, 0, 0x4000, 0, color_scnd, 0x10000, 0x10000)
+			
+			SpriteHandle sprI = Renderer.addSpriteHandle("saveimage_new", px, py + 17, 0x5010)
+			sprI.setPalette("saveimage_new", 0)
+			sprI.setUseGlobalComponentTint(true)
+			if (!selected)
+				ESS_drawZoneStatic(px, py + 17)
+			sprI.setUseGlobalComponentTint(true)
+		}
+		else
+		{
+			Renderer.drawSpriteTinted(Game.getSetting(SETTING_INFINITE_LIVES) ? "ESS_SaveBox_alt" : "ESS_SaveBox", px, py, 0, 0, 0x4000, 0, color_scnd, 0x10000, 0x10000)
+			
+			// the "Save [num]" tag
+			fontKey = (selected) ? "ess_smallfont_y" : "ess_smallfont_w"
+			Renderer.drawText(fontKey, px - 40, py + 11, text, 0xffffffff, 7, 0, 0x4001, false, true)
+			
+			s16 triSize = max(Renderer.getTextWidth(fontKey, text) - 40, 0)
+			if (triSize)
+				Renderer.drawSpriteTinted("coolpixel", px, py+4, 0, SPRITE_FLAG_PRIO, 0x4000, 0, color_scnd, 0x10000 * u32(triSize), 0x10000 * 8)
+			Renderer.drawSpriteTinted("ESS_SaveBox_tag_tri", px + triSize, py+4, 0, 0, 0x4000, 0, color_scnd, 0x10000, 0x10000)
+
+			// draw the solid color_prmy bg & the character sprite
+			Renderer.drawSpriteTinted("coolpixel", px - 45, py + 17, 0, 0, 0x4000, 0, color_prmy, 0x10000 * 90, 0x10000 * 135)
+			ESS_drawCharacters(px, py + 129)
+			if (ESS_devModeStatus == 1 && selected)
+			{
+				if (level.framecounter.low & 0x10)
+				{
+					Renderer.drawSprite("ESS_Arrow", px, py + 90, 0, 0, 0x7000, 0, 255)
+					Renderer.drawSprite("ESS_Arrow", px, py + 157, 0, SPRITE_FLAG_FLIP_Y, 0x7000, 0, 255)
+				}
+			}
+			
+			// the icons and score
+			fontKey = "ess_smallfont_w"
+			if (!Game.getSetting(SETTING_INFINITE_LIVES))
+			{
+				if (ESS_set_loadscores)
+				{
+					ESS_drawCharIcons(chars, px - 32, py + 187, num)
+					Renderer.drawSpriteTinted("ESS_SaveBox_scoreBack", px, py + 160, 0, 0, 0x5001, 0, color_prmy, 0x10000, 0x10000)
+					Renderer.drawText(fontKey, px, py + 160, stringformat("%d", score), 0xffffffff, 5, 0, 0x5002, false, true)
+				}
+				else
+					ESS_drawCharIcons(chars, px - 32, py + 181, num)
+			}
+			else if (ESS_set_loadscores)
+			{
+				Renderer.drawSpriteTinted("ESS_SaveBox_scoreBack", px, py + 164, 0, 0, 0x5001, 0, color_prmy, 0x10000, 0x10000)
+				Renderer.drawText(fontKey, px, py + 164, stringformat("%d", score), 0xffffffff, 5, 0, 0x5002, false, true)
+			}
+			
+			ESS_drawZone(px, py + 17, num, color_prmy, color_scnd, selected)
+			ESS_DrawEmeralds(px + 3, py + 91)
+		}
+	}
+}
+
+function void ESS_drawNoSaveBox(s16 px, s16 py)
+{
+	A0 = 0xffffb0de
+
+	ESS_saveBoxGetColors(0)
+	u32 color_prmy = (D0.u32 << 8) + 0xff
+	u32 color_scnd = (D1.u32 << 8) + 0xff
+	
+	if (ESS_set_visstyle == ESS_STYLE_S3K)
+	{
+		Renderer.drawSprite("ESS_NoSaveBox_s3k", px, py, 0, 0, 0x4000)
+		SpriteHandle shadow = Renderer.addSpriteHandle("ESS_NoSaveBox_s3k_shadow", px, py, 0x4000)
+		shadow.setBlendMode(5)
+		
+		Renderer.drawText("ess_smallfont_r", px - 3, py + 84, "no save", 0xffffffff, 2, 0, 0x5020, false, true)
+		
+		// draw the characters
+		u8 chars = u16[0xffffef4c]
+		ESS_drawCharacters(px - 3, py + 41)
+		
+		if (dataselect.slot_selected == 0 && (!ESS_devModeActive || ESS_devModeStatus == 1)) && (ESS_save_entered != 4 && !Mods.isModActive("Character Selection +"))
+		{
+			if (level.framecounter.low & 0x10)
+			{
+				Renderer.drawSprite("ESS_Arrow", px, py + 11, 0, 0, 0x7000, 0, 255)
+				Renderer.drawSprite("ESS_Arrow", px, py + 70, 0, SPRITE_FLAG_FLIP_Y, 0x7000, 0, 255)
+			}
+		}
+	}
+	else
+	{
+		Renderer.drawSpriteTinted("ESS_NoSaveBox", px, py, 0, 0, 0x4000, 0, color_scnd, 0x10000, 0x10000)
+		
+		Renderer.drawText((dataselect.slot_selected == 0) ? "ess_smallfont_y" : "ess_smallfont_w", px - 40, py + 12, "no save", 0xffffffff, 7, 0, 0x4001, false, true)
+		
+		// draw the characters
+		u8 chars = u16[0xffffef4c]
+		ESS_drawCharacters(px, py + 48)
+		Renderer.drawSpriteTinted("coolpixel", px - 45, py + 15, 0, 0, 0x4000, 0, color_prmy, 0x10000 * 90, 0x10000 * 55)
+		
+		if (dataselect.slot_selected == 0 && (!ESS_devModeActive || ESS_devModeStatus == 1)) && (ESS_save_entered != 4 && !Mods.isModActive("Character Selection +"))
+		{
+			if (level.framecounter.low & 0x10)
+			{
+				Renderer.drawSprite("ESS_Arrow", px, py + 9, 0, 0, 0x7000, 0, 255)
+				Renderer.drawSprite("ESS_Arrow", px, py + 76, 0, SPRITE_FLAG_FLIP_Y, 0x7000, 0, 255)
+			}
+		}
+	}
+}
+
+function void ESS_drawEggmanBox(s16 px, s16 py)
+{
+	u16 renderQueue = 0x4000
+	if (ESS_set_visstyle == ESS_STYLE_LEMONZEST)
+	{
+		Renderer.drawSprite("ESS_EggBox", px, py, 0, 0, renderQueue)
+		Renderer.drawText((ESS_isSaveHovered(9)) ? "ess_smallfont_y" : "ess_smallfont_w", px - 40, py + 8, "delete", 0xffffffff, 7, 0, 0x4001, false, true)
+	}
+	else
+	{
+		Renderer.drawSprite("ESS_EggBox_s3k", px, py, 0, 0, renderQueue)
+		SpriteHandle shadow = Renderer.addSpriteHandle("ESS_EggBox_s3k_shadow", px, py, renderQueue)
+		shadow.setBlendMode(5)
+	}
+}
+
+function void ESS_drawEggman()
+{
+	A0 = 0xffffb094
+	s16 px = objA0.position.x.u16 - ESS_scroll_x
+	s16 py = objA0.position.y.u16
+	u16 renderQueue = (dataselect_eggman_active) ? 0x7001 : 0x4001
+	
+	if (px >= -s16(objA0.box_size.x) && px < getScreenWidth() + s16(objA0.box_size.x))
+	{
+		Renderer.drawSprite(stringformat("ESS_eggman_%d", objA0.animation.sprite), px, py, 0, 0, renderQueue)
+		if (objA0.animation.sprite < 4)
+			Renderer.drawSprite(stringformat("ESS_eggman_sign_%d", objA0.ess_eggman_sign_sprite), px, py, 0, 0, renderQueue)
+	}
+}
+
+function void ESS_drawCharacters(s16 px, s16 py)
+{
+	u16 renderQueue = 0x6000
+	
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	string name = (A0 == 0xffffb378) ? ESS_tempECFChar_name : ECF_dataselect_getStr()
+	u16 id = (A0 == 0xffffb378) ? ESS_tempECFChar_id : ECF_dataselect_getNum()
+	
+	if (name)
+		ECF_drawCharSelectSpr(name, id, px, py, renderQueue)
+	else
+#endif
+	{
+		u16 characters = (objA0.update_address == 0x00d30c) ? dataselect.nosave_characters : u16[A0 + 0x34]
+		// characters 
+		if (characters == CHARS_SONIC_AND_TAILS)
+		{
+			// Sonic & Tails
+			Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_SONIC), px-9, py, 0x40, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
+			Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_TAILS), px+6, py+2, 0x60, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
+		}
+		else if (characters == CHARS_SONIC_ALONE)
+		{
+			// Sonic alone
+			Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_SONIC), px-3, py, 0x40, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
+		}
+		else if (characters == CHARS_TAILS_ALONE)
+		{
+			// Tails alone
+			Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_TAILS), px+1, py+4, 0x60, SPRITE_FLAG_PRIO, renderQueue)
+		}
+		else if (characters == CHARS_KNUCKLES_ALONE)
+		{
+			// Knuckles alone
+			Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_KNUCKLES), px, py, 0x80, SPRITE_FLAG_PRIO, renderQueue)
+		}
+		else if (characters == CHARS_KNUCKLES_AND_TAILS)
+		{
+			// Knuckles & Tails
+			Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_KNUCKLES), px-7, py, 0x80, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
+			Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_TAILS), px+6, py+2, 0x60, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
+		}
+	}
+}
+
+function void ESS_DrawEmeralds(s16 px, s16 py)
+{
+	D3.u16 = u16[A1 + 0x06]
+	string prefix = (ESS_set_visstyle == ESS_STYLE_S3K) ? "dataselect" : "ess"
+	for (u8 emerald = 0; emerald < 7; ++emerald)
+	{
+		// reference fn00da1e() if this is confusing
+		D3.u16 = (D3.u16 << 2) + (D3.u16 >> 14)	// Shift emerald collection state bits around to get the appropriate one on least significant digits (2 bits for each emerald)
+		D4.u16 = D3.u16 & 0x03 // Get emerald collection state
+		
+		string key = 0
+		u8 alpha = 255
+		if (D4.u16 == 1)
+			key = stringformat("%s_chaos_emerald_%d", prefix, emerald)
+		else if (D4.u16 == 2)
+		{
+			key = stringformat("%s_traded_emerald_%d", prefix, emerald)
+			if (!Renderer.hasCustomSprite(key))
+				key = stringformat("%s_chaos_emerald_%d", prefix, emerald)
+		#if LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+			if (ESS_set_visstyle == ESS_STYLE_S3K && yywtrrshygnds_setting_tradedEmeraldsOpacity)
+				alpha = 150
+		#endif
+		}
+		else if (D4.u16 == 3)
+			key = stringformat("%s_super_emerald_%d", prefix, emerald)
+		
+		if (Renderer.hasCustomSprite(key))
+		{
+			s16 _x = px
+			s16 _y = py
+			if (ESS_set_visstyle == ESS_STYLE_S3K)
+			{
+				LemonsRender_DataSelect_getEmeraldPivots(emerald)
+				_x += D0.s16
+				_y += D1.s16
+			}
+			else
+				_x = px - 45 + emerald * 13 + 3
+			SpriteHandle spr = Renderer.addSpriteHandle(key, _x, _y, 0x6000)
+			spr.setFlags(SPRITE_FLAG_PRIO)
+			spr.setPaletteOffset(0x20)
+			spr.setOpacity(alpha / 255.0)
+		}
+	}
+}
+
+#if !LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+function void LemonsRender_DataSelect_getEmeraldPivots(u8 id)
+{
+	constant array<s16> pivots = 
+	{
+		0, -46,
+		-20, -36,
+		20, -36,
+		-25, -14,
+		25, -14,
+		-11, 3,
+		11, 3
+	}
+	
+	D0.s16 = pivots[id * 2]
+	D1.s16 = pivots[id * 2 + 1]
+}
+#endif
+
+function s8 ESS_dcGetChar(u8 chars, bool p2)
+{
+	u8 char1 = 0xff
+	u8 char2 = 0xff
+
+	if (chars == CHARS_SONIC_AND_TAILS || chars == CHARS_SONIC_ALONE)
+		char1 = CHARACTER_SONIC
+	else if (chars == CHARS_TAILS_ALONE)
+		char1 = CHARACTER_TAILS
+	else 
+		char1 = CHARACTER_KNUCKLES
+	
+	if (chars == CHARS_SONIC_AND_TAILS || chars == CHARS_KNUCKLES_AND_TAILS)
+		char2 = CHARACTER_TAILS
+	
+	if (p2)
+		return char2
+	return char1
+}
+
+function void ESS_drawFakeSave(u8 sav, s16 px, s16 py, u8 page)
+{
+	// create a temporary data setup to draw a save
+	A0 = 0xffffb378
+	A1 = 0x800000
+	A2 = 0x800052
+	
+	s16 origPage = ESS_save_page
+	ESS_save_page = page
+	
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	ESS_tempECFChar_name = 0
+	ESS_tempECFChar_id = 0
+	
+	string file = ESS_getSaveStr("s3air_saveslots")
+	
+	u8 slotIndex = sav + 1
+#if GAMEAPP >= 0x24120500
+	if (loadAndMigratePersistentData(0x800000, 4, file, stringformat("ECF_save%dChar_bytes", slotIndex), false))
+#else
+	if (System.loadPersistentData(0x800000, stringformat("ECF_save%dChar_bytes", slotIndex), 4))
+#endif
+	{
+		if (u32[0x800000])
+		{
+		#if GAMEAPP >= 0x24120500
+			if (loadAndMigratePersistentData(0x800004, 16, file, stringformat("ECF_save%dChar_string", slotIndex), false))
+		#else
+			if (System.loadPersistentData(0x800004, stringformat("ECF_save%dChar_string", slotIndex), 16))
+		#endif
+			{
+				
+				string name = ""
+				for (u32 offset = 0; offset < u32[0x800000]; ++offset)
+					name = stringformat("%s%s", name, getStringFromCharacter(u8[0x800004 + offset]))
+				
+				u16 id = getCharId(name)
+
+				ESS_tempECFChar_name = name
+				ESS_tempECFChar_id = id
+			}
+		}
+	}
+#endif
+
+	// Load additional save slot data
+	zeroMemory(0x800000, 0x100)
+	loadAndMigratePersistentData(0x800000, 0x100, ESS_getSaveStr("s3air_saveslots"), "SRAM_SaveslotsExt", false)
+	u32[A2] = u32[0x800000 + u32(sav) * 0x20]
+	
+	// Load main data
+	zeroMemory(0x800000, 0x50)
+	for (u8 i = 0; i < 8; ++i)
+	{
+		u8[0x800000 + i * 0x0a] = 0x80
+	}
+	
+	loadAndMigratePersistentData(0x800000, 0x50, ESS_getSaveStr("s3air_saveslots"), "SRAM_Saveslots", false)
+	A1 = 0x800000 + (sav * 0x0a)
+	for (u8 num = 0; num < 8; ++num)
+	{
+		u16[A0 + 0x34] = u8[A1 + 0x02] >> 4 // chars
+		u16[A0 + 0x36] = u8[A1 + 0x03] // zone selection
+		u8[A0 + 0x3a] = u8[A1 + 0x03] // default zone
+		u8[A0 + 0x3b] = u8[A1] // play through status
+		u8[A0 + 0x3e] = u8[A1 + 0x08] // lives
+		u8[A0 + 0x3f] = u8[A1 + 0x09] // continues
+	}
+
+	ESS_drawSaveBox(sav + 8, px, py)
+	ESS_save_page = origPage
+}
+
+// uses D0 and D1 as return variables
+// transparency is added later within render code, so it is purely RRGGBB
+
+function void ESS_saveBoxGetColors(u8 num)
+{
+	u32 temp0 = 0xffffb0de + (num * 0x4a)
+	u32 temp1 = 0xffffe6a2 + (num * 0x0a)
+	if (num >= 9)
+	{
+		temp0 = 0xffffb378
+		temp1 = 0x800000 + ((num - 9) * 0x0a)
+	}
+	
+	// empty
+	if (u8[temp1] == 0x80 || u8[temp0 + 0x3c] == 1) && (num != 0 && (dataselect.slot_selected != num || !ESS_save_entered))
+	{
+		D0.u32 = 0x906c6c
+		D1.u32 = 0x482424
+	}
+	else
+	{
+		u8 saveChar = (num == 0) ? dataselect.nosave_characters : u16[temp0 + 0x34]
+	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+		#if GAMEAPP >= 0x26012400
+			u16 e_id = (num >= 9) ? ESS_tempECFChar_id : (num == 0) ? noSave_ExChar_P1_id : ECF_Save_num[num - 1]
+			string e_name = (num >= 9) ? ESS_tempECFChar_name : (num == 0) ? getECFCharNameAtId(noSave_ExChar_P1_id) : ECF_Save_str[num - 1]
+		#else
+			u16 e_id = (num >= 9) ? ESS_tempECFChar_id : (num == 0) ? noSave_ExChar_P1_id : System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1_id", num)) 
+			string e_name = (num >= 9) ? ESS_tempECFChar_name : (num == 0) ? getECFCharNameAtId(noSave_ExChar_P1_id) : System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1", num))
+		#endif
+		
+		if (e_name)
+		{
+			if (e_id)
+				ESS_getCharacterColors(e_name)
+			else
+			{
+				D0.u32 = 0x906c6c
+				D1.u32 = 0x482424
+			}
+		}
+		else
+	#endif
+			ESS_getCharacterColors(ActSelect.GetCharacterCombinationName(saveChar))
+	}
+}
+
+function void ESS_getBgColor()
+{
+	u8 eggslot = (ESS_set_horzPage) ? 1 + (ESS_page_count + 1) * 8 : 9
+	if (dataselect.slot_selected == eggslot || dataselect_eggman_active)
+	{
+		D0.u32 = 0x2448b4
+		D1.u32 = 0x00006c
+	}
+	else
+		ESS_saveBoxGetColors(dataselect.slot_selected)
+}
+
+function void ESS_getCharacterColors(string name)
+{
+	if (name == "Sonic" || name == "Sonic & Tails")
+	{
+		D0.u32 = 0xfcb424
+		D1.u32 = 0xb44800
+	}
+	else if (name == "Tails")
+	{
+		D0.u32 = 0x4848fc
+		D1.u32 = 0x242490
+	}
+	else if (name == "Knuckles" || name == "Knuckles & Tails")
+	{
+		D0.u32 = 0x249048
+		D1.u32 = 0x004848
+	}
+	else
+	{
+		D0.u32 = 0xb4b4d8
+		D1.u32 = 0x6c6c90
+	}
+}
+
+function void ESS_drawCharIcons(u8 combo, s16 px, s16 py, u16 num)
+{
+	string lives
+	string conts
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	#if GAMEAPP >= 0x26012400
+		string name = ECF_Save_str[num]
+		string id = ECF_Save_num[num]
+	#else
+		string name = System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1", num + 1))
+		string id = System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1_id", num + 1))
+	#endif
+	
+	if (name)
+	{
+		lives = getECFCharacterLivesIcon(name)
+		conts = getECFCharacterContinueIcon(name)
+		if (!Renderer.hasCustomSprite(lives))
+			lives = "hud_lives_icon_unknown"
+		if (!Renderer.hasCustomSprite(conts))
+			conts = "continue_icon_unknown"
+	}
+	else
+#endif
+	{
+		u8 character = (combo <= CHARS_SONIC_ALONE) ? CHARACTER_SONIC : (combo == CHARS_TAILS_ALONE) ? CHARACTER_TAILS : CHARACTER_KNUCKLES
+		lives = getCharacterLivesIcon(character)
+		conts = getCharacterContinueIcon(character)
+	}
+	
+	u16 renderQueue = 0x6200 + num * 3
+	if (ESS_set_visstyle == ESS_STYLE_S3K)
+	{
+		// life
+		Renderer.setViewport(px - 8, py, 16, 16, renderQueue)
+		++renderQueue
+		Renderer.drawSprite(lives, px - 8, py, 0, 0, renderQueue, 0, 255)
+		++renderQueue
+		Renderer.resetViewport(renderQueue)
+		
+		Renderer.drawSprite("ESS_s3kdigit_colon", px + 8, py, 0, 0, 0x5002, 0, 255)
+		ESS.drawNumber("ESS_s3kdigit_%d", u8[A0 + 0x3e], px + 24, py, 0x5002)
+
+		// cont
+		Renderer.drawSprite(conts, px, py+40, 0, 0, 0x6000, 0, 255)
+		Renderer.drawSprite("ESS_s3kdigit_colon", px + 8, py+24, 0, 0, 0x5002, 0, 255)
+		ESS.drawNumber("ESS_s3kdigit_%d", u8[A0 + 0x3f], px + 24, py+24, 0x5002)
+	}
+	else
+	{
+		// life
+		Renderer.setViewport(px - 8, py - 16, 16, 16, renderQueue)
+		++renderQueue
+		Renderer.drawSprite(lives, px - 8, py - 16, 0, 0, renderQueue, 0, 255)
+		++renderQueue
+		Renderer.resetViewport(renderQueue)
+		
+		ESS.drawNumber("ess_meddigit_%d", u8[A0 + 0x3e], px + 20, py - 14, 0x5002)
+		// cont
+		Renderer.drawSprite(conts, px + 46, py + 4, 0, 0, 0x6000, 0, 255)
+		ESS.drawNumber("ess_meddigit_%d", u8[A0 + 0x3f], px + 66, py - 14, 0x5002)
+	}
+}
+
+function void ESS_drawLCConfigArrows(s16 px, s16 py)
+{
+	if (level.framecounter.low & 0x10)
+	{
+		Renderer.drawSprite("ESS_Arrow", px, py - 16, 0, 0, 0x7000)
+		Renderer.drawSprite("ESS_Arrow", px, py + 16, 0, SPRITE_FLAG_FLIP_Y, 0x7000)
+	}
+}
+
+function u64 ESS_getcharname(u8 chars)
+{
+	if (chars == CHARS_SONIC_AND_TAILS || chars == CHARS_SONIC_ALONE)
+		return "sonic"
+	else if (chars == CHARS_TAILS_ALONE)
+		return "tails"
+	else if (chars == CHARS_KNUCKLES_AND_TAILS || chars == CHARS_KNUCKLES_ALONE)
+		return "knuckles"
+	return " "
+}
+
+function u8 ESS_getCharAtex(u8 character)
+{
+	return character * 0x20 + 0x40
+}
+
+function u64 ESS_getCharLifeIcon(u64 name)
+{
+	u64 key = stringformat("ESS_Life_%s", name)
+	if (!Renderer.hasCustomSprite(key))
+		key = "ESS_Life_Es_Error"
+	return key
+}
+
+function u64 ESS_getCharContIcon(u64 name)
+{
+	u64 key = stringformat("ESS_Cont_%s", name)
+	if (!Renderer.hasCustomSprite(key))
+		key = "ESS_Cont_Es_Error"
+	return key
+}
+
+function void ESS.drawNumber(string stringMask, u32 number, u16 px, u16 py, u16 renderQueue)
+{
+	//if (number < 10)
+	//	Renderer.drawSprite(stringformat(stringMask, 0), px-8, py, 0, SPRITE_FLAG_PRIO, renderQueue)
+	
+	while (true)
+	{
+		u8 digit = number % 10
+		Renderer.drawSprite(stringformat(stringMask, digit), px, py, 0, SPRITE_FLAG_PRIO, renderQueue)
+		px -= 8
+		number /= 10
+		if (number == 0)
+			break
+	}
+}
+
+function void ESS_drawZone(s16 px, s16 py, u8 num, u32 color_prmy, u32 color_scnd, bool selected)
+{
+	u16 shownImage = u16[A0 + 0x36]
+	u8 defaultImage = u8[A0 + 0x3a]
+	u8 playthroughStatus = u8[A0 + 0x3b]
+	
+	string _ico
+	string _txt
+	
+	if (shownImage == defaultImage && playthroughStatus != 0)
+	{
+	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+		string name = (A0 == 0xffffb378) ? ESS_tempECFChar_name : ECF_dataselect_getStr()
+		if (!name)
+			name = ESS_getcharname(u16[A0 + 0x34])
+	#else
+		string name = ESS_getcharname(u16[A0 + 0x34])
+	#endif
+			
+		
+		_ico = stringformat("saveimage_%s_%d", name, playthroughStatus)
+		_txt = "Clear"
+	}
+	else
+	{
+		constant array<string> initials = 
+		{
+			"aiz",
+			"hcz",
+			"mgz",
+			"cnz",
+			"icz",
+			"lbz",
+			"mhz",
+			"fbz",
+			"soz",
+			"lrz",
+			"hpz",
+			"ssz",
+			"dez",
+			"tdz"
+		}
+		_ico = stringformat("saveimage_%s", initials[shownImage])
+		_txt = initials[shownImage]
+	}
+
+	if (!Renderer.hasCustomSprite(_ico))
+		_ico = "saveimage_unknown"
+	u16 renderQueue = 0x5010
+	
+	SpriteHandle sprI = Renderer.addSpriteHandle(_ico, px, py, renderQueue)
+	sprI.setPalette(_ico, 0)
+	sprI.setUseGlobalComponentTint(true)
+
+	if (playthroughStatus && ESS_save_entered == 1 || ESS_devModeStatus == 6 || ESS_devModeStatus == 7) && (selected)
+	{
+		if (level.framecounter.low & 0x10)
+		{
+			if (ESS_set_visstyle == ESS_STYLE_S3K)
+			{
+				Renderer.drawSprite("ESS_Arrow", px, py, 0, 0, 0x7000, 0, 255)
+				Renderer.drawSprite("ESS_Arrow", px, py + 56, 0, SPRITE_FLAG_FLIP_Y, 0x7000, 0, 255)
+			}
+			else
+			{
+				Renderer.drawSprite("ESS_Arrow", px, py - 6, 0, 0, 0x7000, 0, 255)
+				Renderer.drawSprite("ESS_Arrow", px, py + 62, 0, SPRITE_FLAG_FLIP_Y, 0x7000, 0, 255)
+			}
+		}
+	}
+	else if (!selected)
+		ESS_drawZoneStatic(px, py)
+	
+	py += 60
+	renderQueue += 0x10
+	if (ESS_set_visstyle == ESS_STYLE_S3K)
+		Renderer.drawText("ess_smallfont_r", px, py, _txt, 0xffffffff, 2, 0, renderQueue, false, true)
+	else
+	{
+		string fontKey = (selected && ESS_save_entered) ? "ess_smallfont_y" : "ess_smallfont_w"
+		s16 w = Renderer.getTextWidth(fontKey, _txt)
+		Renderer.drawText(fontKey, px, py - 1, _txt, 0xffffffff, 2, 0, 0x4001, false, true)
+		
+		// generate <cool> box
+		w = max((41 - w / 2) - 12, 0)
+		Renderer.drawSpriteTinted("coolpixel", px - 42, py, 0, SPRITE_FLAG_PRIO, 0x5002, 0, color_scnd, 0x10000 * u32(w), 0x10000 * 7)
+		Renderer.drawSpriteTinted("ESS_SaveBox_zonename_tri", px - 42 + w, py, 0, SPRITE_FLAG_PRIO, 0x5002, 0, color_scnd, 0x10000, 0x10000)
+		
+		Renderer.drawSpriteTinted("coolpixel", px + 42, py, 0, (SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X), 0x5002, 0, color_scnd, 0x10000 * u32(w), 0x10000 * 7)
+		Renderer.drawSpriteTinted("ESS_SaveBox_zonename_tri", px + 42 - w, py, 0, (SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X), 0x5002, 0, color_scnd, 0x10000, 0x10000)
+	}
+}
+
+function void ESS_drawZoneStatic(s16 px, s16 py)
+{
+	string key = stringformat("saveimage_static_%d", (level.framecounter / 5) % 4)
+	SpriteHandle sprStatic = Renderer.addSpriteHandle(key, px, py, 0x5011)
+	sprStatic.setPalette(key, 0)
+	sprStatic.setUseGlobalComponentTint(true)
+	sprStatic.setOpacity(.35)
+}
+
+//# address-hook(0x00d1b6) end(0x00d1f4)
+function void fn00d1b6()
+{
+	D0.u16 = 0xa8 + getScreenExtend()
+	D1 = 0
+	D2 = dataselect.slot_selected - 1
+	while (D2.s16 >= 0)
+	{
+		D4 = 0x0c
+		while (D4.s16 >= 0)
+		{
+			if (D0.u16 > 0x0118 + getScreenExtend() && D1.u16 <= 0x02b8 + getScreenExtend())
+			{
+				D1.u16 += 8
+			}
+			else
+			{
+				D0.u16 += 8
+			}
+			--D4.s16
+		}
+		--D2.s16
+	}
+	
+	u16[A0 + 0x12] = D0.u16
+	ESS_scroll_x = D1.u16
+	u16[0xffffe002] = -D1.s16
+	
+	objA0.update_address = 0x00d1fa
+	fn00d1fa()
+}
+
+
+//# address-hook(0x00d1fa) end(0x00d30a)
+function void fn00d1fa()
+{	
+	ESS_updateA()
+	ESS_updateB()
+}
+
+function void ESS_updateA()
+{
+	if (ESS_devModeActive) // EDITOR MODE
+	{
+		if (Input.buttonPressed(BUTTON_BACK))
+		{
+			ESS_devModeActive = 0
+			sram.block_interrupts.u8 = 0xff
+			SaveGameSlot()
+			u8[0x8fe660 + u32(dataselect.slot_selected - 0x01)] = u8[0xffffb128 + (dataselect.slot_selected - 1) * 0x4a + 0x24]
+			playSound(SFX_BRAKE)
+			return
+		}
+		else if (control.pad1.pressed & DataSelect.CONTROLS_ACCEPT || control.pad1.pressed & DataSelect.CONTROLS_CANCEL)
+		{
+			s16 diff = (control.pad1.pressed & DataSelect.CONTROLS_CANCEL) ? -1 : 1
+			ESS_devModeStatus += diff
+			if (ESS_devModeStatus == 5 && !ESS_set_loadscores)
+				ESS_devModeStatus += diff
+			
+			if (dataselect.slot_selected == 0 && ESS_devModeStatus > 0)
+			{
+				ESS_devModeEmSel = 0
+				if (ESS_devModeStatus == 3)
+					zeroMemory(0xffffffb2, 7)
+				playSound(SFX_JUMP)
+			}
+			else if (ESS_devModeStatus <= 0 && diff == -1)
+			{
+				ESS_devModeActive = 0
+				sram.block_interrupts.u8 = 0xff
+				SaveGameSlot()
+				u8[0x8fe660 + u32(dataselect.slot_selected - 0x01)] = u8[0xffffb128 + (dataselect.slot_selected - 1) * 0x4a + 0x24]
+				playSound(SFX_BRAKE)
+			}
+			else
+			{
+				if (ESS_devModeStatus == 7 && u8[A0 + 0x3b] != 0 || ESS_devModeStatus >= 8)
+				{
+					ESS_devModeActive = 0
+					ESS_devModeStatus = 0
+					sram.block_interrupts.u8 = 0xff
+					SaveGameSlot()
+					u8[0x8fe660 + u32(dataselect.slot_selected - 0x01)] = u8[0xffffb128 + (dataselect.slot_selected - 1) * 0x4a + 0x24]
+					playSound(SFX_CLICK)
+				}
+				else
+				{
+					A2 = 0xffffe6ac + (dataselect.slot_selected - 1) * 0x0a
+					A3 = 0xffffb128 + (dataselect.slot_selected - 1) * 0x4a
+					
+					if (ESS_devModeStatus == 1 && diff == 1 || ESS_devModeStatus == 6)
+					{
+						// nah, just make it a incomplete active save
+						u8[A3 + 0x3b] = 0 
+						u8[A3 + 0x3c] = 0
+						u8[A2] = 0
+					}
+					
+					ESS_devModeEmSel = 0
+					ESS_devModeHoldTime = 0
+					playSound(SFX_CLICK)
+				}
+			}
+			
+			return
+		}
+		else if (ESS_devModeStatus)
+			return
+	}
+	else if (u16[0xffffeee4] == 0 && (control.pad1.pressed & DataSelect.CONTROLS_CANCEL || Input.buttonPressed(BUTTON_BACK))) && (!ESS_save_entered)
+	{
+		global.game_mode = 0x1c
+		ESS_queueMainMenu = 1
+		playSound(0xad)
+		return
+	}
+	
+	if (u16[0xffffeee2] == 0 && dataselect_eggman_active != 2)
+	{
+		if (Key8 && dataselect.slot_selected <= 8 && !ESS_devModeActive)
+		{
+			// if you corrupt your save or crash the game w this, it's on you
+			
+			ESS_save_entered = 0
+			ESS_devModeActive = 1
+			ESS_devModeStatus = 0
+			ESS_devModeHoldTime = 0
+			playSound(SFX_JUMP)
+			return
+		}
+
+		if (!ESS_set_horzPage && !ESS_save_entered && !ESS_devModeActive)
+		{
+			if (dataselect.slot_selected != 0) && (ESS_scroll_y == 0 || ESS_set_visstyle == ESS_STYLE_LEMONZEST)
+			{
+				if (control.pad1.pressed & CONTROL_DOWN)
+				{
+					ESS_swapToPage((ESS_page_count + ESS_save_page) % (ESS_page_count + 1))
+					playSound(0x6d)
+					if (ESS_set_seamless)
+					{
+						ESS_scroll_y += getScreenHeight()
+						ESS_scroll_y_d += getScreenHeight()
+					}
+				}
+				else if (control.pad1.pressed & CONTROL_UP)
+				{
+					ESS_swapToPage((ESS_page_count + ESS_save_page + 2) % (ESS_page_count + 1))
+					playSound(0x6d)
+					if (ESS_set_seamless)
+					{
+						ESS_scroll_y -= getScreenHeight()
+						ESS_scroll_y_d -= getScreenHeight()
+					}
+				}
+			}
+		}
+		
+		if (u16[A0 + 0x30] == 0)
+		{
+			objA0.countdown_value = 0
+			
+			s16 move
+			if (control.pad1.pressed & CONTROL_LEFT)
+				--move
+			if (control.pad1.pressed & CONTROL_RIGHT)
+				++move
+			
+			if (ESS_save_entered == 0 || ESS_save_entered == 2)
+			{
+				u16 pageLoop_L = 0
+				u16 pageLoop_R = 9
+				u8 sfx = (u16[0xffffeee4] != 0) ? 0x7b : 0xb7
+				u8 sfx_page = (ESS_set_seamless) ? sfx : 0x6d
+				
+				if (move == -1)
+				{
+					if (ESS_set_seamless && ESS_save_page != 0)
+					{
+						++pageLoop_L
+						--pageLoop_R
+					}
+					
+					if (ESS_set_horzPage && dataselect.slot_selected == pageLoop_L)
+					{
+						dataselect.slot_selected = pageLoop_R
+						
+						if (ESS_set_seamless)
+						{
+							s16 mov
+							if (ESS_save_page == 0)
+								mov = 104 * 10
+							else
+								mov = 104 * 8
+							
+							ESS_scroll_x_d += mov
+							ESS_scroll_x += mov
+							ESS_s3kfaithful_cursorX += mov
+							u16[A0 + 0x12] += mov
+							objA0.countdown_value = -8
+						}
+						else
+						{
+							if (ESS_set_visstyle == ESS_STYLE_S3K)
+							{
+								ESS_scroll_x = 0x2c0 - getScreenExtend()
+								ESS_scroll_x_d = ESS_scroll_x
+								ESS_s3kfaithful_cursorX = 0x3a0
+								u16[A0 + 0x12] = 0x1b8
+							}
+							else
+							{
+								ESS_scroll_x = ESS_getScrollEnd(dataselect.slot_selected)
+								ESS_scroll_x_d = ESS_scroll_x
+							}
+						}
+						
+						ESS_swapToPage((ESS_page_count + ESS_save_page) % (ESS_page_count + 1))
+						playSound(sfx_page)	
+					}
+					else if (u16[0xffffeee4] == 0 || dataselect.slot_selected != 1 || ESS_set_seamless && ESS_set_horzPage)
+					{
+						if (dataselect.slot_selected != 0)
+						{
+							--dataselect.slot_selected
+							playSound(sfx)
+							objA0.countdown_value = -8
+						}
+					}
+				}
+				else if (move == 1)
+				{
+					if (ESS_set_seamless && ESS_save_page != ESS_page_count)
+					{
+						++pageLoop_L
+						--pageLoop_R
+					}
+					
+					if (ESS_set_horzPage && dataselect.slot_selected == pageLoop_R)
+					{
+						dataselect.slot_selected = pageLoop_L
+						
+						if (ESS_set_seamless)
+						{
+							s16 mov
+							if (ESS_save_page == ESS_page_count)
+								mov = -104 * 10
+							else
+								mov = -104 * 8
+							
+							ESS_scroll_x_d += mov
+							ESS_scroll_x += mov
+							ESS_s3kfaithful_cursorX += mov
+							u16[A0 + 0x12] += mov
+							objA0.countdown_value = 8
+						}
+						else
+						{
+							if (ESS_set_visstyle == ESS_STYLE_S3K)
+							{
+								ESS_scroll_x = -s16(getScreenExtend())
+								ESS_scroll_x_d = ESS_scroll_x
+								ESS_s3kfaithful_cursorX = 0x8
+								u16[A0 + 0x12] = 0xd0
+							}
+							else
+							{
+								ESS_scroll_x = ESS_getScrollEnd(dataselect.slot_selected)
+								ESS_scroll_x_d = ESS_scroll_x
+							}
+						}
+						
+						ESS_swapToPage((ESS_page_count + ESS_save_page + 2) % (ESS_page_count + 1))
+						playSound(sfx_page)	
+					}
+					else if (dataselect.slot_selected != 9)
+					{
+						++dataselect.slot_selected
+						playSound(sfx)
+						objA0.countdown_value = 8
+					}
+				}
+					
+				if (ESS_set_visstyle == ESS_STYLE_S3K)
+				{
+					if (objA0.countdown_value != 0)
+						u16[A0 + 0x30] = 0x0d
+				}
+			}
+		}
+	}
+}
+
+function void ESS_updateB()
+{
+	if (ESS_set_visstyle == ESS_STYLE_S3K && objA0.countdown_value != 0)
+	{
+		D0.u16 = u16[A0 + 0x12]		// Position of cursor on screen
+		s16 moveStep = objA0.countdown_value
+		
+		D0.s16 += moveStep
+
+		if (ESS_set_seamless && ESS_set_horzPage)
+			ESS_scroll_x += moveStep
+		else
+		{
+			if (moveStep >= 0)
+			{
+				if (D0.s16 > s16(0x120 + getScreenExtend()))
+				{
+					ESS_scroll_x += moveStep
+					if (s16(ESS_scroll_x) > s16(0x2c0 - getScreenExtend()))
+						ESS_scroll_x -= moveStep
+					else
+						D0.s16 -= moveStep
+				}
+			}
+			else
+			{
+				if (D0.s16 < s16(0x120 + getScreenExtend()))
+				{
+					ESS_scroll_x += moveStep
+					if (s16(ESS_scroll_x) < -s16(getScreenExtend()))
+						ESS_scroll_x -= moveStep
+					else
+						D0.s16 -= moveStep
+				}
+			}
+		}
+
+		u16[A0 + 0x12] = D0.u16
+		--u16[A0 + 0x30]
+	}
+	
+	D2 = 0
+	if (dataselect.slot_selected == 0)
+		D2.s16 = 8
+	else if (dataselect.slot_selected == 9)
+		D2.s16 = -8
+
+	D2.u16 += u16[A0 + 0x12]
+	objA0.position.x.u16 = D2.u16
+
+	// Determine size of the cursor (large or small)
+	objA0.animation.sprite = (D2.u16 >= 0xf0 + getScreenExtend() && D2.u16 <= 0x148 + getScreenExtend()) ? 1 : 2
+	
+	if (ESS_set_visstyle == ESS_STYLE_S3K)
+	{
+		D0.u16 = dataselect.slot_selected * 104
+		if (ESS_set_seamless && ESS_set_horzPage)
+			D0.u16 += 104
+		else
+		{
+			if (dataselect.slot_selected == 0)
+				D0.u16 += 8
+			else if (dataselect.slot_selected == 9)
+				D0.u16 -= 8
+		}
+			
+		if (ESS_s3kfaithful_cursorX != D0.u16)
+		{
+			if (ESS_s3kfaithful_cursorX < D0.u16)
+				ESS_s3kfaithful_cursorX = min(ESS_s3kfaithful_cursorX + 8, D0.u16)
+			else 
+				ESS_s3kfaithful_cursorX = max(ESS_s3kfaithful_cursorX - 8, D0.u16)
+		}
+		
+		if (abs(D0.u16 - ESS_s3kfaithful_cursorX) <= 32)
+			ESS_s3kfaithful_cursorSize = (dataselect.slot_selected == 0) ? 1 : (dataselect.slot_selected == 9) ? 2 : 0
+	}
+}
+
+function void ESS_updateCamScroll()
+{
+	double vSpeed = 16
+	if (ESS_set_visstyle != ESS_STYLE_S3K)
+	{
+		double camGoal = ESS_getScrollEnd(dataselect.slot_selected)
+		double calc = Math.lerp(ESS_scroll_x_d, camGoal, .15)
+		double diff = max(abs(ESS_scroll_x_d - calc), .1)
+		
+		if (ESS_scroll_x_d < camGoal)
+			ESS_scroll_x_d = min(ESS_scroll_x_d + diff, camGoal)
+		else if (ESS_scroll_x_d > camGoal)
+			ESS_scroll_x_d = max(ESS_scroll_x_d - diff, camGoal)
+		
+		ESS_scroll_x = Math.roundToInt(ESS_scroll_x_d)
+		u16[0xffffe002] = -ESS_scroll_x
+		
+		vSpeed = Math.lerp(0.05, 16.0, abs(ESS_scroll_y_d) / getScreenHeight())
+	}
+	
+	if (ESS_scroll_y_d < 0)
+		ESS_scroll_y_d = min(ESS_scroll_y_d + vSpeed, 0)
+	else if (ESS_scroll_y_d > 0)
+		ESS_scroll_y_d = max(ESS_scroll_y_d - vSpeed, 0)
+	
+	ESS_scroll_y = Math.roundToInt(ESS_scroll_y_d)
+}
+
+function s16 ESS_getScrollEnd(u8 num)
+{
+	if (ESS_set_horzPage && ESS_set_seamless)
+		return (s16(num) * 104) - 53
+	else
+		return clamp(66 + (clamp(s16(num), 1, 8) * 104) - getScreenWidth() / 2, 0, 657)
+}
+
+// eggman
+define objA0.ess_eggman_sign_sprite		= u8[A0 + 0x30]
+define objA0.ess_eggman_sign_timer		= u8[A0 + 0x31]
+
+//# address-hook(0x00d782) end(0x00d788)
+//# alias(fn00d782) deprecated
+function void ESS_eggmanBaseUpdate()
+{
+	string routine = stringformat("ESS_eggmanRoutine_%d", objA0.base_state)
+	if (!System.callFunctionByName(routine))
+		debugLog(routine)
+}
+
+// init
+function void ESS_eggmanRoutine_0()
+{
+	objA0.box_size.x = 0x30
+	objA0.base_state = 1
+	ESS_eggmanRoutine_reset()
+}
+
+// idle
+function void ESS_eggmanRoutine_1()
+{
+	ESS_eggmanRoutine_reset()
+	if (dataselect.slot_selected == 9 && control.pad1.pressed & DataSelect.CONTROLS_ACCEPT || Input.buttonPressed(BUTTON_Y) && dataselect.slot_selected >= 1 && ESS_save_entered == 0)
+	{
+		objA0.base_state = 2
+		dataselect_eggman_active = 1
+		playSound(0x63)
+	}
+}
+
+// hover
+function void ESS_eggmanRoutine_2()
+{
+	--objA0.animation.timer
+	if (s8(objA0.animation.timer) < 0)
+	{
+		objA0.animation.timer = 21
+		objA0.animation.sprite = objA0.animation.frame
+		objA0.animation.frame = !objA0.animation.frame
+	}
+
+	--objA0.ess_eggman_sign_timer
+	if (s8(objA0.ess_eggman_sign_timer) < 0)
+	{
+		objA0.ess_eggman_sign_timer = 3
+		objA0.ess_eggman_sign_sprite = (objA0.ess_eggman_sign_sprite + 1) % 4
+	}
+	
+	objA0.position.x.u16 = ESS_scroll_x + getScreenWidth() / 2 - 1
+	objA0.position.y.u16 = getScreenHeight() - 24
+	
+	A1 = 0xffffe6a2 + (dataselect.slot_selected * 0x0a)
+	
+	if (control.pad1.pressed & DataSelect.CONTROLS_ACCEPT && dataselect.slot_selected >= 1 && dataselect.slot_selected <= 8 && u8[A1] != 0x80)
+	{
+		objA0.base_state = 3
+		dataselect_eggman_active = 2
+		playSound(SFX_CLICK)
+		
+		if (ESS_set_seamless && ESS_set_horzPage)
+		{
+			objA0.position.x.u16 = ESS_getScrollEnd(dataselect.slot_selected) + getScreenWidth() / 2
+			if (ESS_set_visstyle == ESS_STYLE_S3K)
+				objA0.position.x.u16 -= 2
+		}
+		else
+		{
+			objA0.position.x.u16 = 65 + (dataselect.slot_selected * 104)
+			if (ESS_set_visstyle == ESS_STYLE_S3K)
+				objA0.position.x.u16 -= 24
+		}
+		
+		objA0.animation.timer = 0
+		objA0.animation.sprite = 0
+		objA0.animation.frame = 0
+	}
+	else if (control.pad1.pressed & DataSelect.CONTROLS_CANCEL || control.pad1.pressed & DataSelect.CONTROLS_ACCEPT)
+	{
+		objA0.base_state = 1
+		dataselect_eggman_active = 0
+		playSound(SFX_BRAKE)
+		
+		ESS_eggmanRoutine_reset()
+		
+		control.pad1.pressed &= ~DataSelect.CONTROLS_ACCEPT
+	}
+}
+
+// offer
+function void ESS_eggmanRoutine_3()
+{
+	--objA0.animation.timer
+	if (s8(objA0.animation.timer) < 0)
+	{
+		objA0.animation.timer = 7
+		objA0.animation.sprite = objA0.animation.frame + 2
+		objA0.animation.frame = !objA0.animation.frame
+	}
+
+	if (objA0.ess_eggman_sign_sprite < 4)
+	{
+		--objA0.ess_eggman_sign_timer
+		if (s8(objA0.ess_eggman_sign_timer) < 0)
+		{
+			objA0.ess_eggman_sign_timer = 3
+			++objA0.ess_eggman_sign_sprite
+		}
+	}
+	
+	if (control.pad1.pressed & CONTROL_LEFT)
+	{
+		objA0.base_state = 1
+		dataselect_eggman_active = 0
+		ESS_clearSave()
+		playSound(SFX_CLICK)
+	}
+	else if (control.pad1.pressed & CONTROL_RIGHT)
+	{
+		objA0.base_state = 1
+		dataselect_eggman_active = 0
+		playSound(SFX_BRAKE)
+	}
+	else
+		return
+
+	ESS_eggmanRoutine_reset()
+}
+
+function void ESS_eggmanRoutine_reset()
+{
+	if (ESS_set_seamless && ESS_set_horzPage)
+	{
+		objA0.position.x.u16 = (ESS_set_visstyle == ESS_STYLE_S3K) ? 1082 : 1084
+		if (ESS_save_page == 0)
+			objA0.position.x.u16 -= (104 * 10)
+		else
+			objA0.position.x.u16 += (104 * 10) * (ESS_page_count - ESS_save_page)
+			
+		objA0.position.y.u16 = ESS_getsaveboxyoff(9) + (ESS_set_visstyle == ESS_STYLE_S3K ? 60 : 54)
+	}
+	else
+	{
+		if (ESS_set_visstyle == ESS_STYLE_LEMONZEST)
+		{
+			objA0.position.x.u16 = 997	
+			objA0.position.y.u16 = ESS_getsaveboxyoff(9) + 54
+		}
+		else
+		{
+			objA0.position.x.u16 = 969
+			objA0.position.y.u16 = ESS_getsaveboxyoff(9) + 60
+		}
+	}
+	
+	objA0.animation.timer = 0
+	objA0.animation.sprite = 4
+	objA0.animation.frame = 0
+	objA0.ess_eggman_sign_timer = 0
+	objA0.ess_eggman_sign_sprite = 0
+}
+
+function void ESS_clearSave()
+{
+	playSound(0x4e)
+	
+	// Clear save slot
+	A1 = 0xffffe6ac + (dataselect.slot_selected - 1) * 0x0a
+	u16[A1] = 0x8000
+	u32[A1 + 0x02] = 0
+	u16[A1 + 0x06] = 0
+	u16[A1 + 0x08] = 0x0300
+	
+	A1 = 0xffffb128 + (dataselect.slot_selected - 1) * 0x4a
+	u8[A1 + 0x3b] = 0x80
+#if STANDALONE
+	zeroMemory(0x801100 + 0x20 * u32(dataselect.slot_selected - 1), 0x20)
+#endif
+	sram.block_interrupts.u8 = 0xff
+	SaveGameSlot()
+
+	ESS_save_entered = 0
+}
+
+function bool fn00d458()
+{
+	if (ESS_devModeActive || dataselect_eggman_active)
+		return 2
+	
+	// Result values:
+	//  - 0 = Abort outer function
+	//  - 1 = Allow character selection (up/down)
+	//  - 2 = Continue normally outside
+	
+	if (u8[A1] & 0x80)
+	{
+		// Empty save slot
+		u8[A0 + 0x1d] = 0x0f
+		objA0.animation.frame = 0
+
+		if (ESS_save_entered == 0)
+		{
+			if (control.pad1.pressed & DataSelect.CONTROLS_ACCEPT)
+			{
+				ESS_save_entered = 1
+				return 0
+			}
+		}
+		else if (ESS_save_entered == 1)
+		{
+			if (control.pad1.pressed & DataSelect.CONTROLS_CANCEL)
+			{
+				ESS_save_entered = 0
+				playSound(SFX_BRAKE)
+				return 0
+			}
+		}
+			
+		
+		if (u16[0xffffb078] != 0 || u16[0xffffeee4] != 0)
+		{
+			return 2
+		}
+		else
+		{
+			return 1
+		}
+	}
+	else 
+	{
+		u8 char = u16[A0 + 0x34]
+		if (ESS_save_entered) 
+		{
+			// Used save slot
+			D1.u16 = u16[A0 + 0x36]
+			//fn00d96a()
+
+			objA0.animation.frame = 0x17
+			D1.u16 = u16[A0 + 0x36]
+			if (D1.u8 == objA0.value3a && objA0.value3b != 0)
+			{
+				// This gets entered only for completed games
+				if (objA0.value3b == 1)
+					++objA0.animation.frame
+				else if (objA0.value3b == 2)
+					objA0.animation.frame += 2
+				else
+					objA0.animation.frame += 4
+
+				if (objA0.value3b == 1 || objA0.value3b == 2)
+				{
+					if (char >= CHARS_TAILS_ALONE)	// It feels strange that this is the same for Tails and Knuckles
+						objA0.animation.frame = 0x23
+				}
+			}
+
+			if (objA0.value3b == 0)
+			{
+				if (u16[0xffffb078] != 0)
+					return 2
+
+				u8[A0 + 0x1d] = 0
+			}
+			else
+			{
+				if (u16[A0 + 0x38] == 0)
+					objA0.flags38 = 0xff
+
+				if (u16[0xffffb078] != 0)
+					return 2
+
+				if (u16[0xffffeee4] != 0)
+				{
+					u8[A0 + 0x1d] = 0
+					u16[A0 + 0x16] = 2
+					return 2
+				}
+				
+				ESS_switchZoneSelection()
+				
+				u16[A0 + 0x36] = D1.u16
+				u8[A0 + 0x1d] = (level.framecounter.low & 0x10) ? 0x1a : 0
+			}
+
+			u16[A0 + 0x16] = 2
+			//System.writeDisplayLine(stringformat("%x", u16[A0 + 0x36]))
+			if (control.pad1.pressed & DataSelect.CONTROLS_CANCEL || Input.buttonPressed(BUTTON_BACK))
+			{
+				ESS_save_entered = 0
+				playSound(SFX_BRAKE)
+				u16[A0 + 0x36] = objA0.value3a
+				return 2
+			}
+			
+			if (u16[0xffffeee4] != 0 || (control.pad1.pressed & DataSelect.CONTROLS_ACCEPT) == 0)
+				return 2
+				
+			level.giantrings_clear.u16 = u16[A1 + 0x04]
+			if (objA0.value3b == 0)
+				D0.u8 = u8[A1 + 0x03]
+			else
+			{
+				D0.u16 = u16[A0 + 0x36]
+				if (D0.u8 >= objA0.value3a)
+				{
+					return 2
+				}
+				level.giantrings_clear = 0
+			}
+			fn00da4e()
+
+			global.zone_act = D0.u16
+			global.zone_act.apparent = D0.u16
+			levelselect.characters  = (u8[A1 + 0x02] >> 4)
+		#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+			levelselect_ExChar_P1_id = ECF_dataselect_getNum()
+			if (u16[A0 + 0x34] == 5)
+				u8[A1 + 0x02] = getECFGlobalCharId(getECFCharNameAtId(levelselect_ExChar_P1_id))
+		#endif
+			global.next_bluespheres = (u8[A1 + 0x02] & 0x0f)
+				
+			D0 = u16[A1 + 0x06]
+			A2 = 0xffffffb2
+			fn00da1e()
+			global.chaos_emeralds = D1.u8
+			global.super_emeralds = D2.u8
+		#if STANDALONE
+			global.game_random_base = u8[A1 + 0x01]
+			if (global.game_random_base == 0) // Intentionally not using the (more deterministic) "getRandomNumber" here				
+				global.game_random_base = 1 + (System.rand() % 0xff)		// Avoid the 0 value
+		#endif
+
+			global.active_saveslot = A1
+			DataSelect.SharedGameSlotContinue()
+			
+			D0.u8 = u8[A1 + 0x08]
+			if ((D0.u8 == 0) || (D0.u8 < 3 && u8[A1 + 0x09] == 0))
+			{
+				u8[A1 + 0x08] = 3
+				if (u8[A1 + 0x09] > 0)
+					--u8[A1 + 0x09]
+			}
+			
+			lives_counter = u8[A1 + 0x08]
+			continues_counter = u8[A1 + 0x09]
+			
+		#if STANDALONE
+			if (continues_counter >= 5)
+				Game.setAchievementComplete(ACHIEVEMENT_CONTINUES)
+
+			// Load additional data
+			u32 slotIndex = (A1 - 0xffffe6ac) / 0x0a
+			u32 address = 0x801100 + slotIndex * 0x20
+			if (u8[A1] == 0 || ESS_set_loadscores)
+			{
+				// Load score, but only for non-completed games
+				player.score = u32[address]
+				player.next_life_score = (player.score / 5000 + 1) * 5000
+			}
+		#endif
+			
+			SaveGameSlot()
+			global.game_mode = 0x0c
+			playSound(0xaf)
+			return 0
+		}
+		else
+		{
+			if (control.pad1.pressed & DataSelect.CONTROLS_ACCEPT && ESS_save_entered == 0)
+			{
+			#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+				u16 name = ECF_dataselect_getStr()
+				u16 id = ECF_dataselect_getNum()
+				if (name && id == 0)
+				{
+					playSound(0xb2)
+					return 2
+				}
+			#endif 
+				ESS_save_entered = 1
+				u16[A0 + 0x36] = objA0.value3a
+				playSound(SFX_CLICK)
+				return 2
+			}
+			
+			return 2
+		}
+	}
+}
+
+function void ESS_switchZoneSelection()
+{
+	u8 char = u16[A0 + 0x34]
+	
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	string name = ECF_dataselect_getStr()
+#endif
+	// max zone selection
+	if (char >= CHARS_KNUCKLES_ALONE)		// Originally this is only an equality check
+		D6 = 0x0b // up to ssz
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	else if (char == CHARS_TAILS_ALONE || objA0.value3b < 2 || name && !ECF_visitsDoomsday(name))
+#else
+	else if (char == CHARS_TAILS_ALONE || objA0.value3b < 2)
+#endif
+		D6 = 0x0c // up to dez
+	else
+		D6 = 0x0d // up to tdz
+	
+	D1.u16 = u16[A0 + 0x36]
+	u16 oldSel = D1.u16
+	
+	if (control.pad1.pressed & CONTROL_DOWN)
+	{
+		playSound(0x5b)
+		--D1.u16
+		if (D1.s16 < 0 || D1.s16 > D6.u16)
+			D1.u16 = D6.u16
+	
+	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+		// safety check for "corrupted" files
+		if (D1.u16 == 0xd && name && !ECF_visitsDoomsday(name))
+			--D1.u16
+	#endif
+	}
+	else if (control.pad1.pressed & CONTROL_UP)
+	{
+		playSound(0x5b)
+		++D1.u16
+		if (D1.u16 > D6.u16)
+			D1 = 0
+	}
+
+	// lego bouwer 9's original zone order mod, handle fbz.
+	if (Mods.isModActive("Original zone order")) && (u16[A0 + 0x34] >= CHARS_KNUCKLES_ALONE) && (oldSel != D1.u16 && D1.u16 == 4) 
+	{
+		if (D1.u16 > oldSel)
+			++D1.u16
+		else
+			--D1.u16
+	}	
+}
+
+function void ESS_swapToPage(u8 page)
+{
+	pushAll()
+	if (ESS_save_page != page)
+	{
+		//SaveGameSlot()
+		
+		ESS_save_page = page
+		
+		// Before trying to load persistent data, write some default data first
+		zeroMemory(0xffffe6ac, 0x50)
+		for (u8 i = 0; i < 8; ++i)
+		{
+			u8[0xffffe6ac + i * 0x0a] = 0x80
+		}
+
+		// Now overwrite it if there is persistent data to load; otherwise this has no effect
+		loadAndMigratePersistentData(0xffffe6ac, 0x50, ESS_getSaveStr("s3air_saveslots"), "SRAM_Saveslots", false)
+
+		// Load additional save slot data
+		zeroMemory(0x801100, 0x100)
+		loadAndMigratePersistentData(0x801100, 0x100, ESS_getSaveStr("s3air_saveslots"), "SRAM_SaveslotsExt", false)
+		
+		System.callFunctionByName("ECF_loadIdValues")
+		
+		for (u8 num = 0; num < 8; ++num)
+		{
+			A0 = 0xffffb128 + (num*0x4a)
+			A1 = 0xffffe6ac + (num*0x0a)
+			
+			u16[A0 + 0x34] = u8[A1 + 0x02] >> 4 // chars
+			u16[A0 + 0x36] = u8[A1 + 0x03] // zone selection
+			u8[A0 + 0x3a] = u8[A1 + 0x03] // default zone
+			u8[A0 + 0x3b] = u8[A1] // play through status
+			u8[A0 + 0x3e] = u8[A1 + 0x08] // lives
+			u8[A0 + 0x3f] = u8[A1 + 0x09] // continues
+		}
+	}
+	popAll()
+}
+
+function bool ESS_isSaveHovered(s16 num)
+{
+	return (dataselect.slot_selected == num)
+}
+
+//# address-hook(0x00c890) end(0x00c95c)
+function void fn00c890()
+{
+}
+
+function void DataSelect.drawCustomPlanes()
+{
+	if (global.game_mode != 0x4c && !ESS_fadingOutOfDS)
+	{
+		base.DataSelect.drawCustomPlanes()
+		return
+	}
+	
+	if (ESS_set_visstyle == ESS_STYLE_S3K)
+	{
+		Renderer.drawSpriteTinted("bg_dataselect", s16(getScreenWidth() - 512) / 2, 0, 0x00, 0, 0x2000, 0, 0xffffffff, 0x10000)
+	}
+	else
+	{
+		ESS_calcBgColor()
+		
+		SpriteHandle spr = Renderer.addSpriteHandle("coolpixel", 0, 0, 0x2000)
+		spr.setTintColor(.8, .8, .8, 1)
+		spr.setScale(getScreenWidth(), getScreenHeight())
+		spr.setBlendMode(5)
+
+		Renderer.drawSpriteTinted("ESS_BgA", getScreenWidth() / 2, getScreenHeight() / 2, 0x00, 0, 0x1fff, 0, ESS_bg_colorP, 0x10000)
+		Renderer.drawSpriteTinted("ESS_BgB", getScreenWidth() / 2, getScreenHeight() / 2, 0x00, 0, 0x1fff, 0, ESS_bg_colorS, 0x10000)
+		
+		if (global.game_mode == 0x4c)
+		{
+			Input.setControllerLEDs(0, convertColors32(ESS_bg_colorP >> 8) >> 8)
+			Input.setControllerLEDs(1, convertColors32(ESS_bg_colorS >> 8) >> 8)
+			Input.setControllerLEDs(2, convertColors32(ESS_bg_colorP >> 8) >> 8)
+			Input.setControllerLEDs(3, convertColors32(ESS_bg_colorS >> 8) >> 8)
+		}
+	}
+}
+
+function void ESS_resetBgColor()
+{
+	ESS_getBgColor()
+	ESS_bg_colorP = (D0.u32 << 8) + 0xff
+	ESS_bg_colorS = (D1.u32 << 8) + 0xff
+
+	ESS_bg_color_blendFactor = 0x100
+	ESS_bg_colorP_BlendA = ESS_bg_colorP
+	ESS_bg_colorP_BlendB = ESS_bg_colorP
+	ESS_bg_colorS_BlendA = ESS_bg_colorS
+	ESS_bg_colorS_BlendB = ESS_bg_colorS
+}
+
+function void ESS_calcBgColor()
+{
+	ESS_getBgColor()
+	u32 prim = (D0.u32 << 8) + 0xff
+	u32 scnd = (D1.u32 << 8) + 0xff
+	
+	if (ESS_bg_colorP_BlendB != prim || ESS_bg_colorS_BlendB != scnd)
+	{
+		ESS_bg_colorP_BlendA = ESS_bg_colorP
+		ESS_bg_colorP_BlendB = prim
+		ESS_bg_colorS_BlendA = ESS_bg_colorS
+		ESS_bg_colorS_BlendB = scnd
+		
+		ESS_bg_color_blendFactor = 0
+	}
+	
+	if (ESS_bg_color_blendFactor < 0x100)
+	{
+		ESS_bg_color_blendFactor = min(ESS_bg_color_blendFactor + 0x10, 0x100)
+		
+		ESS_bg_colorP = blendColors_RGBA32(ESS_bg_colorP_BlendA, ESS_bg_colorP_BlendB, ESS_bg_color_blendFactor)
+		ESS_bg_colorS = blendColors_RGBA32(ESS_bg_colorS_BlendA, ESS_bg_colorS_BlendB, ESS_bg_color_blendFactor)
+	}
+}
+
+function void ESS_getEmeraldCount()
+{
+	D1 = 0
+	D2 = 0
+	D0.u16 = u16[A1 + 0x06]
+	for (u8 step = 0; step < 7; ++step)
+	{
+		D0.u16 = (D0.u16 << 2) + (D0.u16 >> 14)	// Shift emerald collection state bits (2 for each emerald) around to get the appropriate one on least significant digits
+		D4.u16 = D0.u16 & 0x03 // Get emerald collection state
+		
+		if (D4.u16 != 0)
+		{
+			++D1
+			if (D4.u16 == 3)
+				++D2
+		}
+	}
+}

@@ -1,0 +1,12 @@
+{
+	"ess_meddigit_0": { "File": "medium_digits.png", "Rect":  "0,0,8,12" },
+	"ess_meddigit_1": { "File": "medium_digits.png", "Rect":  "8,0,8,12" },
+	"ess_meddigit_2": { "File": "medium_digits.png", "Rect": "16,0,8,12" },
+	"ess_meddigit_3": { "File": "medium_digits.png", "Rect": "24,0,8,12" },
+	"ess_meddigit_4": { "File": "medium_digits.png", "Rect": "32,0,8,12" },
+	"ess_meddigit_5": { "File": "medium_digits.png", "Rect": "40,0,8,12" },
+	"ess_meddigit_6": { "File": "medium_digits.png", "Rect": "48,0,8,12" },
+	"ess_meddigit_7": { "File": "medium_digits.png", "Rect": "56,0,8,12" },
+	"ess_meddigit_8": { "File": "medium_digits.png", "Rect": "64,0,8,12" },
+	"ess_meddigit_9": { "File": "medium_digits.png", "Rect": "72,0,8,12" }
+}

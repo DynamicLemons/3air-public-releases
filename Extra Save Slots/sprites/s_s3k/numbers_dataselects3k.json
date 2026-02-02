@@ -1,0 +1,13 @@
+{
+	"ESS_s3kdigit_0":  { "File": "numbers_dataselects3k.png", "Rect": "0,0,8,16", "Center": "0,0" },
+	"ESS_s3kdigit_1":  { "File": "numbers_dataselects3k.png", "Rect": "16,0,8,16", "Center": "0,0" },
+	"ESS_s3kdigit_2":  { "File": "numbers_dataselects3k.png", "Rect": "32,0,8,16", "Center": "0,0" },
+	"ESS_s3kdigit_3":  { "File": "numbers_dataselects3k.png", "Rect": "48,0,8,16", "Center": "0,0" },
+	"ESS_s3kdigit_4":  { "File": "numbers_dataselects3k.png", "Rect": "64,0,8,16", "Center": "0,0" },
+	"ESS_s3kdigit_5":  { "File": "numbers_dataselects3k.png", "Rect": "0,24,8,16", "Center": "0,0" },
+	"ESS_s3kdigit_6":  { "File": "numbers_dataselects3k.png", "Rect": "16,24,8,16", "Center": "0,0" },
+	"ESS_s3kdigit_7":  { "File": "numbers_dataselects3k.png", "Rect": "32,24,8,16", "Center": "0,0" },
+	"ESS_s3kdigit_8":  { "File": "numbers_dataselects3k.png", "Rect": "48,24,8,16", "Center": "0,0" },
+	"ESS_s3kdigit_9":  { "File": "numbers_dataselects3k.png", "Rect": "64,24,8,16", "Center": "0,0" },
+	"ESS_s3kdigit_colon":  { "File": "numbers_dataselects3k.png", "Rect": "80,0,8,16", "Center": "0,0" }
+}

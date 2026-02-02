@@ -1,0 +1,4 @@
+{
+	"ESS_BgA":  { "File": "dataselect_bg.png", "Rect": "0,0,496,224", "Center": "248,112" },
+	"ESS_BgB":  { "File": "dataselect_bg.png", "Rect": "0,224,496,224", "Center": "248,112" }
+}
