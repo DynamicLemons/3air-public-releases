@@ -1,0 +1,13 @@
+{
+	"explosion_a_0":  { "File": "explosions.bmp", "Rect": "0,0,16,16", "Center": "8,8" },
+	"explosion_a_1":  { "File": "explosions.bmp", "Rect": "24,0,32,32", "Center": "16,16" },
+	"explosion_a_2":  { "File": "explosions.bmp", "Rect": "64,0,32,32", "Center": "16,16" },
+	"explosion_a_3":  { "File": "explosions.bmp", "Rect": "104,0,32,32", "Center": "16,16" },
+	"explosion_a_4":  { "File": "explosions.bmp", "Rect": "144,0,32,32", "Center": "16,16" },
+	"explosion_b_0":  { "File": "explosions.bmp", "Rect": "0,40,16,16", "Center": "8,8" },
+	"explosion_b_1":  { "File": "explosions.bmp", "Rect": "24,40,24,24", "Center": "12,12" },
+	"explosion_b_2":  { "File": "explosions.bmp", "Rect": "56,40,24,24", "Center": "12,12" },
+	"explosion_b_3":  { "File": "explosions.bmp", "Rect": "88,40,24,24", "Center": "12,12" },
+	"explosion_b_4":  { "File": "explosions.bmp", "Rect": "120,40,24,24", "Center": "12,13" },
+	"explosion_b_5":  { "File": "explosions.bmp", "Rect": "152,40,24,16", "Center": "12,10" },
+}

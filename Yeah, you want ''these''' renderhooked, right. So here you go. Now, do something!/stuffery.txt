@@ -1,0 +1,29 @@
+> Rings
+> Spikes
+> Springs
+> Checkpoints
+> Shields
+> Generic Button
+> Eggman
+> Shared Egg Mobile Assets
+> Various Player Visual Effects
+> Explosions
+> Animal Buddies
+> Super Flickies
+> The Tornado
+> Signpost
+> Giant Rings
+> Capsule
+> Title Cards
+> Chaos / Super Emeralds
+    - Data Select
+    - Angel Island
+    - Hidden Palace
+    - Results
+> Master Emerald
+> Slot Machine Icons
+> Data Select
+    - Life / Continue Icons
+    - Save Portraits 
+    - Cursor / Arrows
+> Ending Logos

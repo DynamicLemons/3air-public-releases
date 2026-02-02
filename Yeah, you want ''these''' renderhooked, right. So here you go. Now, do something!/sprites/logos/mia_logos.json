@@ -1,0 +1,4 @@
+{
+	"logo_3air_small":  { "File": "mia_logos.bmp", "Rect": "8,16,96,40", "Center": "44,20" },
+	"logo_3air_large":  { "File": "mia_logos.bmp", "Rect": "120,16,128,128", "Center": "64,64" }
+}

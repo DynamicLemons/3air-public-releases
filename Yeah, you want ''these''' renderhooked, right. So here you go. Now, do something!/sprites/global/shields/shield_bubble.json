@@ -1,0 +1,15 @@
+{
+	"shield_bubble_0":  { "File": "shield_bubble.bmp", "Rect": "0,56,48,48", "Center": "24,24" },
+	"shield_bubble_1":  { "File": "shield_bubble.bmp", "Rect": "56,56,48,48", "Center": "24,24" },
+	"shield_bubble_2":  { "File": "shield_bubble.bmp", "Rect": "112,56,48,48", "Center": "24,24" },
+	"shield_bubble_3":  { "File": "shield_bubble.bmp", "Rect": "168,56,48,48", "Center": "24,24" },
+	"shield_bubble_4":  { "File": "shield_bubble.bmp", "Rect": "224,56,48,48", "Center": "24,24" },
+	"shield_bubble_5":  { "File": "shield_bubble.bmp", "Rect": "0,112,48,48", "Center": "24,24" },
+	"shield_bubble_6":  { "File": "shield_bubble.bmp", "Rect": "56,112,48,48", "Center": "24,24" },
+	"shield_bubble_7":  { "File": "shield_bubble.bmp", "Rect": "112,112,48,48", "Center": "24,24" },
+	"shield_bubble_8":  { "File": "shield_bubble.bmp", "Rect": "168,112,48,48", "Center": "24,24" },
+	"shield_bubble_9":  { "File": "shield_bubble.bmp", "Rect": "56,0,48,48", "Center": "24,24" },
+	"shield_bubble_a":  { "File": "shield_bubble.bmp", "Rect": "0,0,48,48", "Center": "24,24" },
+	"shield_bubble_b":  { "File": "shield_bubble.bmp", "Rect": "112,0,56,48", "Center": "28,24" },
+	"shield_bubble_c":  { "File": "shield_bubble.bmp", "Rect": "176,0,72,48", "Center": "36,25" }
+}

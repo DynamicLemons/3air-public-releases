@@ -1,0 +1,15 @@
+{
+	"capsule_0":  { "File": "capsule.bmp", "Rect": "0,0,64,64", "Center": "32,32" },
+	"capsule_1":  { "File": "capsule.bmp", "Rect": "72,0,64,64", "Center": "32,32" },
+	"capsule_2":  { "File": "capsule.bmp", "Rect": "232,48,16,16", "Center": "8,8" },
+	"capsule_3":  { "File": "capsule.bmp", "Rect": "232,0,16,16", "Center": "8,8" },
+	"capsule_4":  { "File": "capsule.bmp", "Rect": "256,0,8,16", "Center": "4,8" },
+	"capsule_5":  { "File": "capsule.bmp", "Rect": "144,0,32,16", "Center": "16,12" },
+	"capsule_6":  { "File": "capsule.bmp", "Rect": "184,0,40,8", "Center": "20,4" },
+	"capsule_7":  { "File": "capsule.bmp", "Rect": "184,16,40,8", "Center": "20,4" },
+	"capsule_8":  { "File": "capsule.bmp", "Rect": "184,32,40,8", "Center": "20,4" },
+	"capsule_9":  { "File": "capsule.bmp", "Rect": "184,48,40,8", "Center": "20,4" },
+	"capsule_10":  { "File": "capsule.bmp", "Rect": "232,0,16,16", "Center": "8,8" },
+	"capsule_11":  { "File": "capsule.bmp", "Rect": "256,24,8,16", "Center": "4,8" },
+	"capsule_12":  { "File": "capsule.bmp", "Rect": "144,24,32,8", "Center": "16,4" }
+}

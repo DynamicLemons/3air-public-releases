@@ -1,0 +1,4 @@
+{
+	"button_0":  { "File": "button.bmp", "Rect": "0,0,32,16", "Center": "16,12" },
+	"button_1":  { "File": "button.bmp", "Rect": "0,0,32,8", "Center": "16,4" }
+}

@@ -1,0 +1,851 @@
+global string dataSelect_shownImage
+constant u8 L_PORT_RESULT_NONE = 0
+constant u8 L_PORT_RESULT_ZONE = 1
+constant u8 L_PORT_RESULT_END = 2
+global bool rngTitle_isSk
+
+global bool yywtrrshygnds_setting_smoothRings
+global u8 yywtrrshygnds_setting_brandingMode
+constant u8 L_BRANDINGMODE_ALWAYSS3 = 0
+constant u8 L_BRANDINGMODE_ALWAYSSK = 1
+constant u8 L_BRANDINGMODE_PICKBYZONE = 2
+constant u8 L_BRANDINGMODE_S3K = 3
+constant u8 L_BRANDINGMODE_AIR = 4
+global u8 yywtrrshygnds_bossExplosions
+global u8 yywtrrshygnds_setting_redExplodeBlur
+global u8 yywtrrshygnds_setting_redExplodeFade
+global bool yywtrrshygnds_setting_tradedEmeraldsOpacity
+global u8 yywtrrshygnds_titlecard
+global u8 yywtrrshygnds_setting_s2ClassicShield
+global u8 yywtrrshygnds_setting_monitorIconFade
+global u8 yywtrrshygnds_setting_novemberslots
+
+include titlescreen
+include dataselect
+include ending
+include classicshield
+include sloticons
+
+#define LEMONS_IMPROVED_RENDERHOOKS_ACTIVE = 1
+
+function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
+{
+	// This function gets called once when rendering an object, even if it consists of multiple VDP sprites
+	//  -> That is in contrast to e.g. "Standalone.onDrawVdpSprite" which gets called for each VDP sprite
+	//  -> So if an object's sprites should be replaced with a new loaded graphics, this here is the place to go
+
+	string key
+	u16 atex = (objA0.sprite_attributes >> 9) & 0x30
+	u8 flags = ((objA0.render_flags & render_flag.FLIP_X) ? SPRITE_FLAG_FLIP_X : 0) | ((objA0.render_flags & render_flag.FLIP_Y) ? SPRITE_FLAG_FLIP_Y : 0) | ((objA0.sprite_attributes & sprite_attribute.PRIORITY) ? SPRITE_FLAG_PRIO : 0)
+	u8 angle = 0
+	u8 alpha = 255
+	
+	// Insta Shield / Classic Shield
+	if (objA0.update_address == 0x01952a)
+	{
+		A1 = 0xffff0000 + objA0.shield.character_address
+		if (objA0.state)
+		{
+			key = stringformat("shield_insta_%d", objA0.animation.sprite)
+			if (Renderer.hasCustomSprite(key))
+				Renderer.drawSprite(key, px, py, 0, flags, renderQueue)
+			return true
+		}
+		else
+		{
+			if (u8[A1 + 0x2b] & char.bonus.ANY_SHIELD)
+			{
+				if (yywtrrshygnds_setting_s2ClassicShield)
+				{
+					if (Game.getSetting(SETTING_GFX_ANTIFLICKER))
+					{
+						Renderer.drawSprite("shield_classic_s2_5", px, py, 0x00, flags, renderQueue, 0, 127)
+						Renderer.drawSprite(stringformat("shield_classic_s2_%d", objA0.animation.sprite), px, py, 0x00, flags, renderQueue, 0, 127)
+					}
+					else
+					{
+						key = stringformat("shield_classic_s2_%d", objA0.animation.sprite)
+						if (Renderer.hasCustomSprite(key))
+							Renderer.drawSprite(key, px, py, 0, flags, renderQueue)
+					}
+					return true
+				}
+				else 
+				{
+					u8 anim = (objA0.animation.sprite >> 2) % 6
+					if (objA0.animation.sprite & 0x01)
+						Renderer.drawSprite(stringformat("shield_classic_air_%d", anim+1), px, py, 0x00, flags, renderQueue, 0, 224)
+					else
+						Renderer.drawSprite(stringformat("shield_classic_air_%d", (anim == 5) ? 6 : 5-anim), px, py, 0x00, flags, renderQueue-0x100, 0, (Game.getSetting(SETTING_GFX_ANTIFLICKER) >= 2) ? 176 : 128)
+					return true
+				}
+			}
+			return false
+		}
+	}
+
+	// Fire
+	else if (objA0.update_address == 0x019602)
+		key = stringformat("shield_fire_%x", objA0.animation.sprite)
+	
+	// Bubble
+	else if (objA0.update_address == 0x019922)
+		key = stringformat("shield_bubl_%x", objA0.animation.sprite)
+	
+	// Lightning
+	else if (objA0.update_address == 0x019732 || objA0.update_address == 0x019874 && objA0.mapping_offset == 0x19dc8)
+		key = stringformat("shield_lght_%x", objA0.animation.sprite)
+	
+	// Spikes
+	else if (objA0.mapping_offset == 0x024456)
+	{
+		key = stringformat("spikes_%d", objA0.animation.sprite)
+		// fbz spikes are weird.
+		if (objA0.sprite_attributes == 0x0200)
+		{
+			u8 offset = ((level.framecounter) / 8) % 2
+			string key_fbz = stringformat("spikes_%d_fbz_%d", objA0.animation.sprite, offset)
+			if (Renderer.hasCustomSprite(key_fbz))
+				key = key_fbz
+		}
+	}
+	
+	// Rings
+	else if (objA0.mapping_offset == 0x01a99a)
+	{
+		key = stringformat("ring_%d", objA0.animation.sprite)
+		// Use smoother ring rotation
+		if (objA0.animation.sprite < 4 && yywtrrshygnds_setting_smoothRings)
+		{
+			// Dynamic ring (placed by debug mode, or those in Knuckles' SSZ)
+			if (objA0.update_address == 0x01a51a)
+			{
+				// Use smoother ring rotation
+				u16 animFrame = ((static_rings.animframe * 8 + 7 - static_rings.animtimer) / 4) % 8
+				key = stringformat("ring_smooth_%d", animFrame)
+			}
+			// Spilled ring
+			else if (objA0.update_address == 0x01a64a || objA0.update_address == 0x01a662)
+			{
+				u16 animFrame = (spilled_rings.progress >> 8) % 8
+				alpha = min(255, u16(spilled_rings.speed) * 10)
+				key = stringformat("ring_smooth_%d", animFrame)
+			}
+			// Dynamic ring
+			else if (objA0.update_address == 0x01a88c)
+			{
+				u16 animFrame = ((objA0.animation.sprite * 4 + 3 - objA0.animation.timer) / 2) % 8
+				key = stringformat("ring_smooth_%d", animFrame)
+			}
+		}
+	}
+	
+	// Explosion (Enemy)
+	else if (objA0.mapping_offset == 0x01e758)
+		key = stringformat("explosion_a_%d", objA0.animation.sprite)
+
+	// Explosion (Boss)
+	else if (objA0.mapping_offset == 0x083ffc)
+	{
+		key = stringformat("explosion_b_%d", objA0.animation.sprite)
+			
+		bool dualDraw = (yywtrrshygnds_setting_redExplodeBlur && (objA0.animation.frame == 0 || objA0.animation.frame == 0x0c))
+		if (yywtrrshygnds_setting_redExplodeFade)
+			alpha = (objA0.animation.frame == 0) ? 64 : (objA0.animation.frame == 0x0c) ? 112 : 255
+			
+		if (dualDraw)
+		{
+			Renderer.drawSprite(key, px, py, atex, flags, renderQueue, angle, alpha)
+			Renderer.drawSprite(key, px + 1, py, atex, flags, renderQueue, angle, alpha)
+			return true
+		}
+	}
+
+	// Various Player Effects
+	else if (objA0.mapping_offset == 0x018df4)
+		key = stringformat("char_effect_%x", objA0.animation.sprite)
+
+	// Animals 
+	else if (objA0.update_address == 0x02c778)
+		key = stringformat("%s_%x", getAnimalBuddyKey(), objA0.animation.sprite)
+
+	else if (objA0.mapping_offset == 0x01a464)
+		key = stringformat("super_flicky_%x", objA0.animation.sprite)
+	
+	// Monitor item effect
+	else if (objA0.update_address == 0x01d7ba)
+	{
+		key = Monitor.getIconSpriteKey(objA0.state)
+		if (objA0.base_state == 0x04 && yywtrrshygnds_setting_monitorIconFade)
+			alpha = (s16[A0 + 0x24] > 0) ? min(255, s16[A0 + 0x24] * 32) : 0
+	}
+	
+	// Springs
+	else if (objA0.mapping_offset == 0x023772)
+		key = stringformat("spring_yellow_%x", objA0.animation.sprite)
+	else if (objA0.mapping_offset == 0x02375c)
+		key = stringformat("spring_red_%x", objA0.animation.sprite)
+	
+	// Checkpoint
+	else if (objA0.mapping_offset == 0x02d348)
+		key = stringformat("checkpoint_%d", objA0.animation.sprite)
+	else if (objA0.mapping_offset == 0x02d3aa)
+		key = stringformat("checkpoint_sparkle_%d_%d", u8[A0 + 0x48], objA0.animation.sprite)
+	
+	// Bubbles
+	else if (objA0.mapping_offset == 0x02fcb2 || objA0.mapping_offset == 0x02fce0)
+		key = stringformat("bubble_%x", objA0.animation.sprite)
+	
+	// Giant Ring
+	else if (objA0.update_address == 0x061682)
+		key = stringformat("giant_ring_%x", objA0.animation.sprite)
+	
+	else if (objA0.update_address == 0x0617be || objA0.update_address == 0x315372)
+		key = stringformat("giant_ring_flash_%x", objA0.animation.sprite)
+	
+	// Signpost
+	else if (objA0.update_address == 0x0837b2)
+	{
+		if (objA0.animation.sprite == 0)
+		{
+			key = getCharacterSignpostSpriteKey(CHARACTER_SONIC)
+			atex = 0x40
+		}
+		else if (objA0.animation.sprite == 1)
+		{
+			key = getCharacterSignpostSpriteKey(CHARACTER_TAILS)
+			atex = 0x60
+		}
+		else if (objA0.animation.sprite == 2)
+		{
+			key = getCharacterSignpostSpriteKey(CHARACTER_KNUCKLES)
+			atex = 0x80
+		}
+		else if (objA0.animation.sprite == 3)
+			key = "signpost_eggman"
+		else if (objA0.animation.sprite == 5)
+			key = "signpost_side"
+		else if (objA0.animation.sprite == 4 || objA0.animation.sprite == 6)
+		{
+			string side = (objA0.animation.sprite == 4) ? "spin_1" : "spin_2"
+			key = stringformat("%s_%s", getCharacterSignpostSpriteKey(getMainCharacter()), side)
+			atex = 0x40 + getMainCharacter() * 0x20
+		}
+	}
+	
+	// Capsule
+	else if (objA0.mapping_offset == 0x086bfc || objA0.mapping_offset == 0x1871e8)
+		key = stringformat("capsule_%d", objA0.animation.sprite)
+	
+	// Button
+	else if (objA0.mapping_offset == 0x02c71e)
+		key = stringformat("button_%d", objA0.animation.sprite)
+	
+	// --- Results --- 
+	// Continue icon
+	// Vinegar missed the second address for this.
+	if (objA0.update_address == 0x02ec4a && objA0.animation.sprite >= 0x29 && objA0.animation.sprite <= 0x2b)
+	{
+		// Enforce priority flag in special stage results screen for Super Emeralds, as it's supposed to be set, but is not part of "objA0.sprite_attributes"
+		if (global.game_mode == 0x48 && global.traded_emeralds)
+			flags |= SPRITE_FLAG_PRIO
+
+		key = getCharacterContinueIcon(getMainCharacter())
+	}
+		
+	// --- Eggman ---
+	// piloting + shared egg mobile sprites
+	else if (objA0.mapping_offset == 0x06820c)
+		key = stringformat("eggman_pilot_0x%02x", objA0.animation.sprite)
+	
+	// standing
+	else if (objA0.mapping_offset == 0x06847c)
+		key = stringformat("eggman_idle_0x%02x", objA0.animation.sprite)
+	
+	// running
+	else if (objA0.mapping_offset == 0x6837e)
+		key = stringformat("eggman_run_0x%02x", objA0.animation.sprite)
+	
+	// piloting, facing forward in fbz
+	else if (objA0.update_address == 0x067b96 && !isMainCharacter(CHARACTER_KNUCKLES))
+		key = stringformat("eggman_front_0x%02x", objA0.animation.sprite)
+	
+	// --- Tornado ---
+	// Sonic's Intro
+	else if (objA0.mapping_offset == 0x364470)
+	{
+		string tornadoKey = stringformat("tornado_intro_%d", objA0.animation.sprite)
+		
+		if (objA0.animation.sprite == 0)
+		{
+			u8 character = getSecondCharacter()
+			if (character == 0xff)
+				character = CHARACTER_TAILS
+
+			string pilotKey = stringformat("%s_pilot", getCharacterTornadoSpriteKey(character))
+			
+			// if you have no pilot sprite you get tails idc
+			if (Renderer.hasCustomSprite(pilotKey))
+			{
+				Renderer.drawSprite(pilotKey, px, py - 16, 0x40 + character * 0x20, flags, renderQueue)
+				if (!Renderer.hasCustomSprite(tornadoKey))
+				{
+					Renderer.addSpriteMask(px-12, py-24, 24, 16, renderQueue, 0)
+					return false
+				}
+			}
+			else if (Renderer.hasCustomSprite(tornadoKey))
+				Renderer.drawSprite("error_tornado_tails_pilot", px, py - 16, 0x40 + CHARACTER_TAILS * 0x20, flags, renderQueue)
+		}
+		
+		key = tornadoKey
+	}
+	
+	// Sonic's/Tails's Ending
+	else if (objA0.update_address == 0x05ea52)
+	{
+		key = stringformat("tornado_%d", objA0.animation.sprite)
+		if (objA0.render_flags & render_flag.FLIP_X)
+			key = stringformat("%s_left", key)
+			
+		if (Renderer.hasCustomSprite(key))
+			Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+			
+		key = stringformat("tornado_%d", objA0.compound.sprite1.animation.sprite)
+		if (Renderer.hasCustomSprite(key))
+			Renderer.drawSprite(key, px + objA0.compound.sprite1.position.x - objA0.position.x.u16, py + objA0.compound.sprite1.position.y - objA0.position.y.u16, atex, flags, renderQueue)
+
+		key = stringformat("tornado_%d", objA0.compound.sprite2.animation.sprite)
+		if (Renderer.hasCustomSprite(key))
+			Renderer.drawSprite(key, px + objA0.compound.sprite2.position.x - objA0.position.x.u16, py + objA0.compound.sprite2.position.y - objA0.position.y.u16, atex, flags, renderQueue)
+		
+		return true
+	}
+	else if (objA0.update_address == 0x05ebb4)
+	{
+		u8 character = getCharacterTornadoPilot(getMainCharacter())
+		key = stringformat("%s_pilot", getCharacterTornadoSpriteKey(character))
+		atex = 0x40 + character * 0x20
+	}
+	
+	// Handling this for all endings, actually
+	else if (objA0.mapping_offset == 0x060486)
+	{
+		// Tiny Tornado
+		if (objA0.animation.sprite == 0x5 || objA0.animation.sprite == 0x6 || objA0.animation.sprite == 0x1a)
+		{
+			u8 char = getMainCharacter()
+			Renderer.drawSprite("tornado_tiny", px, py, 0, flags, renderQueue)
+			// dork on the plane
+			if (objA0.animation.sprite != 0x1a)
+			{
+				Renderer.drawSprite(stringformat("%s_tiny", getCharacterTornadoSpriteKey(char)), px, py, 0x40 + char * 0x20, flags, renderQueue)
+				// master emerald
+				if (global.zone_act == 0x0a01 && outro.ending_type >= 0)
+					Renderer.drawSprite("tornado_ending_17", px + 5, py - 3, 0, flags, renderQueue)
+			}
+			// trusty pilot
+			char = getCharacterTornadoPilot(char)
+			Renderer.drawSprite(stringformat("%s_pilot_tiny", getCharacterTornadoSpriteKey(char)), px, py, 0x40 + char * 0x20, flags, renderQueue)
+			return true
+		}
+	
+		key = stringformat("tornado_ending_%d", objA0.animation.sprite)
+		// would perfer less hardcode magic, but my hand is forced here
+		
+		u8 pilot = getCharacterTornadoPilot(getMainCharacter())
+		if (objA0.animation.sprite == 17)
+			atex = 0
+		else if (objA0.animation.sprite == 18)
+		{
+			key = stringformat("%s_pilot", getCharacterTornadoSpriteKey(pilot))
+			atex = 0x40 + pilot * 0x20
+		}
+		else if (objA0.animation.sprite == 12 || objA0.animation.sprite == 19)
+		{
+			key = stringformat("%s_pilot_small", getCharacterTornadoSpriteKey(pilot))
+			atex = 0x40 + pilot* 0x20
+		}
+		else if (objA0.animation.sprite == 14 || objA0.animation.sprite == 21)
+		{
+			atex = 0x40 + getMainCharacter() * 0x20
+			key = stringformat("%s_small", getCharacterTornadoSpriteKey(getMainCharacter()))
+			
+			// handle Knuckles' variations
+			if (Renderer.hasCustomSprite(key) && global.zone_act == 0x0a01)
+			{
+				Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+				Renderer.drawSprite("tornado_ending_16", px - 1, py - 12, 0, flags, renderQueue)
+				return true
+			}
+			
+			// Knuckles exclusive sprite variations
+			string ver
+			if (global.zone_act == 0x0d01)
+				ver = "standing"
+			else if (outro.ending_type < 0)
+				ver = "exhausted"
+			
+			ver = stringformat("%s_%s", key, ver)
+			if (Renderer.hasCustomSprite(ver))
+				key = ver
+		}
+	}
+
+	// --- Game Logo in Endings ---
+	else if (objA0.update_address == 0x05f1f6 || objA0.update_address == 0x05f2ea)
+	{
+		string size = (objA0.update_address == 0x05f2ea) ? "large" : "small"
+		if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_AIR)
+			key = stringformat("logo_3air_%s", size)
+		else if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_S3K)
+		{
+			key = stringformat("logo_3k_%s", size)
+			if (!Renderer.hasCustomSprite(key))
+				key = stringformat("logo_3_%s", size)
+		}
+		else if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_ALWAYSSK)
+			key = (objA0.update_address == 0x05f2ea) ? (Renderer.hasCustomSprite("logo_3k_large") ? "logo_3k_large" : "logo_3_large") : "logo_sk_small"
+		else
+			key = stringformat("logo_3_%s", size)
+	}
+	
+	else if (objA0.update_address == 0x084920)
+	{
+		if (objA0.animation.sprite == 0)
+			key = "logo_knuckles_small"
+		else if (objA0.animation.sprite == 1)
+			key = "logo_knuckles_large"
+		else if (objA0.animation.sprite == 2)
+			key = (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_ALWAYSSK && objA0.subtype2c == 2) ? "logo_trademark_sk" : "logo_trademark"
+	}
+	
+	// --- Chaos and Super Emeralds ---
+	
+	// Emeralds in AIZ intro
+	else if (objA0.mapping_offset == 0x364562)
+		key = stringformat("chaos_emerald_%d", objA0.animation.sprite)
+	
+	// Emeralds in HPZ cave
+	else if (objA0.mapping_offset == 0x09147e)
+		key = stringformat("chaos_emerald_hpz_%d", objA0.animation.sprite)
+
+	// Chaos Emeralds on results screen
+	else if (objA0.update_address == 0x02eaa6) // uses box size, for whatever reason
+		key = stringformat("chaos_emerald_results_%d", objA0.box_size.x)
+	
+	// HPZ assets, for both the altar as it's distinct area and within the Knuckles Fight
+	else if (objA0.mapping_offset == 0x091006)
+	{
+		constant array<string> notationTable = 
+		{
+			"super_emerald_0",
+			"super_emerald_1",
+			"super_emerald_2",
+			"super_emerald_3",
+			"super_emerald_4",
+			"super_emerald_5",
+			"super_emerald_6",
+			"super_emerald_flicker",
+			"super_emerald_beam",
+			"super_emerald_sparkle_0",
+			"super_emerald_sparkle_1",
+			"master_emerald",
+			"master_emerald_overlay_0",
+			"master_emerald_overlay_1",
+			"master_emerald_overlay_2",
+			"master_emerald_overlay_3",
+			"master_emerald_overlay_4",
+			"master_emerald_overlay_5",
+			"hpz_cave_puff_0",
+			"hpz_cave_puff_1",
+			"hpz_cave_puff_2",
+			"hpz_cave_puff_3",
+			"hpz_cave_puff_4",
+			"hpz_cave_puff_5",
+			"master_emerald_particle_0",
+			"master_emerald_particle_1",
+			"master_emerald_particle_2",
+			"master_emerald_particle_3",
+			"master_emerald_particle_4",
+			"",
+			"super_emerald_inactive"
+		}
+		
+		if (objA0.animation.sprite <= notationTable.length())
+			key = notationTable[objA0.animation.sprite]
+		
+		//debugLog(stringformat("%s(%d)", key, objA0.animation.sprite))
+		// Super Emeralds when active in HPZ
+		if (Renderer.hasCustomSprite(key) && Game.getSetting(SETTING_GFX_ANTIFLICKER) && objA0.update_address == 0x09089e)
+		{
+			Renderer.drawSprite(key, px, py, atex, SPRITE_FLAG_PRIO, renderQueue) 
+			if ((global.framecounter.low & 0x01) != 0 && global.game_mode != 0x0c)
+			{
+				u32 glow = abs((global.framecounter.low & 0x7f) - 0x40)
+				u32 tintABGR = (0xffc0c0c0 - 0x10101 * glow) + (0x10101 * glow)
+				u32 tintRGBA = convertColors32(tintABGR)
+				Renderer.drawSpriteTinted(key, px, py, atex, SPRITE_FLAG_PRIO, renderQueue+1, 0, tintRGBA, 0x10000) 
+			}
+			return true
+		}
+	}
+	
+	// Data Select Cursor
+	else if (objA0.update_address == 0x00d1fa)
+		key = stringformat("data_select_cursor_%d", objA0.animation.sprite)
+
+	// Data Select
+	// sharing code for no save and saves for visual simplicity
+	else if (objA0.update_address == 0x00d30c || objA0.update_address == 0x00d42c)
+	{
+		LemonsRender_DataSelect_drawCharacterCombo(px, py, renderQueue)
+		
+		if (objA0.compound.count >= 1)
+		{
+			if (objA0.compound.sprite1.animation.sprite == 0x0f)
+			{
+				SpriteHandle arrows = Renderer.addSpriteHandle("data_select_arrows_1", px, py, renderQueue)
+				arrows.setFlags(flags)
+			}
+			else if (objA0.compound.sprite1.animation.sprite == 0x1a)
+			{
+				SpriteHandle arrows = Renderer.addSpriteHandle("data_select_arrows_2", px, py, renderQueue)
+				arrows.setFlags(flags)
+			}
+		}
+		
+		// only applicable to normal saves
+		// compound count only reaches this high with saves but saftey check added
+		if (objA0.compound.count >= 2 && objA0.update_address == 0x00d42c)
+		{
+			if (Renderer.hasCustomSprite(dataSelect_shownImage))
+			{
+				SpriteHandle zone = Renderer.addSpriteHandle(dataSelect_shownImage, px, py - 120, renderQueue)
+				zone.setFlags(flags)
+				zone.setPaletteOffset(0x30)
+			}
+		}
+		
+		return true
+	}
+	
+	// Emeralds 
+	else if (objA0.update_address == 0x00d70c)
+	{
+		// referencing associated save
+		A1 = 0xffff0000 + u16[A0 + 0x48]
+		A1 = u32[A1 + 0x30]
+		
+		D3.u16 = u16[A1 + 0x06]
+		for (u8 emerald = 0; emerald < 7; ++emerald)
+		{
+			// reference fn00da1e() if this is confusing
+			D3.u16 = (D3.u16 << 2) + (D3.u16 >> 14)	// Shift emerald collection state bits around to get the appropriate one on least significant digits (2 bits for each emerald)
+			D4.u16 = D3.u16 & 0x03 // Get emerald collection state
+			
+			key = 0
+			if (D4.u16 == 1)
+				key = stringformat("dataselect_chaos_emerald_%d", emerald)
+			else if (D4.u16 == 2)
+			{
+				key = stringformat("dataselect_traded_emerald_%d", emerald)
+				if (!Renderer.hasCustomSprite(key))
+					key = stringformat("dataselect_chaos_emerald_%d", emerald)
+				if (yywtrrshygnds_setting_tradedEmeraldsOpacity)
+					alpha = 150
+			}
+			else if (D4.u16 == 3)
+				key = stringformat("dataselect_super_emerald_%d", emerald)
+			
+			if (Renderer.hasCustomSprite(key))
+			{
+				LemonsRender_DataSelect_getEmeraldPivots(emerald)
+				SpriteHandle spr = Renderer.addSpriteHandle(key, px + D0.s16, py + D1.s16, renderQueue)
+				spr.setFlags(SPRITE_FLAG_PRIO)
+				spr.setPaletteOffset(0x20)
+				spr.setOpacity(alpha / 255.0)
+			}
+		}
+		return true
+	}
+	
+	// --- Titlescreen ---
+	
+	else if (objA0.update_address == 0x004a56)
+	{
+		Renderer.drawCustomSprite("title_screen_cr", px, py, atex, flags, renderQueue)
+		return true
+	}
+	
+	else if (objA0.update_address == 0x005ce2)
+	{
+		Renderer.drawCustomSprite("title_screen_cr", px - 45, py - 4, atex, flags, renderQueue)
+		return true
+	}
+	
+	// --- Titlecard ---
+	else if (objA0.mapping_offset == 0x02ee10)
+	{
+		if (objA0.animation.sprite == 1)
+		{
+			if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_ALWAYSS3)
+				key = "titlecard_redbar_s3"
+			else if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_ALWAYSSK)
+				key = "titlecard_redbar_sk"
+			else if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_PICKBYZONE)
+				key = (isSonicAndKnucklesZone()) ? "titlecard_redbar_sk" : "titlecard_redbar_s3"
+			else if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_S3K)
+				key = "titlecard_redbar_s3k"
+			else if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_AIR)
+				key = "titlecard_redbar_s3air"
+		}
+		else if (objA0.animation.sprite == 2)
+		{
+			// DEZ Boss Act
+			if (global.zone_act == 0x01700)
+				key = "titlecard_act3"
+			// LRZ Boss Act
+			else if (global.zone_act == 0x1600)
+				key = "titlecard_act2"
+			else
+				key = stringformat("titlecard_act%d", global.act.apparent + 1)
+		}
+		else if (objA0.animation.sprite == 3)
+			key = "titlecard_zone"
+		else if (objA0.animation.sprite >= 4 && objA0.animation.sprite <= 17)
+		{
+			constant array<string> notationTable = 
+			{
+				"titlecard_text_aiz",
+				"titlecard_text_hcz",
+				"titlecard_text_mgz",
+				"titlecard_text_cnz",
+				"titlecard_text_fbz",
+				"titlecard_text_icz",
+				"titlecard_text_lbz",
+				"titlecard_text_mhz",
+				"titlecard_text_soz",
+				"titlecard_text_lrz",
+				"titlecard_text_ssz",
+				"titlecard_text_dez",
+				"titlecard_text_tdz",
+				"titlecard_text_hpz"
+			}
+			key = notationTable[objA0.animation.sprite - 4]
+		}
+		
+		flags = SPRITE_FLAG_PRIO | SPRITE_FLAG_NO_GLOBAL_TINT
+	}
+	
+	// a lot of objects are gonna share this block.. might as well
+	if (Renderer.hasCustomSprite(key))
+	{
+		Renderer.drawSprite(key, px, py, atex, flags, renderQueue, angle, alpha)
+		return true
+	}
+	//else if (key)
+	//	Renderer.drawText("oxyfont_regular:outline(0x080808ff,1,true)", px, py, key, 0xffffffff, 1, 0, renderQueue, false, true)
+	
+	return base.Standalone.onWriteToSpriteTable(px, py, renderQueue)
+}
+
+function void LemonsRender_DataSelect_drawCharacterCombo(s16 px, s16 py, u16 renderQueue)
+{
+	u16 characters = (objA0.update_address == 0x00d30c) ? dataselect.nosave_characters : u16[A0 + 0x34]
+	string cname
+	// characters 
+	if (characters == CHARS_SONIC_AND_TAILS)
+	{
+		// Sonic & Tails
+		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_SONIC), px-9, py-20, 0x40, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
+		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_TAILS), px+6, py-18, 0x60, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
+		cname = "sonic"
+	}
+	else if (characters == CHARS_SONIC_ALONE)
+	{
+		// Sonic alone
+		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_SONIC), px-3, py-20, 0x40, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
+		cname = "sonic"
+	}
+	else if (characters == CHARS_TAILS_ALONE)
+	{
+		// Tails alone
+		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_TAILS), px+1, py-16, 0x60, SPRITE_FLAG_PRIO, renderQueue)
+		cname = "tails"
+	}
+	else if (characters == CHARS_KNUCKLES_ALONE)
+	{
+		// Knuckles alone
+		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_KNUCKLES), px, py-20, 0x80, SPRITE_FLAG_PRIO, renderQueue)
+		cname = "knuckles"
+	}
+	else if (characters == CHARS_KNUCKLES_AND_TAILS)
+	{
+		// Knuckles & Tails
+		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_KNUCKLES), px-7, py-20, 0x80, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
+		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_TAILS), px+6, py-18, 0x60, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
+		cname = "knuckles"
+	}
+	else
+	{
+		assert(false, "Unsupported character selection")
+		return
+	}
+		
+	if (objA0.update_address == 0x00d42c && u8[u32[A0 + 0x30]] != 0x80 && u8[A0 + 0x1d] < 0x1d && u8[A0 + 0x1d] != 0x0f)
+	{
+		SpriteHandle icons = Renderer.addSpriteHandle(stringformat("%s_icons", getCharacterSelectSpriteKey(clamp(characters, 1, 3) - 1)), px - 16, py + 8, renderQueue)
+		icons.setFlags(SPRITE_FLAG_PRIO)
+		icons.setPaletteOffset(0x20 * (clamp(characters, 1, 3) - 1) + 0x40)
+	}
+}
+
+function void LemonsRender_DataSelect_getEmeraldPivots(u8 id)
+{
+	constant array<s16> pivots = 
+	{
+		0, -46,
+		-20, -36,
+		20, -36,
+		-25, -14,
+		25, -14,
+		-11, 3,
+		11, 3
+	}
+	
+	D0.s16 = pivots[id * 2]
+	D1.s16 = pivots[id * 2 + 1]
+}
+
+function u8 getCharacterTornadoPilot(u8 character)
+{
+	if (character == CHARACTER_SONIC) 
+		return CHARACTER_TAILS
+	else
+		return CHARACTER_SONIC
+}
+
+function string getAnimalBuddyKey()
+{
+	constant array<string> data = 
+	{
+		"flicky", "cucky",	// AIZ
+		"pocky", "rocky",	// HCZ
+		"flicky", "cucky",	// MGZ
+		"pocky", "flicky",	// CNZ
+		"ricky", "flicky",	// FBZ
+		"pecky", "rocky",	// ICZ
+		"flicky", "cucky",	// LBZ
+		"ricky", "cucky",	// MHZ
+		"pocky", "cucky",	// SOZ
+		"flicky", "cucky",	// LRZ
+		"pocky", "cucky",	// SSZ
+		"ricky", "cucky",	// DEZ
+		"ricky", "cucky",	// DDZ
+	}
+	
+	u8 offset = global.zone * 2
+	if (objA0.sprite_attributes == 0x0592)
+		++offset
+	return data[offset]
+}
+
+//# address-hook(0x00eb86) end(0x00ebec)
+function void RenderStaticRings()
+{
+	A0 = rings.around.first
+	u32 numRings = (rings.around.last - rings.around.first) / 4
+	if (numRings != 0)
+	{
+		A4 = 0xffff0000 + rings.around.first.state
+		A1 = 0x00ebee
+		D5.u16 = 0xf0
+		u16 camera_x = u16[A3]		// Usually camera.foreground.x
+		u16 camera_y = u16[A3+4]	// Usually camera.foreground.y
+
+		while (numRings > 0)
+		{
+			u16 ringAnimationState = u16[A4]
+			if (ringAnimationState != 0xffff)
+			{
+				D1.u16 = (u16[A0+2] - camera_y + 8) & level.height.bitmask
+				if (D1.u16 < D5.u16)
+				{
+					D1.u16 += 0x78
+					D0.u16 = u16[A0] - camera_x + 0x80
+
+					u8 animFrame = ringAnimationState & 0xff
+					if (animFrame == 0)
+					{
+						// For non-collected rings, use rotating animation
+						animFrame = static_rings.animframe
+					}
+					u32 src = A1 + animFrame * 8
+
+					u16 px = u16[src + 6] + D0.u16
+					u16 py = u16[src + 0] + D1.u16
+					u8 size = u8[src + 3]
+					u16 index = u16[src + 4]
+
+				#if STANDALONE
+					string key = stringformat("ring_%d", static_rings.animframe)
+					if (ringAnimationState & 0xff)
+						key = stringformat("ring_%d", u8[A4 + 1])
+					else if (yywtrrshygnds_setting_smoothRings)
+					{
+						animFrame = ((static_rings.animframe * 8 + 7 - static_rings.animtimer) / 4) % 8
+						key = stringformat("ring_smooth_%d", animFrame)
+					}
+					u16 x = D0.u16 - 0x80
+					u16 y = D1.u16 - 0x80
+					Renderer.drawSprite(key, x, y, 0x10, 0, 0xa000)
+				#endif
+
+					u16[A6 + 0] = py
+					 u8[A6 + 2] = size
+					u16[A6 + 4] = index
+					u16[A6 + 6] = px
+					A6 += 8
+					--D7.u16
+				}
+			}
+			A4 += 2
+			A0 += 4
+			--numRings
+		}
+	}
+}
+
+function bool UpdatePaletteEffects.SuperForm.endpose()
+{
+	// Palette effects depend on the character, and for Sonic on Hyper vs. Super form:
+	//  - 0x00 = Hyper Sonic
+	//  - 0x01 = Super Sonic
+	//  - 0x02 = Super/Hyper Tails
+	//  - 0x03 = Super/Hyper Knuckles
+	u8 characterVersion = isMainCharacter(CHARACTER_SONIC) ? ((objA0.subtype2c == 0x02) ? 0 : 1) : (getMainCharacter() + 1)
+	
+	// There's three variants of this function:
+	//  - The original code -- handled outside this function
+	//  - Smoothed palette effects when an anti-flicker setting is active
+	//  - Variant for modded palettes
+
+	string characterPaletteKey = getCharacterEndPosePaletteKey(getMainCharacter())
+
+	if (System.hasExternalPaletteData(characterPaletteKey, 2))
+	{
+		// Modded super palettes (possible using different super colors) need a special handling
+		UpdatePaletteEffects.SuperForm.endpose.moddingVersion(characterVersion)
+		return true
+	}
+	else if (Game.getSetting(SETTING_GFX_ANTIFLICKER) != 0)
+	{
+		// Smoothed version of effects
+		UpdatePaletteEffects.SuperForm.endpose.smoothedVersion(characterVersion)
+		return true
+	}
+
+	// Original version of effects -- does not support modded palettes
+	return false
+}

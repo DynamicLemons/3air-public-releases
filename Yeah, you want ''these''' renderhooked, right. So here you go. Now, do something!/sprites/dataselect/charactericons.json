@@ -1,0 +1,5 @@
+{
+	"charselect_sonic_icons":  { "File": "charactericons.bmp", "Rect": "0,0,32,40", "Center": "8,0" },
+	"charselect_tails_icons":  { "File": "charactericons.bmp", "Rect": "32,0,32,40", "Center": "8,0" },
+	"charselect_knuckles_icons":  { "File": "charactericons.bmp", "Rect": "64,0,32,40", "Center": "8,0" }
+}

@@ -1,0 +1,18 @@
+{
+	"spikes_0":  { "File": "spike.bmp", "Rect": "8,8,32,32", "Center": "16,16" },
+	"spikes_1":  { "File": "spike.bmp", "Rect": "48,8,64,32", "Center": "32,16" },
+	"spikes_2":  { "File": "spike.bmp", "Rect": "120,8,96,32", "Center": "48,16" },
+	"spikes_3":  { "File": "spike.bmp", "Rect": "224,8,128,32", "Center": "64,16" },
+	"spikes_4":  { "File": "spike.bmp", "Rect": "360,8,32,32", "Center": "16,16" },
+	"spikes_5":  { "File": "spike.bmp", "Rect": "400,8,32,64", "Center": "16,32" },
+	"spikes_6":  { "File": "spike.bmp", "Rect": "440,8,32,96", "Center": "16,48" },
+	"spikes_7":  { "File": "spike.bmp", "Rect": "480,8,32,128", "Center": "16,64" },
+	"spikes_0_fbz_0":  { "File": "spike_fbz.bmp", "Rect": "0,0,32,32", "Center": "16,16" },
+	"spikes_1_fbz_0":  { "File": "spike_fbz.bmp", "Rect": "0,0,64,32", "Center": "32,16" },
+	"spikes_2_fbz_0":  { "File": "spike_fbz.bmp", "Rect": "0,0,96,32", "Center": "48,16" },
+	"spikes_3_fbz_0":  { "File": "spike_fbz.bmp", "Rect": "0,0,128,32", "Center": "64,16" },
+	"spikes_0_fbz_1":  { "File": "spike_fbz.bmp", "Rect": "0,32,32,32", "Center": "16,16" },
+	"spikes_1_fbz_1":  { "File": "spike_fbz.bmp", "Rect": "0,32,64,32", "Center": "32,16" },
+	"spikes_2_fbz_1":  { "File": "spike_fbz.bmp", "Rect": "0,32,96,32", "Center": "48,16" },
+	"spikes_3_fbz_1":  { "File": "spike_fbz.bmp", "Rect": "0,32,128,32", "Center": "64,16" }
+}

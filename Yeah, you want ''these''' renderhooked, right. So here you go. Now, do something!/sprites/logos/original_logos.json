@@ -1,0 +1,7 @@
+{
+	"logo_3_small":  { "File": "original_logos.bmp", "Rect": "8,8,88,40", "Center": "44,20" },
+	"logo_knuckles_small":  { "File": "original_logos.bmp", "Rect": "8,56,64,8", "Center": "32,4" },
+	"logo_trademark":  { "File": "original_logos.bmp", "Rect": "80,56,16,8", "Center": "8,4" },
+	"logo_3_large":  { "File": "original_logos.bmp", "Rect": "144,8,128,128", "Center": "64,64" },
+	"logo_knuckles_large":  { "File": "original_logos.bmp", "Rect": "8,72,112,16", "Center": "56,8" }
+}

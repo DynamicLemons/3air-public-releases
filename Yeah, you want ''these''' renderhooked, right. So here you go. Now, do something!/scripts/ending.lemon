@@ -1,0 +1,128 @@
+// Object to create the full "Sonic the Hedgehog 3 & Knuckles" logo
+
+//# address-hook(0x05f20a) end(0x05f25e)
+function void fn05f20a()
+{
+	if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_S3K || yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_PICKBYZONE)
+	{
+		base.fn05f20a()
+		return
+	}
+	
+	setupObjectAttributesFull(0x060124)
+
+	// "Sonic the Hedgehog 3"
+	objA0.update_address = 0x05f1f6
+
+	A1 = 0x05f260
+	fn05ff1c()
+	
+	if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_ALWAYSSK)
+	{
+		u16 numColors = System.loadExternalPaletteData("ending_palette_sklogo", 0, 0x800000, 16)
+		for (u16 i = 0; i < numColors; ++i)
+		{
+			u32 rgba = u32[0x800000 + i * 4]
+			u16[0xfffffca0 + i * 2] = (rgba & 0xff000000) ? packColorExt(rgba) : 0
+		}
+	}
+	else
+		copyMemory(0xfffffca0, 0x060ada, 0x20)
+
+	// Attach "& Knuckles"
+	if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_S3K && allocDynamicObjectStd())
+	{
+		objA1.update_address = 0x05f526
+		u16[A1 + 0x46] = A0.u16
+	}
+
+	// Attach trademark
+	if (yywtrrshygnds_setting_brandingMode != L_BRANDINGMODE_AIR && allocDynamicObjectStd())
+	{
+		objA1.update_address = 0x05f4fa
+		u16[A1 + 0x46] = A0.u16
+		u8[A1 + 0x2c] = 0x02
+	}
+}
+
+
+
+// Object to create the full "Sonic the Hedgehog 3 & Knuckles" logo in the best ending final screen
+
+//# address-hook(0x05f26c) end(0x05f2dc)
+function void fn05f26c()
+{
+	if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_S3K || yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_PICKBYZONE || yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_ALWAYSSK)
+	{
+		base.fn05f26c()
+		return
+	}
+	
+	setupObjectAttributesFull(0x060154)
+
+	// "Sonic the Hedgehog 3"
+	objA0.update_address = 0x05f1f6
+	if (objA0.subtype2c != 0)
+	{
+		objA0.update_address = 0x05f2ea
+		objA0.countdown_value = 0x04af
+		u8[0xfffffab8] &= ~0x04
+	}
+
+	A1 = 0x05f2e2
+	fn05ff1c()
+
+	copyMemory(0xfffffca0, 0x060ada, 0x20)
+
+	// Attach trademark
+	if (yywtrrshygnds_setting_brandingMode != L_BRANDINGMODE_AIR && allocDynamicObjectStd())
+	{
+		objA1.update_address = 0x05f4fa
+		u16[A1 + 0x46] = A0.u16
+		u8[A1 + 0x2c] = 0x04
+	}
+
+	// Attach "& Knuckles"
+	if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_S3K && allocDynamicObjectStd())
+	{
+		objA1.update_address = 0x05f546
+		u16[A1 + 0x46] = A0.u16
+	}
+
+	// "spawnChildObjects(0x0601f0)" replaced by:
+	spawnChildObject(0x05f31c, 0x00, 0, 0)		// Sonic in best ending final screen
+	spawnChildObject(0x05f3aa, 0x02, 0, 0)		// Tails in best ending final screen
+	spawnChildObject(0x05f410, 0x04, 0, 0)		// Knuckles in best ending final screen
+}
+
+//# address-hook(0x05fefe) end(0x05ff1a)
+function void fn05fefe()
+{
+	if (yywtrrshygnds_setting_brandingMode != L_BRANDINGMODE_S3K && yywtrrshygnds_setting_brandingMode != L_BRANDINGMODE_ALWAYSSK)
+	{
+		A1 += (global.characters & 0x03) * 2
+		objA0.position.x.u16 += s8[A1]
+		objA0.position.y.u16 += 0x2c // 0x40
+		A1 += 3
+	}
+	else
+		base.fn05fefe()
+}
+
+//# address-hook(0x05f2f8) end(0x05f31a)
+function void fn05f2f8()
+{
+	if ((control.pad1.state & CONTROL_START) == 0 && (control.pad2.state & CONTROL_START) == 0)
+	{
+		--objA0.countdown_value
+		if (objA0.countdown_value >= 0)
+		{
+			DrawObject()
+			return
+		}
+	}
+
+	global.game_mode = 0
+	DrawObject()
+}
+

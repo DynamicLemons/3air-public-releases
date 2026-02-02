@@ -1,0 +1,69 @@
+//# address-hook(0x0194ce) end(0x019524)
+function void InstaShield.Init()
+{
+	objA0.animation.sprite = 0
+	objA0.animation.timer = 0
+	objA0.animation.frame = 0
+	
+	base.InstaShield.Init()
+}
+
+//# address-hook(0x01952a) end(0x0195a4)
+function void InstaShield.Update()
+{
+	A2 = 0xffff0000 + objA0.shield.character_address
+	// classic
+	if (u8[A2 + 0x2b] & char.bonus.ANY_SHIELD && (u8[A2 + 0x2b] & char.bonus.INVINCIBLE) == 0)
+	{
+		objA0.position.x.u16 = u16[A2 + 0x10]
+		objA0.position.y.u16 = u16[A2 + 0x14]
+		objA0.flags2a = u8[A2 + 0x2a] & char.flag.FACING_LEFT
+		if (global.inv_gravity)
+			objA0.flags2a |= 0x02
+		objA0.sprite_attributes = (objA0.sprite_attributes & ~sprite_attribute.PRIORITY) | (u16[A2 + 0x0a] & sprite_attribute.PRIORITY)
+		
+		// s2
+		if (yywtrrshygnds_setting_s2ClassicShield)
+		{
+			if (Game.getSetting(SETTING_GFX_ANTIFLICKER))
+			{
+				--objA0.animation.timer
+				if (s8(objA0.animation.timer) < 0)
+				{
+					++objA0.animation.sprite
+					if (objA0.animation.sprite > 4)
+						objA0.animation.sprite = 0
+					objA0.animation.timer = 1
+				}
+			}
+			else
+			{
+				--objA0.animation.timer
+				if (s8(objA0.animation.timer) < 0)
+				{
+					++objA0.animation.frame
+					if (ClassicShieldAni_S2Classic[objA0.animation.frame] == 0xff)
+						objA0.animation.frame = 1
+					objA0.animation.sprite = ClassicShieldAni_S2Classic[objA0.animation.frame]
+					objA0.animation.timer = ClassicShieldAni_S2Classic[0]
+				}
+			}
+		}
+		// s1
+		else 
+		{
+			objA0.animation.sprite = (objA0.animation.sprite + 1) % 24
+		}
+
+
+		if (u8[A2 + 0x20] != char.state.DISAPPEARED)
+			DrawObject()
+	}
+	else
+		base.InstaShield.Update()
+}
+
+constant array<u8> ClassicShieldAni_S2Classic = 
+{
+	0,   5,   0,   5,   1,   5,   2,   5,   3,   5,   4,   0xff
+}

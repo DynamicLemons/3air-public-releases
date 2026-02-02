@@ -1,0 +1,15 @@
+{
+	"shield_classic_air_1": { "File": "shield_classic.png", "Rect": "0,0,48,48",  "Center": "24,24" },
+	"shield_classic_air_2": { "File": "shield_classic.png", "Rect": "48,0,48,48", "Center": "24,24" },
+	"shield_classic_air_3": { "File": "shield_classic.png", "Rect": "96,0,48,48", "Center": "24,24" },
+	"shield_classic_air_4": { "File": "shield_classic.png", "Rect": "144,0,48,48","Center": "24,24" },
+	"shield_classic_air_5": { "File": "shield_classic.png", "Rect": "192,0,48,48","Center": "24,24" },
+	"shield_classic_air_6": { "File": "shield_classic.png", "Rect": "240,0,48,48","Center": "24,24" },
+	
+	"shield_classic_s2_0":  { "File": "shield_classic.bmp", "Rect": "0,8,32,32", "Center": "16,16" },
+	"shield_classic_s2_1":  { "File": "shield_classic.bmp", "Rect": "40,8,32,32", "Center": "16,16" },
+	"shield_classic_s2_2":  { "File": "shield_classic.bmp", "Rect": "80,8,32,32", "Center": "16,16" },
+	"shield_classic_s2_3":  { "File": "shield_classic.bmp", "Rect": "120,8,32,32", "Center": "16,16" },
+	"shield_classic_s2_4":  { "File": "shield_classic.bmp", "Rect": "160,8,32,32", "Center": "16,16" },
+	"shield_classic_s2_5":  { "File": "shield_classic.bmp", "Rect": "200,0,48,48", "Center": "24,24" },
+}

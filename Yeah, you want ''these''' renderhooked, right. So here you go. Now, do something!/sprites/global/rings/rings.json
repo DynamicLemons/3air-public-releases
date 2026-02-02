@@ -1,0 +1,18 @@
+{
+	"ring_0":  { "File": "rings.bmp", "Rect": "0,0,16,16", "Center": "8,8" },
+	"ring_1":  { "File": "rings.bmp", "Rect": "16,0,16,16", "Center": "8,8" },
+	"ring_2":  { "File": "rings.bmp", "Rect": "32,0,16,16", "Center": "8,8" },
+	"ring_3":  { "File": "rings.bmp", "Rect": "48,0,16,16", "Center": "8,8" },
+	"ring_4":  { "File": "rings.bmp", "Rect": "64,0,16,16", "Center": "8,8" },
+	"ring_5":  { "File": "rings.bmp", "Rect": "80,0,16,16", "Center": "8,8" },
+	"ring_6":  { "File": "rings.bmp", "Rect": "96,0,16,16", "Center": "8,8" },
+	"ring_7":  { "File": "rings.bmp", "Rect": "112,0,16,16", "Center": "8,8" },
+	"ring_smooth_0":  { "File": "rings_smooth.bmp", "Rect": "0,0,16,16", "Center": "8,8" },
+	"ring_smooth_1":  { "File": "rings_smooth.bmp", "Rect": "16,0,16,16", "Center": "8,8" },
+	"ring_smooth_2":  { "File": "rings_smooth.bmp", "Rect": "32,0,16,16", "Center": "8,8" },
+	"ring_smooth_3":  { "File": "rings_smooth.bmp", "Rect": "48,0,16,16", "Center": "8,8" },
+	"ring_smooth_4":  { "File": "rings_smooth.bmp", "Rect": "64,0,16,16", "Center": "8,8" },
+	"ring_smooth_5":  { "File": "rings_smooth.bmp", "Rect": "80,0,16,16", "Center": "8,8" },
+	"ring_smooth_6":  { "File": "rings_smooth.bmp", "Rect": "96,0,16,16", "Center": "8,8" },
+	"ring_smooth_7":  { "File": "rings_smooth.bmp", "Rect": "112,0,16,16", "Center": "8,8" }
+}

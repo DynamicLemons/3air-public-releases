@@ -1,0 +1,16 @@
+{
+	"checkpoint_0":  { "File": "checkpoint.bmp", "Rect": "0,0,16,64", "Center": "8,40" },
+	"checkpoint_1":  { "File": "checkpoint.bmp", "Rect": "0,16,16,48", "Center": "8,24" },
+	"checkpoint_2":  { "File": "checkpoint.bmp", "Rect": "0,0,16,16", "Center": "8,8" },
+	"checkpoint_3":  { "File": "checkpoint.bmp", "Rect": "16,0,16,16", "Center": "8,8" },
+	"checkpoint_4":  { "File": "checkpoint.bmp", "Rect": "16,0,16,64", "Center": "8,40" },
+	"checkpoint_sparkle_0_0":  { "File": "checkpoint_sparkles.bmp", "Rect": "0,0,16,16", "Center": "8,8" },
+	"checkpoint_sparkle_0_1":  { "File": "checkpoint_sparkles.bmp", "Rect": "16,0,8,8", "Center": "4,4" },
+	"checkpoint_sparkle_0_2":  { "File": "checkpoint_sparkles.bmp", "Rect": "16,8,8,8", "Center": "4,4" },
+	"checkpoint_sparkle_1_0":  { "File": "checkpoint_sparkles.bmp", "Rect": "0,16,16,16", "Center": "8,8" },
+	"checkpoint_sparkle_1_1":  { "File": "checkpoint_sparkles.bmp", "Rect": "16,16,8,8", "Center": "4,4" },
+	"checkpoint_sparkle_1_2":  { "File": "checkpoint_sparkles.bmp", "Rect": "16,24,8,8", "Center": "4,4" },
+	"checkpoint_sparkle_2_0":  { "File": "checkpoint_sparkles.bmp", "Rect": "0,32,16,16", "Center": "8,8" },
+	"checkpoint_sparkle_2_1":  { "File": "checkpoint_sparkles.bmp", "Rect": "16,32,8,8", "Center": "4,4" },
+	"checkpoint_sparkle_2_2":  { "File": "checkpoint_sparkles.bmp", "Rect": "16,40,8,8", "Center": "4,4" }
+}

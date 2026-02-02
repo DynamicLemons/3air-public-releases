@@ -1,0 +1,8 @@
+{
+	"shield_insta_0":  { "File": "shield_insta.bmp", "Rect": "0,0,48,48", "Center": "24,24" },
+	"shield_insta_1":  { "File": "shield_insta.bmp", "Rect": "56,0,48,48", "Center": "24,24" },
+	"shield_insta_2":  { "File": "shield_insta.bmp", "Rect": "112,0,48,48", "Center": "24,24" },
+	"shield_insta_3":  { "File": "shield_insta.bmp", "Rect": "168,0,48,48", "Center": "24,24" },
+	"shield_insta_4":  { "File": "shield_insta.bmp", "Rect": "224,0,48,48", "Center": "24,24" },
+	"shield_insta_5":  { "File": "shield_insta.bmp", "Rect": "280,0,48,48", "Center": "24,24" }
+}

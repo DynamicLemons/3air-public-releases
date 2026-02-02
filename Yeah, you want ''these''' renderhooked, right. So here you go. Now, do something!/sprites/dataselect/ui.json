@@ -1,0 +1,6 @@
+{
+	"data_select_cursor_1":  { "File": "cursor.bmp", "Rect": "0,0,78,188", "Center": "39,87" },
+	"data_select_cursor_2":  { "File": "cursor.bmp", "Rect": "78,0,88,88", "Center": "38,88" },
+	"data_select_arrows_1":  { "File": "arrows.bmp", "Rect": "0,0,16,76", "Center": "8,58" },
+	"data_select_arrows_2":  { "File": "arrows.bmp", "Rect": "16,0,16,76", "Center": "8,128" }
+}

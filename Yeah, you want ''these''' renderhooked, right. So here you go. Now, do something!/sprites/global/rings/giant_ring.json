@@ -1,0 +1,18 @@
+{
+	"giant_ring_0":  { "File": "warp_ring.bmp", "Rect": "8,8,16,16", "Center": "8,8" },
+	"giant_ring_1":  { "File": "warp_ring.bmp", "Rect": "32,8,16,16", "Center": "8,8" },
+	"giant_ring_2":  { "File": "warp_ring.bmp", "Rect": "56,8,24,24", "Center": "12,12" },
+	"giant_ring_3":  { "File": "warp_ring.bmp", "Rect": "88,8,24,24", "Center": "12,12" },
+	"giant_ring_4":  { "File": "warp_ring.bmp", "Rect": "120,8,32,32", "Center": "16,16" },
+	"giant_ring_5":  { "File": "warp_ring.bmp", "Rect": "160,8,32,40", "Center": "16,20" },
+	"giant_ring_6":  { "File": "warp_ring.bmp", "Rect": "200,8,40,40", "Center": "20,20" },
+	"giant_ring_7":  { "File": "warp_ring.bmp", "Rect": "248,8,40,48", "Center": "20,24" },
+	"giant_ring_8":  { "File": "warp_ring.bmp", "Rect": "8,64,64,64", "Center": "32,32" },
+	"giant_ring_9":  { "File": "warp_ring.bmp", "Rect": "80,64,56,64", "Center": "28,32" },
+	"giant_ring_a":  { "File": "warp_ring.bmp", "Rect": "144,64,24,64", "Center": "12,32" },
+	"giant_ring_b":  { "File": "warp_ring.bmp", "Rect": "176,64,56,64", "Center": "28,32" },
+	"giant_ring_flash_0":  { "File": "warp_ring.bmp", "Rect": "8,136,32,64", "Center": "0,32" },
+	"giant_ring_flash_1":  { "File": "warp_ring.bmp", "Rect": "48,136,40,64", "Center": "0,32" },
+	"giant_ring_flash_2":  { "File": "warp_ring.bmp", "Rect": "96,136,48,64", "Center": "16,32" },
+	"giant_ring_flash_3":  { "File": "warp_ring.bmp", "Rect": "152,136,64,64", "Center": "32,32" }
+}

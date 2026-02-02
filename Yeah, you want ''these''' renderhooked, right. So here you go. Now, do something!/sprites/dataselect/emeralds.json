@@ -1,0 +1,16 @@
+{
+	"dataselect_chaos_emerald_0":  { "File": "emeralds.bmp", "Rect": "0,0,16,16", "Center": "8,8" },
+	"dataselect_chaos_emerald_1":  { "File": "emeralds.bmp", "Rect": "16,0,16,16", "Center": "8,8" },
+	"dataselect_chaos_emerald_2":  { "File": "emeralds.bmp", "Rect": "32,0,16,16", "Center": "8,8" },
+	"dataselect_chaos_emerald_3":  { "File": "emeralds.bmp", "Rect": "48,0,16,16", "Center": "8,8" },
+	"dataselect_chaos_emerald_4":  { "File": "emeralds.bmp", "Rect": "64,0,16,16", "Center": "8,8" },
+	"dataselect_chaos_emerald_5":  { "File": "emeralds.bmp", "Rect": "80,0,16,16", "Center": "8,8" },
+	"dataselect_chaos_emerald_6":  { "File": "emeralds.bmp", "Rect": "96,0,16,16", "Center": "8,8" },
+	"dataselect_super_emerald_0":  { "File": "emeralds.bmp", "Rect": "0,16,16,16", "Center": "8,4" },
+	"dataselect_super_emerald_1":  { "File": "emeralds.bmp", "Rect": "16,16,16,16", "Center": "8,4" },
+	"dataselect_super_emerald_2":  { "File": "emeralds.bmp", "Rect": "32,16,16,16", "Center": "8,4" },
+	"dataselect_super_emerald_3":  { "File": "emeralds.bmp", "Rect": "48,16,16,16", "Center": "8,4" },
+	"dataselect_super_emerald_4":  { "File": "emeralds.bmp", "Rect": "64,16,16,16", "Center": "8,4" },
+	"dataselect_super_emerald_5":  { "File": "emeralds.bmp", "Rect": "80,16,16,16", "Center": "8,4" },
+	"dataselect_super_emerald_6":  { "File": "emeralds.bmp", "Rect": "96,16,16,16", "Center": "8,4" }
+}

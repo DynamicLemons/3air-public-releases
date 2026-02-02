@@ -1,0 +1,10 @@
+{
+	"signpost_eggman":  { "File": "signpost_eggman.bmp", "Rect": "0,0,48,32", "Center": "24,16" },
+	"signpost_side":  { "File": "signpost_spin.bmp", "Rect": "0,0,8,32", "Center": "4,16" },
+	"signpost_sonic_spin_1":  { "File": "signpost_spin.bmp", "Rect": "8,0,32,32", "Center": "16,16" },
+	"signpost_sonic_spin_2":  { "File": "signpost_spin.bmp", "Rect": "40,0,32,32", "Center": "16,16" },
+	"signpost_tails_spin_1":  { "File": "signpost_spin.bmp", "Rect": "72,0,32,32", "Center": "16,16" },
+	"signpost_tails_spin_2":  { "File": "signpost_spin.bmp", "Rect": "104,0,32,32", "Center": "16,16" },
+	"signpost_knuckles_spin_1":  { "File": "signpost_spin.bmp", "Rect": "136,0,32,32", "Center": "16,16" },
+	"signpost_knuckles_spin_2":  { "File": "signpost_spin.bmp", "Rect": "168,0,32,32", "Center": "16,16" }
+}

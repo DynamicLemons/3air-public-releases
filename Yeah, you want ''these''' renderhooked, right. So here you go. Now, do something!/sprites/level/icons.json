@@ -1,0 +1,18 @@
+{
+	"sloticon_sonic":  { "File": "icons.png", "Rect": "0,0,32,32", "Center": "16,16" },
+	"sloticon_tails":  { "File": "icons.png", "Rect": "32,0,32,32", "Center": "16,16" },
+	"sloticon_knuckles":  { "File": "icons.png", "Rect": "64,0,32,32", "Center": "16,16" },
+	"sloticon_eggman":  { "File": "icons.png", "Rect": "96,0,32,32", "Center": "16,16" },
+	"sloticon_jackpot":  { "File": "icons.png", "Rect": "0,32,32,32", "Center": "16,16" },
+	"sloticon_ring":  { "File": "icons.png", "Rect": "32,32,32,32", "Center": "16,16" },
+	"sloticon_bar":  { "File": "icons.png", "Rect": "64,32,32,32", "Center": "16,16" },
+	"sloticon_err":  { "File": "icons.png", "Rect": "96,32,32,32", "Center": "16,16" },
+	"sloticon_sonic_alt":  { "File": "icons_proto.png", "Rect": "0,0,32,32", "Center": "16,16" },
+	"sloticon_tails_alt":  { "File": "icons_proto.png", "Rect": "32,0,32,32", "Center": "16,16" },
+	"sloticon_knuckles_alt":  { "File": "icons_proto.png", "Rect": "64,0,32,32", "Center": "16,16" },
+	"sloticon_eggman_alt":  { "File": "icons_proto.png", "Rect": "96,0,32,32", "Center": "16,16" },
+	"sloticon_jackpot_alt":  { "File": "icons_proto.png", "Rect": "0,32,32,32", "Center": "16,16" },
+	"sloticon_ring_alt":  { "File": "icons_proto.png", "Rect": "32,32,32,32", "Center": "16,16" },
+	"sloticon_bar_alt":  { "File": "icons_proto.png", "Rect": "64,32,32,32", "Center": "16,16" },
+	"sloticon_err_alt":  { "File": "icons_proto.png", "Rect": "96,32,32,32", "Center": "16,16" },
+}

@@ -1,0 +1,121 @@
+{
+	"Metadata":
+	{
+		"Name": "Yeah, you want ''these'' renderhooked, right? So here you go! Now, do something!",
+		"UniqueID": "dynamic-lemons-renderhooks",
+		"Author": "Dynamic Lemons, MiaCDi, Louplayer",
+		"ModVersion": "1.0"
+	},
+	"Settings":
+	{
+		"List":
+		[
+			{
+				"InternalName": "coolbranding",
+				"DisplayName": "Branding",
+				"Variable": "yywtrrshygnds_setting_brandingMode",
+				"DefaultValue": "4",
+				"Category": "Additions",
+				"Options":
+				{
+					"0": "Sonic 3",
+					"1": "Sonic & Knuckles",
+					"2": "Sonic 3 / Sonic & Knuckles",
+					"3": "Sonic 3 & Knuckles",
+					"4": "Sonic 3 A.I.R."
+				}
+			},
+
+			{
+				"InternalName": "emeraldstraded",
+				"DisplayName": "Traded Emerald Opacity",
+				"Variable": "yywtrrshygnds_setting_tradedEmeraldsOpacity",
+				"DefaultValue": "1",
+				"Category": "Additions",
+				"Options":
+				{
+					"0": "No",
+					"1": "Yes"
+				}
+			},
+
+			{
+				"InternalName": "shieldasitshouldbe",
+				"DisplayName": "Classic Shield",
+				"Variable": "yywtrrshygnds_setting_s2ClassicShield",
+				"DefaultValue": "1",
+				"Category": "Additions",
+				"Options":
+				{
+					"0": "S1",
+					"1": "S2"
+				}
+			},
+
+			{
+				"InternalName": "protoslots",
+				"DisplayName": "1103 Slot Icons",
+				"Variable": "yywtrrshygnds_setting_novemberslots",
+				"DefaultValue": "0",
+				"Category": "Additions",
+				"Options":
+				{
+					"0": "No",
+					"1": "Yes"
+				}
+			},
+			
+			{
+				"InternalName": "rings",
+				"DisplayName": "Allow Smoother Rings",
+				"Variable": "yywtrrshygnds_setting_smoothRings",
+				"DefaultValue": "0",
+				"Category": "A.I.R. Enhancements",
+				"Options":
+				{
+					"0": "No",
+					"1": "Yes"
+				}
+			},
+			
+			{
+				"InternalName": "bossexplosionsb",
+				"DisplayName": "Boss Explosion Blurring",
+				"Variable": "yywtrrshygnds_setting_redExplodeBlur",
+				"DefaultValue": "0",
+				"Category": "A.I.R. Enhancements",
+				"Options":
+				{
+					"0": "Off",
+					"1": "On"
+				}
+			},
+
+			{
+				"InternalName": "bossexplosionsf",
+				"DisplayName": "Boss Explosion Fading",
+				"Variable": "yywtrrshygnds_setting_redExplodeFade",
+				"DefaultValue": "0",
+				"Category": "A.I.R. Enhancements",
+				"Options":
+				{
+					"0": "Off",
+					"1": "On"
+				}
+			},
+			
+			{
+				"InternalName": "monitoriconfade",
+				"DisplayName": "Monitor Icon Fading",
+				"Variable": "yywtrrshygnds_setting_monitorIconFade",
+				"DefaultValue": "1",
+				"Category": "A.I.R. Enhancements",
+				"Options":
+				{
+					"0": "Off",
+					"1": "On"
+				}
+			}
+		]
+	}
+}
