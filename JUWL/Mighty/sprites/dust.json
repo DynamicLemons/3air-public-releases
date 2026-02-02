@@ -1,0 +1,6 @@
+{
+	"mighty_dust_1":  { "File": "dust.bmp", "Rect": "0,0,16,16", "Center": "8,8" },
+	"mighty_dust_2":  { "File": "dust.bmp", "Rect": "16,0,16,16", "Center": "8,8" },
+	"mighty_dust_3":  { "File": "dust.bmp", "Rect": "32,0,16,16", "Center": "8,8" },
+	"mighty_dust_4":  { "File": "dust.bmp", "Rect": "48,0,16,16", "Center": "8,8" }
+}

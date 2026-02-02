@@ -1,0 +1,11 @@
+{
+	"charselect_icons_unknown":  { "File": "error_icons.png", "Rect": "0,0,24,40", "Center": "0,0" },
+	"hud_lives_icon_unknown":  { "File": "error_icons.png", "Rect": "24,0,48,16", "Center": "0,0" },
+	"continue_icon_unknown":  { "File": "error_icons.png", "Rect": "23,16,22,24", "Center": "13,24" },
+	"hud_bonus_icon_unknown":  { "File": "error_icons.png", "Rect": "45,16,12,19", "Center": "0,0" },
+	"signpost_unknown":  { "File": "error_signpost.bmp", "Rect": "0,0,48,32", "Center": "24,16" },
+	"signpost_unknown_spin_1":  { "File": "error_signpost.bmp", "Rect": "48,0,32,32", "Center": "16,16" },
+	"signpost_unknown_spin_2":  { "File": "error_signpost.bmp", "Rect": "80,0,32,32", "Center": "16,16" },
+	"monitor_unknown":  { "File": "error_monitor.bmp", "Rect": "0,0,16,16", "Center": "8,8" },
+	"saveimage_unknown":  { "File": "error_portrait.png", "Rect": "0,0,80,56", "Center": "40,0" }
+}

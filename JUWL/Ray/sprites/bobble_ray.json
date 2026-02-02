@@ -1,0 +1,7 @@
+{
+	"bobble_ECC-Ray_0":  { "File": "bobble_ray.bmp", "Rect": "0,0,32,32", "Center": "16,16" },
+	"bobble_ECC-Ray_1":  { "File": "bobble_ray.bmp", "Rect": "32,0,32,32", "Center": "16,16" },
+	"bobble_ECC-Ray_2":  { "File": "bobble_ray.bmp", "Rect": "64,0,32,32", "Center": "16,16" },
+	"bobble_ECC-Ray_3":  { "File": "bobble_ray.bmp", "Rect": "96,0,32,32", "Center": "16,16" },
+	"bobble_ECC-Ray_4":  { "File": "bobble_ray.bmp", "Rect": "128,0,32,32", "Center": "16,16" }
+}

@@ -1,0 +1,18 @@
+//# address-hook(0x01c11e) end(0x01c236)
+function void UpdateCameraPositionY()
+{
+	if (isECFCharA0("ECC-Mighty"))
+	{
+		u16 locktime = getPlayerGlobalValue("mighty_cam_vlock")
+		if (locktime)
+		{
+			if (char.position.y.u16 + char.box_size.y > camera.position.y.u16 + getScreenHeight() || char.position.y.u16 - char.box_size.y <= camera.position.y.u16)
+				setPlayerGlobalValue("mighty_cam_vlock", 0)
+			else
+				setPlayerGlobalValue("mighty_cam_vlock", locktime - 1)
+			return
+		}
+	}
+	
+	base.UpdateCameraPositionY()
+}

@@ -1,0 +1,7 @@
+{
+	"character_ECC-Ray_continue_0x00":  { "File": "character_ray_continue.bmp", "Rect": "8,8,56,59", "Center": "28,36" },
+	"character_ECC-Ray_continue_0x01":  { "File": "character_ray_continue.bmp", "Rect": "72,8,56,59", "Center": "28,36" },
+	"character_ECC-Ray_continue_0x02":  { "File": "character_ray_continue.bmp", "Rect": "136,8,56,59", "Center": "28,36" },
+	"continue_icon_ECC-Ray_wait_0x00":  { "File": "continue_icon_ray_wait.bmp", "Rect": "8,8,24,24", "Center": "12,12" },
+	"continue_icon_ECC-Ray_wait_0x01":  { "File": "continue_icon_ray_wait.bmp", "Rect": "40,8,24,24", "Center": "12,12" }
+}

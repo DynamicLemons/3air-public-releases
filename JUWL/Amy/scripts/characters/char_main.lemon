@@ -1,0 +1,1228 @@
+//# address-hook(0x010afa) end(0x010bb8)
+function void Character.Initialization.Sonic()
+{
+	base.Character.Initialization.Sonic()
+	
+	setPlayerGlobalValue("amy_bounceLoss", 0)
+	if (isECFCharA0("ECC-Amy"))
+	{
+		char.hitbox_extends.y = char.hitbox.y.UPRIGHT_TAILS
+		char.hitbox.default.y = char.hitbox.y.UPRIGHT_TAILS
+	}
+}
+
+//# address-hook(0x010bba) end(0x010c8e)
+function void Character.UpdateNormalState.Sonic()
+{
+	if (!isECFCharA0("ECC-Amy"))
+	{
+		base.Character.UpdateNormalState.Sonic()
+		return
+	}
+
+	if (A0 == 0xffffb000)
+	{
+		if (updateDebugModeInput(false))
+			return
+	}
+
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	Character.ControlUpdate()
+#else
+	if (player1.control_override == 0)
+	{
+		// Set player 1 control state
+		control.player1 = control.pad1
+	}
+#endif
+
+	if (char.control_flags & 0x01)
+	{
+		// Character is not directly controllable (but may be indirectly via an object, like when hanging on a pole or similar)
+		char.double_jump_state = 0
+		setPlayerGlobalValue("amy_bounceLoss", 0)
+	}
+	else
+	{
+		// Call update function depending on flags
+		pushA456()
+		// Targets:
+		//  - 0x010f2c	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = 0x00												-> Character.UpdateSonicUprightOnGround()
+		//  - 0x010fb6	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = char.flag.IN_AIR									-> Character.UpdateSonicUprightInAir()
+		//  - 0x010fe0	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = char.flag.ROLLING								-> Character.UpdateSonicRollingOnGround()
+		//  - 0x011036	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = (char.flag.IN_AIR | char.flag.ROLLING)			-> Character.UpdateSonicRollingInAir()
+		call tableLookupAddress(0x010c90, char.flags & (char.flag.IN_AIR | char.flag.ROLLING))
+		popA456()
+	}
+	
+#if STANDALONE
+	if (Game.getSetting(SETTING_SUPERFAST_RUNANIM) && !super.active && abs(char.groundspeed) >= 0x0d00)
+	{
+		sonic.fastrunanim.timer = 30
+	}
+	else if (sonic.fastrunanim.timer > 0)
+	{
+		if (abs(char.groundspeed) >= 0x0800)
+			--sonic.fastrunanim.timer
+		else
+			sonic.fastrunanim.timer = 0
+	}
+#endif
+
+	if (level.vertical_wrap == 0xff00)
+	{
+		char.position.y.u16 &= level.height.bitmask
+	}
+
+	Character.updateBonusEffects()
+	Character.UpdateRingsInSuperForm()
+	Character.WriteToPositionBackup()
+	Character.checkForWaterSurface()
+		
+	char.angle_sensor_1 = u8[0xfffff768]
+	char.angle_sensor_2 = u8[0xfffff76a]
+
+	if (u8[0xfffff7c8] != 0)
+	{
+		if (char.state == char.state.RUNNING)
+			char.state = char.state.former
+	}
+
+	if ((char.control_flags & 0x02) == 0)	// Hanging flag
+	{
+		UpdateSonicAnimation()
+		if (global.inv_gravity)
+		{
+			char.render_flags ^= render_flag.FLIP_Y
+		}
+		UpdateSonicSpritePatterns()
+	}
+#if LEMONS_TWEAKS_ACTIVE
+	else
+		setPlayerGlobalValue("customKey", 0)
+#endif
+
+	if ((char.control_flags & 0xa0) == 0)
+	{
+		Character.CheckCollisionsWithDynamicObjects()
+	#if LEMONS_TWEAKS_ACTIVE
+		if ((char.control_flags & 0x02) == 0 && char.state != char.state.former)	// Hanging flag
+		{
+			UpdateSonicAnimation()
+			if (global.inv_gravity)
+			{
+				char.render_flags ^= render_flag.FLIP_Y
+			}
+			UpdateSonicSpritePatterns()
+		}
+	#endif
+	}
+	
+#if LEMONS_TWEAKS_ACTIVE
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	A2 = getPAddress("follow")
+#else
+	A2 = 0xffffcc0a
+#endif
+	Amy_getHammerLayerState()
+	setPlayerGlobalValue("follow_expectedSprite", objA0.animation.sprite)
+#endif
+}
+
+//# address-hook(0x0160d2)
+function void TailsTails.Update()
+{
+	A2 = 0xffff0000 + u16[A0 + 0x30]
+	if (!isECFCharAt(A2, "ECC-Amy"))
+	{
+		base.TailsTails.Update()
+		return
+	}
+	
+	// Update various properties from Tails main object
+	objA0.position.x.u16 = u16[A2 + 0x10]
+	objA0.position.y.u16 = u16[A2 + 0x14]
+	u8[A0 + 0x26] = u8[A2 + 0x26]			// Rotation
+	objA0.flags2a = u8[A2 + 0x2a]			// Flags
+	objA0.sprite_priority = u16[A2 + 0x08]
+	objA0.sprite_attributes = (objA0.sprite_attributes & ~sprite_attribute.PRIORITY) | (u16[A2 + 0x0a] & sprite_attribute.PRIORITY)
+
+#if LEMONS_TWEAKS_ACTIVE
+	if (getPlayerGlobalValue(A2, "follow_expectedSprite") != u8[A2 + 0x22])
+#endif
+	{
+		u32 A0_o = A0
+		u32 A2_o = A2
+		A0 = A2_o
+		A2 = A0_o
+		Amy_getHammerLayerState()
+		A0 = A0_o
+		A2 = A2_o
+	}
+
+	if (char.state)
+	{
+		if (char.state != char.state.former)
+		{
+			char.state.former = char.state
+			char.animation.sprite = 0
+			char.animation.frame = 0
+			char.animation.timer = 0
+		}
+
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+		
+		if (char.state == 1)
+			char.animation.sprite = u8[A2 + 0x23]
+		else
+		{
+			constant array<u8> AniTable = 
+			{
+				1,
+				0x09, 0x0a, 0x0b, 0x0c,
+				0xff
+			}
+
+			D1.u8 = char.flags & char.flag.FACING_LEFT
+			char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+			
+			A1 = 0x800000
+			for (u8 i = 0; i < AniTable.length(); ++i)
+				u8[A1 + i] = AniTable[i]
+			D0.u8 = AniTable[0]
+			
+			updateSonicAnimationStanding()
+		}
+		
+		if (global.inv_gravity)
+			objA0.render_flags ^= render_flag.FLIP_Y
+
+		DrawObject()
+	}
+	else
+	{
+		char.animation.sprite = 0
+		char.animation.frame = 0
+		char.animation.timer = 0
+		objA0.render_flags &= ~render_flag.VISIBLE
+	}
+}
+
+function void Amy_getHammerLayerState()
+{
+	if (char.state == char.state.AMY_HAMMERSPIN_N)
+		u8[A2 + 0x20] = 1
+	else if (char.state == char.state.AMY_HAMMERSPIN_H)
+		u8[A2 + 0x20] = 2
+	else
+		u8[A2 + 0x20] = 0
+}
+
+constant u8 Amy_minHoldTime = 5
+
+function void Character.updateJumpMoves()
+{
+	if (!isECFCharA0("ECC-Amy"))
+	{
+		base.Character.updateJumpMoves()
+		return
+	}
+	
+	u8 input_state     = Character.getControlVariable(0)
+	u8 input_pressed   = Character.getControlVariable(1)
+	bool isSuperActive = Character.getSuperState()
+
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	bool secondaryMode = (A0 != 0xffffb000 && tails.ai_routine != pAiRoutine_flyInExit && tails.control_counter == 0 && (isSoloMode || !csp_set_fourPlayer))
+#else
+	bool secondaryMode = false
+#endif
+
+	if (char.jumping)
+	{
+		// Limit velocity.y
+		s16 max_vy = (char.flags & char.flag.UNDERWATER) ? -0x200 : -0x400
+		if (char.velocity.y < max_vy)
+		{
+			// Limit vertical velocity while not pressing any jump button
+			//  -> This is important to support low jumps by just tapping the button briefly
+			if ((input_state & CONTROL_ABC) == 0)
+			{
+				char.velocity.y = max_vy
+			}
+		}
+	#if !LEMONS_TWEAKS_ACTIVE
+		else
+	#endif
+		{
+			if (secondaryMode) 
+				return
+				
+			if (char.double_jump_state == 0)
+			{
+				#if STANDALONE
+					if (Input.buttonPressed(BUTTON_Y))
+					{
+						if (!isSuperActive && char.invuln.countdown == 0)	// Check invulnerability to prevent spamming of super activate + cancel
+						{
+							if (Character.performSuperTransformation())
+								return
+						}
+					}
+				#endif
+
+				// Check if pressed jump again in mid-air
+				if (input_pressed & CONTROL_ABC)
+				{
+				#if STANDALONE
+					// Check for other things to do instead of the usual reaction to jump button pressed
+					if (onCharacterPressedJumpInMidAir(input_state, input_pressed))
+				#endif
+						AmyPressedJumpInMidAir()
+				}
+			}
+			// spin neutral
+			else if (char.double_jump_state == 1)
+			{
+				bool chargeDropDash = (input_state & CONTROL_ABC)
+				if (chargeDropDash)
+				{
+					if (sonic.dropdash_counter < Amy_minHoldTime)
+					{
+						// Drop dash charging
+						++sonic.dropdash_counter
+						if (sonic.dropdash_counter == Amy_minHoldTime)
+						{
+							// Fully charged now
+							char.state = char.state.AMY_HAMMERSPIN_H
+							char.double_jump_state = 2
+							//Audio.playOverride("amy_hammerready", AudioContext.CONTEXT_SOUND, Character.getCharAudioChannelA(), 1)
+						}
+					}
+					
+					Input.setControllerRumbleByAddress(A0, 0.0f, 0.25f, 100)
+				}
+				else if (sonic.dropdash_counter > 0)
+				{
+					// Abort drop dash
+					sonic.dropdash_counter = 0
+					//char.state = char.state.ROLLING
+				}
+			}
+			// spin charge
+			else if (char.double_jump_state == 2)
+			{
+				Character_checkWallInFront()
+				if ((input_state & CONTROL_ABC) == 0)
+				{
+					sonic.dropdash_counter = 0
+					char.double_jump_state = 1
+					char.state = char.state.AMY_HAMMERSPIN_N
+					Audio.stopChannel(Character.getCharAudioChannelA())
+				}
+				else if (ecc_setting_amyTwinSpin && D1.s16 <= 10 && char.state == char.state.AMY_HAMMERSPIN_H)
+					Amy_wallJump()
+			}
+			// twinspin a
+			else if (char.double_jump_state == 3)
+			{
+				if (input_pressed & CONTROL_ABC)
+				{
+					s16 speed = (char.flags & char.flag.UNDERWATER) ? 0x540 : 0x680
+					if (char.bonus_effect & char.bonus.SPEED_UP)
+						speed = Math.roundToInt(speed * 1.2)
+						
+					if (input_state & CONTROL_LEFT || input_state & CONTROL_RIGHT)
+					{
+						s16 dir
+						if (input_state & CONTROL_RIGHT)
+							++dir
+						if (input_state & CONTROL_LEFT)
+							--dir
+						
+						s16 loss = getPlayerGlobalValue("amy_bounceLoss")
+						
+						s16 storedSpeed = Math.roundToInt(char.velocity.y * 0.8)
+						if (char.velocity.x < 0)
+							storedSpeed = min(char.velocity.x, -storedSpeed)
+						else if (char.velocity.x > 0)
+							storedSpeed = max(char.velocity.x, storedSpeed)
+						
+						if (input_state & CONTROL_DOWN)
+							char.velocity.y = max(char.velocity.y, 0x300)
+						else
+						{
+							s16 height = min(-0x300 + (loss - 1) * 0x20, -0x100)
+							if (char.flags & char.flag.UNDERWATER)
+								height /= 2
+							char.velocity.y = height
+						}
+						
+						if (loss > 1)
+							speed = max(speed - (loss - 1) * (speed / 5), speed / 2)
+							
+						s16 capH = Math.roundToInt(s16[A4] * 1.8)
+						speed = clamp(speed, -capH, capH)
+						
+						if (dir == -1)
+							char.velocity.x = min(storedSpeed, -speed)
+						else if (dir == 1)
+							char.velocity.x = max(storedSpeed, speed)
+						
+						char.state = char.state.AMY_TWINSPIN
+						char.flags &= ~char.flag.ROLLING
+						char.double_jump_state = 4
+
+						char.position.y.u16 += (s16(char.hitbox_extends.y) - s16(char.hitbox.default.y)) * ((global.inv_gravity != (char.rotation + 0x40 >= 0x80)) ? -1 : 1)
+						char.hitbox_extends.x = char.hitbox.default.x
+						char.hitbox_extends.y = char.hitbox.default.y
+						
+						playSound(0xA0)
+					}
+					else
+					{
+						AmyPressedJumpInMidAir()
+					}
+				}
+			}
+			// twinspin b
+			else if (char.double_jump_state == 4)
+			{
+				Character_checkWallInFront()
+				if (input_pressed & CONTROL_ABC)
+					AmyPressedJumpInMidAir()
+				else if (D1.s16 <= 0)
+					Amy_wallJump()
+			}
+		}
+	}
+	else
+		base.Character.updateJumpMoves()
+}
+
+function void AmyPressedJumpInMidAir()
+{
+	u8 input_state     = Character.getControlVariable(0)
+	u8 input_pressed   = Character.getControlVariable(1)
+	
+	char.flags &= ~char.flag.CONTROL_LOCK
+	char.flags |= char.flag.ROLLING
+	char.double_jump_state = 1
+	char.state = char.state.AMY_HAMMERSPIN_N
+	sonic.dropdash_counter = 0
+
+	char.position.y.u16 += (s16(char.hitbox_extends.y) - s16(char.hitbox.y.ROLLING)) * ((global.inv_gravity != (char.rotation + 0x40 >= 0x80)) ? -1 : 1)
+	char.hitbox_extends.x = char.hitbox.x.ROLLING
+	char.hitbox_extends.y = char.hitbox.y.ROLLING
+
+	Audio.playAudio((ecc_setting_amySuperstarsSounds) ? "amy_s_attack" : "amy_attack")
+}
+
+function void Amy_wallJump()
+{
+	if (s16(char.position.y.u16) < s16(level.vertical_wrap) + s16(char.hitbox_extends.y))
+		return
+		
+	char.double_jump_state = 3
+	char.state = char.state.AMY_HAMMERSPIN_N
+	char.velocity.y = -max(abs(char.velocity.x), (char.flags & char.flag.UNDERWATER) ? 0x400 : 0x700)
+
+	u8 pId = ((A0.u16 - 0xb000) / 0x4a) + 1
+	s16 bounces = getPlayerGlobalValue("amy_bounceLoss")
+	char.velocity.y += (bounces - 1) * 0x120
+	if (bounces < 20)
+		setPlayerGlobalValue("amy_bounceLoss", bounces + 1)
+	char.velocity.x = (char.flags & char.flag.FACING_LEFT) ? 0x100 : -0x100
+	
+	playSound(0x98)
+}
+
+function void Character.LandingOnGroundResetState()
+{
+	setPlayerGlobalValue("amy_bounceLoss", 0)
+	
+	if (!isECFCharA0("ECC-Amy"))
+	{
+		base.Character.LandingOnGroundResetState()
+		return
+	}
+	
+	char.flags &= ~char.flag.IN_AIR
+	char.flags &= ~char.flag.PUSHING
+	char.flags &= ~char.flag.CONTROL_LOCK
+	char.jumping = 0
+	score.bonus_counter = 0		// No more increasing bonusses after hitting the ground
+	char.rotation.x = 0
+	u8[A0 + 0x2d] = 0
+	u8[A0 + 0x30] = 0
+	char.look_up_down_timer = 0
+	
+	// Check for double jump state
+	if (char.double_jump_state != 0)
+	{
+		if (char.double_jump_state == 2 && !AmyInteraction_cancelLand())
+			AmyLandedWithAirAbility()
+		else
+			char.double_jump_state = 0
+	}
+}
+
+
+function bool AmyInteraction_cancelLand()
+{
+	bool result = false
+	u32 A1_o = A1
+	A1 = 0xffff0000 + u32(char.object_standing_on)
+		
+	if (char.flags & char.flag.ON_OBJECT && char.object_standing_on)
+	{
+		if (objA1.update_address == 0x0462b6)
+			result = true
+		 
+	}
+	
+	A1 = A1_o
+	
+	return result
+}
+
+#if !LEMONS_TWEAKS_ACTIVE
+//# address-hook(0x011eec) end(0x011fd4)
+//# translated(0x012012) end(0x01209c)
+//# translated(0x01209e) end(0x012100)
+//# translated(0x012102) end(0x012170)
+//# address-hook(0x0153c2) end(0x01560a)
+function void Character.CheckCollision()
+{
+	if (!isECFCharA0("ECC-Amy") || char.double_jump_state != 2)
+	{
+		base.Character.CheckCollision()
+		return
+	}
+	
+	// reorders two landing calls to be done after velocities are set.
+#if STANDALONE
+	if (A0 == 0xffffb000)
+	{
+		// Needed only for bubble shield bounce
+		mainchar.groundhit.velocity.x = char.velocity.x
+		mainchar.groundhit.velocity.y = char.velocity.y
+	}
+#endif
+
+	bool someFlag = (char.character == CHARACTER_TAILS) ? level.HCZ_water_current_flags.tails : level.HCZ_water_current_flags.player1
+
+	u32[0xfffff796] = (char.layer_flags1 == 0x0c) ? u32[0xfffff7b4] : u32[0xfffff7b8]
+
+	D5.u8 = char.layer_flags2
+	D0.u16 = lookupAngleByVector(char.velocity.x, char.velocity.y)
+	D0.u8 = (D0.u8 - 0x20) & 0xc0
+	if (D0.u8 == 0)
+	{
+		Character.CheckLeftWallCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.x.u16 -= D1.u16
+			char.velocity.x = 0
+		}
+
+		Character.CheckRightWallCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.x.u16 += D1.u16
+			char.velocity.x = 0
+		}
+
+		Character.CheckFloorCollision()
+		if (D1.s16 < 0)
+		{
+			D2.u8 = (char.velocity.y >> 8) + 8
+			D2.s8 = -D2.s8
+			if (D0.s8 < D2.s8 && D1.s8 < D2.s8)
+				return
+
+			char.rotation = D3.u8
+			char.position.y.u16 += global.inv_gravity ? -D1.s16 : D1.s16
+
+			if (((D3.u8 + 0x20) & 0x40) == 0)
+			{
+				if (((D3.u8 + 0x10) & 0x20) == 0)
+				{
+					char.velocity.y = 0
+					char.groundspeed = char.velocity.x
+					Character.LandingOnGround()
+					return
+				}
+				else
+				{
+					char.velocity.y >>= 1
+				}
+			}
+			else
+			{
+				char.velocity.x = 0
+				char.velocity.y = min(char.velocity.y, 0x0fc0)
+			}
+
+			char.groundspeed = char.velocity.y
+			if (D3.s8 < 0)
+			{
+				char.groundspeed = -char.groundspeed
+			}
+			
+			Character.LandingOnGround() // reordered
+		}
+	}
+	else if (D0.u8 == 0x40)
+	{
+		Character.CheckLeftWallCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.x.u16 -= D1.u16
+			char.velocity.x = 0
+			char.groundspeed = char.velocity.y
+		}
+
+		Character.CheckCeilingCollision()
+		if (D1.s16 < 0)
+		{
+			D1.s16 = -D1.s16
+			if (D1.s16 < 0x14)
+			{
+				if (global.inv_gravity)
+					D1.s16 = -D1.s16
+
+				char.position.y.u16 += D1.u16
+				char.velocity.y = max(char.velocity.y, 0)
+			}
+			else
+			{
+				Character.CheckRightWallCollision()
+				if (D1.s16 < 0)
+				{
+					char.position.x.u16 += D1.u16
+					char.velocity.x = 0
+				}
+			}
+		}
+		else
+		{
+			if (someFlag || char.velocity.y >= 0)
+			{
+				Character.CheckFloorCollision()
+				if (D1.s16 < 0)
+				{
+					char.position.y.u16 += global.inv_gravity ? -D1.s16 : D1.s16
+					char.rotation = D3.u8
+					char.velocity.y = 0
+					char.groundspeed = char.velocity.x
+					Character.LandingOnGround()
+				}
+			}
+		}
+	}
+	else if (D0.u8 == 0x80)
+	{
+		Character.CheckLeftWallCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.x.u16 -= D1.u16
+			char.velocity.x = 0
+		}
+
+		Character.CheckRightWallCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.x.u16 += D1.u16
+			char.velocity.x = 0
+		}
+
+		Character.CheckCeilingCollision()
+		if (D1.s16 < 0)
+		{
+			if (global.inv_gravity)
+				D1.s16 = -D1.s16
+
+			char.position.y.u16 -= D1.u16
+			if (((D3.u8 + 0x20) & 0x40) == 0)
+			{
+				char.velocity.y = 0
+			}
+			else
+			{
+				char.rotation = D3.u8
+
+				char.groundspeed = char.velocity.y
+				if (D3.s8 < 0)
+					char.groundspeed = -char.groundspeed
+				
+				Character.LandingOnGround() // reordered
+			}
+		}
+	}
+	else	// (D0.u8 == 0xc0)
+	{
+		Character.CheckRightWallCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.x.u16 += D1.s16
+			char.velocity.x = 0
+			char.groundspeed = char.velocity.y
+		}
+
+		Character.CheckCeilingCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.y.u16 -= global.inv_gravity ? -D1.s16 : D1.s16
+			char.velocity.y = max(char.velocity.y, 0)
+		}
+		else
+		{
+			if (someFlag || char.velocity.y >= 0)
+			{
+				Character.CheckFloorCollision()
+				if (D1.s16 < 0)
+				{
+					char.position.y.u16 += global.inv_gravity ? -D1.s16 : D1.s16
+					char.rotation = D3.u8
+					char.velocity.y = 0
+					char.groundspeed = char.velocity.x
+					Character.LandingOnGround()
+				}
+			}
+		}
+	}
+}
+#endif
+
+function bool Character_checkWallInFront()
+{	
+	pushA456()
+
+	u32[0xfffff796] = (char.layer_flags1 == 0x0c) ? u32[0xfffff7b4] : u32[0xfffff7b8]
+	D5.u8 = char.layer_flags2
+	
+	u8 result
+	if (char.flags & char.flag.FACING_LEFT)
+	{
+		Character.CheckLeftWallCollision()
+		if (D1.s16 <= 0)
+			result = true
+	}
+	else
+	{
+		Character.CheckRightWallCollision()
+		if (D1.s16 <= 0)
+			result = true
+	}
+	
+	popA456()
+	
+	return result
+}
+
+function void AmyLandedWithAirAbility()
+{
+#if LEMONS_TWEAKS_ACTIVE
+	s16 oldVX = getPlayerGlobalValue("groundhit_velocity_x")
+	s16 oldVY = getPlayerGlobalValue("groundhit_velocity_y")
+#else
+	s16 oldVX = mainchar.groundhit.velocity.x
+	s16 oldVY = mainchar.groundhit.velocity.y
+#endif
+
+	s16 force = 0x700
+	if (Character.getSuperState() & 0x80 && oldVY >= force + 0x200)
+	{
+		camera.hyper_knux_shake = 0x0114
+		Character.ClearEnemiesOnScreen()
+		playSound(0x49)
+		Input.setControllerRumbleByAddress(A0, 0.5f, 1.0f, 200)
+		force += 0x200
+	}
+	
+	if (char.flags & char.flag.UNDERWATER)
+		force /= 2
+	
+	u8 angle = char.rotation - 0x40
+	char.velocity.x = (s32(lookupCos(char.rotation)) * char.groundspeed) >> 8
+	char.velocity.y = (s32(lookupSin(char.rotation)) * char.groundspeed) >> 8
+	char.velocity.x += (s32(lookupCos(angle)) * force) >> 8
+	char.velocity.y += (s32(lookupSin(angle)) * force) >> 8
+	
+	if (char.velocity.y > 0)
+	{
+		u8 moveAngle = lookupAngleByVector(oldVX, oldVY)
+		u8 groundAngle = char.rotation
+		u8 reflectedAngle = groundAngle * 2 - moveAngle
+		
+		force = max(force, mainchar.groundhit.velocity.y)
+		char.velocity.x = (s32(lookupCos(reflectedAngle)) * force) >> 8
+		char.velocity.y = (s32(lookupSin(reflectedAngle)) * force) >> 8
+	}
+	
+	char.state = char.state.AMY_HAMMERSPIN_N
+	char.flags |= (char.flag.IN_AIR | char.flag.ROLLING)
+	char.flags &= ~char.flag.PUSHING
+	char.jumping = 1
+	char.double_jump_state = 1
+	char.on_convex_surface = 0
+	char.hitbox_extends.x = char.hitbox.x.ROLLING
+	char.hitbox_extends.y = char.hitbox.y.ROLLING
+
+	s8 dy = char.hitbox_extends.y - char.hitbox.default.y
+	char.position.y.u16 += (global.inv_gravity) ? dy : -dy
+	
+	Audio.playAudio((ecc_setting_amySuperstarsSounds) ? "amy_s_bounce" : "amy_bounce")
+}
+
+//# address-hook(0x011036) end(0x01105e)
+function void Character.UpdateSonicRollingInAir()
+{
+	if (!isECFCharA0("ECC-Amy"))
+	{
+		base.Character.UpdateSonicRollingInAir()
+		return
+	}
+
+	u8 input_state     = Character.getControlVariable(0)
+
+	if (char.double_jump_state == 2 && input_state & CONTROL_DOWN)
+	{
+		UpdateSonicJumpMoves()
+		Character.UpdateControlInAir()
+		Character.CheckAgainstMoveBorders()
+		UpdateMovementStraight()
+		
+		float grav = (char.flags & char.flag.UNDERWATER) ? 0x10 : 0x38
+		grav *= 2
+		char.velocity.y += Math.roundToInt(grav)
+
+		Character.UpdateRotationInAir()
+		Character.CheckCollision()
+	}
+	else
+		base.Character.UpdateSonicRollingInAir()
+}
+
+//# address-hook(0x01164e) end(0x0116dc)
+//# address-hook(0x014e78) end(0x014f06)
+//# address-hook(0x017680) end(0x01770e)
+function void Character.UpdateControlInAir()
+{
+	if (!isECFCharA0("ECC-Amy") || char.double_jump_state != 4)
+	{
+		base.Character.UpdateControlInAir()
+		return
+	}
+	
+	// Twinspin has alternate air physics and doesn't turn when left or right is pressed
+	
+	u8 input_state     = Character.getControlVariable(0)
+	s16 vx = char.velocity.x
+
+	// Direct control
+	if ((char.flags & char.flag.CONTROL_LOCK) == 0)
+	{
+		s16 maxSpeed = s16[A4]
+		s16 acceleration = s16[A4 + 2] * 2
+
+		if (input_state & CONTROL_LEFT)
+		{
+			//char.flags |= char.flag.FACING_LEFT
+			vx -= acceleration
+			if (vx <= -maxSpeed)
+			{
+				vx += acceleration
+				vx = min(vx, -maxSpeed)
+			}
+			
+			if (vx < 0)
+			{
+				char.velocity.x = vx
+				return
+			}
+		}
+		if (input_state & CONTROL_RIGHT)
+		{
+			//char.flags &= ~char.flag.FACING_LEFT
+			vx += acceleration
+			if (vx >= maxSpeed)
+			{
+				vx -= acceleration
+				vx = max(vx, maxSpeed)
+			}
+			
+			if (vx > 0)
+			{
+				char.velocity.x = vx
+				return
+			}
+		}
+	}
+
+	// Center camera y-offset again
+	centerCameraYOffset()
+
+	// Air drag
+	if (char.velocity.y < 0 && char.velocity.y >= -0x400)  // Not when falling or going up too fast
+	{
+		s16 drag = vx >> 5		// Do not divide here, as it rounds differently for negative numbers
+		if (drag != 0)
+		{
+			vx -= drag
+			if (drag > 0)
+				vx = max(vx, 0)
+			else
+				vx = min(vx, 0)
+		}
+	}
+	
+	char.velocity.x = vx
+}
+
+//# address-hook(0x00fe8e) end(0x00ff04)
+function void Character.CheckCollisionsWithDynamicObjects()
+{
+	if (!isECFCharA0("ECC-Amy"))
+	{
+		base.Character.CheckCollisionsWithDynamicObjects()
+		return
+	}
+	
+	SonicUpdateRingCollection()
+	UpdateShieldDeflecting()
+
+	D5 = char.hitbox_extends.y - 3
+	D2 = char.position.x.u16 - 8
+	D3 = char.position.y.u16 - D5.u16
+	D4 = 16
+	D5 *= 2
+	
+	if (char.state == char.state.AMY_HAMMERSPIN_N || char.state == char.state.AMY_HAMMERSPIN_H)
+	{
+		// Larger hitbox
+		D2.u16 = char.position.x.u16 - 0x18
+		D3.u16 = char.position.y.u16 - 0x18
+		D4.u16 = 0x30
+		D5.u16 = 0x30
+	}
+	
+	Character.CheckCollisionsWithDynamicObjects_partial()
+}
+
+function void Character.OnHitBoss()
+{
+	if (isECFCharA0("ECC-Amy") && (char.double_jump_state == 1 || char.double_jump_state == 2))
+	{
+		sonic.dropdash_counter = 0
+		char.double_jump_state = 0
+		char.state = char.state.ROLLING
+		
+		s16 dx = char.position.x.u16 - objA1.position.x.u16
+		s16 dy = char.position.y.u16 - objA1.position.y.u16
+
+		u8 angle = lookupAngleByVector(dx, dy)
+
+		// Set new object velocity
+		char.velocity.x = (s32(lookupCos(angle)) * 0x0600) >> 8
+		char.velocity.y = (s32(lookupSin(angle)) * 0x0600) >> 8
+
+		playSound(0x47)
+	}
+	else
+		base.Character.OnHitBoss()
+}
+
+function void Character.OnHitBadnik()
+{
+	base.Character.OnHitBadnik()
+	if (isECFCharA0("ECC-Amy") && char.double_jump_state == 2 && char.velocity.y < 0)
+	{
+		sonic.dropdash_counter = 0
+		char.double_jump_state = 0
+		char.state = char.state.ROLLING
+		s16 vel = (char.flags & char.flag.UNDERWATER) ? -0x200 : -0x400
+		char.velocity.y = min(char.velocity.y, vel)
+
+		playSound(0x47)
+	}
+}
+
+function void Character.OnHitMonitor()
+{
+	if (isECFCharA0("ECC-Amy") && char.state == char.state.AMY_TWINSPIN)
+		Amy_wallJump()
+	else
+		base.Character.OnHitMonitor()
+}
+
+//# address-hook(0x01021e) end(0x010288)
+function void Character.OnThreatCollision()
+{
+	if (!isECFCharA0("ECC-Amy"))
+	{
+		base.Character.OnThreatCollision()
+		return
+	}
+
+#if ROARING_KNIGHT_ACTIVE
+	if (isRoaringKnightMode)
+	{
+		base.Character.OnThreatCollision()
+		return
+	}
+#endif
+
+	// Check for shield or invincibility
+	D0.u8 = (char.bonus_effect & (char.bonus.ALL_SHIELDS | char.bonus.INVINCIBLE))
+	if (D0.u8 != 0)
+	{
+		D0.u8 &= u8[A1 + 0x2b]
+		if (D0.u8 != 0)
+		{
+			D0 = 0xffffffff
+			return
+		}
+
+		if ((char.bonus_effect & char.bonus.ANY_SHIELD) == 0)
+		{
+			if ((char.bonus_effect & char.bonus.INVINCIBLE) == 0)
+			{
+				Character.OnThreatCollisionInner()
+			}
+			D0 = 0xffffffff
+			return
+		}
+	}
+	else
+	{
+		bool canDeflect = (char.state == char.state.AMY_HAMMERSPIN_N || char.state == char.state.AMY_HAMMERSPIN_H || char.state == char.state.AMY_TWINSPIN)
+		if (!canDeflect)
+		{
+			Character.OnThreatCollisionInner()
+			return
+		}
+	}
+
+	if ((u8[A1 + 0x2b] & char.bonus.DEFLECTABLE) == 0)
+	{
+		if ((char.bonus_effect & char.bonus.INVINCIBLE) == 0)
+		{
+			if (char.state == char.state.AMY_HAMMERSPIN_N || char.state == char.state.AMY_HAMMERSPIN_H)
+			{
+				//  - 0x28 x 0x28  -> (offset & collision_attributes.size) = collision.size.40x40
+				A2 = 0x00ff62 + (objA1.collision_attributes & collision_attributes.size) * 2
+				s16 hitbox.x = u8[A2]
+				s16 hitbox.y = u8[A2+1]
+
+				u16 px = objA1.position.x.u16 - hitbox.x
+				u16 py = objA1.position.y.u16 - hitbox.y
+				u16 sx = hitbox.x * 2
+				u16 sy = hitbox.y * 2
+				
+				if (checkBoxOverlap(char.position.x.u16 - 8, char.position.y.u16 - (char.hitbox_extends.y - 3), 16, (char.hitbox_extends.y - 3) * 2, px, py, sx, sy))
+					Character.OnThreatCollisionInner()
+			}
+			else
+				Character.OnThreatCollisionInner()
+		}
+	}
+	else
+	{
+		deflectProjectile()
+	}
+	D0 = 0xffffffff
+}
+
+//# address-hook(0x0857c2) end(0x0857e6)
+function void fn0857c2()
+{
+	if (isECFCharA1("ECC-Amy") && (objA1.state == char.state.AMY_HAMMERSPIN_N || objA1.state == char.state.AMY_HAMMERSPIN_H || objA1.state == char.state.AMY_TWINSPIN))
+	{
+		fn085822()
+		return
+	}
+	else
+		base.fn0857c2()
+}
+
+//# address-hook(0x0869c6) end(0x0869f4)
+function void StartCharacterWinPose()
+{
+	if (!isECFCharA1("ECC-Amy"))
+	{
+		base.StartCharacterWinPose()
+		return
+	}
+	
+	if (objA1.state != char.state.WIN_POSE)
+	{
+		objA1.flags2a &= ~char.flag.ROLLING
+
+		objA1.position.y.u16 += (s16(objA1.hitbox_extends.y) - s16(u8[A1 + 0x44])) * ((global.inv_gravity != (objA1.value26 + 0x40 >= 0x80)) ? -1 : 1)
+		objA1.hitbox_extends.x = u8[A1 + 0x45]
+		objA1.hitbox_extends.y = u8[A1 + 0x44]
+		
+		// Fix for player being able to walk around and do stuff, if carried by Tails when touching ground
+		tails.carrying = 0
+
+		objA1.velocity.x = 0
+		objA1.velocity.y = 0
+		objA1.groundspeed = 0
+		objA1.state = char.state.WIN_POSE
+		objA1.flags2a &= ~char.flag.PUSHING
+		u8[A1 + 0x2e] = 0 // safety check, should be 0 already
+		u8[A1 + 0x3d] = 0
+		
+		objA0.flags2a &= ~object.flag.P1_PUSHING
+		objA0.flags2a &= ~object.flag.P2_PUSHING
+	}
+}
+
+//# address-hook(0x085b8e) end(0x085ba6)
+function void StopCharacterWinPose()
+{
+	if (!isECFCharA1("ECC-Amy"))
+	{
+		base.StopCharacterWinPose()
+		return
+	}
+	
+	if ((objA1.flags2a & char.flag.IN_AIR) == 0)
+	{
+		objA1.state.both = 0x0505		// char.state.STANDING, char.state.STANDING
+		objA1.animation.frame = 0
+		objA1.animation.timer = 0
+	}
+	else
+		u8[A1 + 0x30] = 1
+	u8[A1 + 0x2e] = 0 // safety check, should be 0 already
+
+#if STANDALONE
+	// This fixes "Zombie Tails" when Tails gets killed just before the win pose
+	if (A1 == 0xffffb000)
+	{
+		player2.control_override = 0
+	}
+#endif
+}
+
+
+function void Character.updateUprightOnGround()
+{
+	if (!isECFCharA0("ECC-Amy") || char.state != char.state.WIN_POSE)
+	{
+		base.Character.updateUprightOnGround()
+		return
+	}
+
+	if (char.animation.frame == 1 && char.animation.timer == 0)
+	{
+		char.velocity.y = (char.flags & char.flag.UNDERWATER) ? -0x200 : -0x400
+		char.flags |= (char.flag.IN_AIR | char.flag.CONTROL_LOCK)
+		char.flags &= ~char.flag.PUSHING
+
+		Character.UpdateControlInAir()
+		Character.CheckAgainstMoveBorders()
+		Character.UpdateMovement()
+
+		if (char.flags & char.flag.UNDERWATER) // Gravity
+			char.velocity.y -= 0x28
+
+		Character.UpdateRotationInAir()
+		Character.CheckCollision()
+	}
+	else
+	{
+		Character.UpdateUprightSlopeEffect()
+		
+		char.velocity.x = (s32(lookupCos(char.rotation)) * char.groundspeed) >> 8
+		char.velocity.y = (s32(lookupSin(char.rotation)) * char.groundspeed) >> 8
+
+		Character.UpdateControlOnGroundShared()
+	
+		Character.CheckForStartRolling()
+
+		Character.sharedUpdateOnGround()
+	}
+}
+
+//# address-hook(0x01174a) end(0x0117d8)
+//# address-hook(0x014f74) end(0x015000)
+function void Character.CheckForStartRolling()
+{
+	if (isECFCharA0("ECC-Amy") && char.state == char.state.WIN_POSE)
+		return
+	base.Character.CheckForStartRolling()
+}
+
+//# address-hook(0x012172) end(0x012178)
+//# address-hook(0x01560c) end(0x01569a)
+function void Character.LandingOnGround()
+{
+	if (isECFCharA0("ECC-Amy") && char.state == char.state.WIN_POSE)
+		Character.LandingOnGround_AmyWin()
+	else
+		base.Character.LandingOnGround()
+}
+
+//# address-hook(0x01217e) end(0x012230)
+//# address-hook(0x015618)
+//# address-hook(0x017b24) end(0x017bb4)
+function void Character.LandingOnGroundNoSpindash()
+{
+	if (isECFCharA0("ECC-Amy") && char.state == char.state.WIN_POSE)
+		Character.LandingOnGround_AmyWin()
+	else
+		base.Character.LandingOnGroundNoSpindash()
+}
+
+function void Character.LandingOnGround_AmyWin()
+{
+	if (char.rotation.x.count)
+	{
+		char.rotation.x.count = 0
+		char.state = char.state.RUNNING
+	}
+	else
+	{
+		char.state = char.state.WIN_POSE
+		char.state.former = char.state.WIN_POSE
+		char.animation.frame = 6
+		char.animation.timer = 0
+		
+		char.position.y.u16 += (s16(char.hitbox_extends.y) - s16(char.hitbox.default.y)) * ((global.inv_gravity != (char.rotation + 0x40 >= 0x80)) ? -1 : 1)
+		char.hitbox_extends.x = char.hitbox.default.x
+		char.hitbox_extends.y = char.hitbox.default.y
+		char.flags &= ~char.flag.ROLLING
+	}
+	
+	Character.LandingOnGroundResetState()
+}
+
+function void ECF_characterSoundUpdate()
+{
+	if (isECFCharA0("ECC-Amy") && !ecc_setting_amySuperstarsSounds)
+	{
+		string spinSound = (char.double_jump_state == 2) ? "amy_loop_c" : "amy_loop"
+		
+		u8 channel = Character.getCharAudioChannelB()
+		
+		if ((char.double_jump_state == 2 || char.double_jump_state == 4) && char.flags & char.flag.IN_AIR)
+		{
+			if (!Audio.isPlayingAudio(spinSound))
+				Audio.playOverride(spinSound, AudioContext.CONTEXT_SOUND, channel, 1)
+			else
+				Audio.fadeInChannel(channel, .2)
+		}
+		else
+		{
+			if (Audio.isPlayingAudio("amy_loop_c") || Audio.isPlayingAudio("amy_loop"))
+				Audio.fadeOutChannel(channel, .2)
+		}
+	}
+	else
+		base.ECF_characterSoundUpdate()
+}

@@ -1,0 +1,11 @@
+{
+	"mighty_drill": { "File": "MightyDrill.ogg", "Type": "Sound"},
+	"mighty_land": { "File": "MightyLand.ogg", "Type": "Sound"},
+	"mighty_unspin": { "File": "MightyUnspin.ogg", "Type": "Sound"},
+	"mighty_deflect": { "File": "MightyDeflect.ogg", "Type": "Sound"},
+	// by icy_kirisame
+	"mighty_c_drill": { "File": "MightyDrill_alt.ogg", "Type": "Sound"},
+	"mighty_c_land": { "File": "MightyLand_alt.ogg", "Type": "Sound"},
+	"mighty_c_unspin": { "File": "MightyUnspin_alt.ogg", "Type": "Sound"},
+	"mighty_c_deflect": { "File": "MightyDeflect_alt.ogg", "Type": "Sound"}
+}

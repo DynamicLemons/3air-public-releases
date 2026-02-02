@@ -1,0 +1,14 @@
+{
+	"character_ECC-Ray_tails_0x01":  { "File": "character_ray.bmp", "Rect": "8,1168,56,56", "Center": "28,36" },
+	"character_ECC-Ray_tails_0x02":  { "File": "character_ray.bmp", "Rect": "65,1168,56,56", "Center": "28,36" },
+	"character_ECC-Ray_tails_0x03":  { "File": "character_ray.bmp", "Rect": "122,1168,56,56", "Center": "28,36" },
+	"character_ECC-Ray_tails_0x04":  { "File": "character_ray.bmp", "Rect": "179,1168,56,56", "Center": "28,36" },
+	"character_ECC-Ray_tails_0x05":  { "File": "character_ray.bmp", "Rect": "237,1168,56,56", "Center": "28,36" },
+	"character_ECC-Ray_tails_0x06":  { "File": "character_ray.bmp", "Rect": "294,1168,56,56", "Center": "28,36" },
+	"character_ECC-Ray_tails_0x07":  { "File": "character_ray.bmp", "Rect": "351,1168,56,56", "Center": "28,36" },
+	"character_ECC-Ray_tails_0x08":  { "File": "character_ray.bmp", "Rect": "408,1168,56,56", "Center": "28,36" },
+	"character_ECC-Ray_tails_0x09":  { "File": "character_ray.bmp", "Rect": "465,1168,58,56", "Center": "30,36" },
+	"character_ECC-Ray_tails_0x0a":  { "File": "character_ray.bmp", "Rect": "524,1168,58,56", "Center": "30,36" },
+	"character_ECC-Ray_tails_0x0b":  { "File": "character_ray.bmp", "Rect": "583,1168,58,56", "Center": "30,36" },
+	"character_ECC-Ray_tails_0x0c":  { "File": "character_ray.bmp", "Rect": "642,1168,58,56", "Center": "30,36" }
+}

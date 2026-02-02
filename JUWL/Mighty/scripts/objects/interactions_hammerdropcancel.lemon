@@ -1,0 +1,153 @@
+// boss_hcz2
+function void fn06bb5c()
+{
+	if (!isECFCharAt(A2, "ECC-Mighty"))
+	{
+		base.fn06bb5c()
+		return
+	}
+	
+	if (u8[A2 + 0x2e] != 0)
+		return
+
+#if STANDALONE
+	// Ignore if character is not in normal state, but e.g. in got hurt state
+	if (u8[A2 + 0x05] != base_state.NORMAL)
+		return
+#endif
+
+	// Check if character is inside the bomb's water fountain
+	u16 px = u16[A2 + 0x10]
+	u16 py = u16[A2 + 0x14]
+	D0.u16 = objA0.position.x.u16 + u16[A1]
+	if (px >= D0.u16 && px < D0.u16 + u16[A1+2])
+	{
+		D0.u16 = objA0.position.y.u16 + u16[A1+4]
+		if (py >= D0.u16 && py < D0.u16 + u16[A1+6])
+		{
+			s16[A2 + 0x1a] = -0x800
+			if (u8[A2 + 0x20] == char.state.MIGHTY_HAMMERDROP)
+			{
+				u8[A2 + 0x20] = char.state.ROLLING
+				u8[A2 + 0x2f] = 2
+			}
+		}
+	}
+}
+
+// mgz_spiker
+//# address-hook(0x088da6) end(0x088dcc)
+function void fn088da6()
+{
+	base.fn088da6()
+	if (isECFCharA1("ECC-Mighty") && objA1.state == char.state.MIGHTY_HAMMERDROP)
+	{
+		objA1.state = char.state.ROLLING
+		u8[A1 + 0x2f] = 2
+	}
+}
+
+// cnz_clamer
+//# address-hook(0x0890d8) end(0x089122)
+function void fn0890d8()
+{
+	if (isECFCharA1("ECC-Mighty") && objA1.state == char.state.MIGHTY_HAMMERDROP)
+		u8[A1 + 0x2f] = 2
+	base.fn0890d8()
+}
+
+// cnz_balloon
+//# address-hook(0x0317ae) end(0x03181c)
+function void fn0317ae()
+{
+	if (isECFCharA1("ECC-Mighty") && objA1.state == char.state.MIGHTY_HAMMERDROP)
+	{
+		objA1.state = char.state.ROLLING
+		u8[A1 + 0x2f] = 2
+	}
+	base.fn0317ae()
+}
+
+// cnz_bouncepad
+//# address-hook(0x0329b8) end(0x032a72)
+function void fn0329b8()
+{
+	if (isECFCharA1("ECC-Mighty") && objA1.state == char.state.MIGHTY_HAMMERDROP)
+	{
+		base.fn0329b8()
+		if (D0.u16 < objA0.value32 && D1.u16 < 0x28 && u8[A1 + 0x05] < base_state.HURT && !debug_mode.state)
+			u8[A1 + 0x2f] = 2
+	}
+	else
+		base.fn0329b8()
+}
+
+
+// roundbumper
+//# address-hook(0x032f56) end(0x032fee)
+function void fn032f56()
+{
+	if (isECFCharA1("ECC-Mighty") && objA1.state == char.state.MIGHTY_HAMMERDROP)
+	{
+		objA1.state = char.state.ROLLING
+		u8[A1 + 0x2f] = 2
+	}
+	base.fn032f56()
+}
+
+// boss_hpz_knuckles
+//# address-hook(0x063f7a) end(0x063fd2)
+function void fn063f7a()
+{
+	u32 A1_o = A1
+	base.fn063f7a()
+	A1 = A1_o
+	if (isECFCharA1("ECC-Mighty") && objA1.state == char.state.MIGHTY_HAMMERDROP)
+	{
+		objA1.state = char.state.ROLLING
+		u8[A1 + 0x2f] = 2
+		objA1.velocity.y = -0x200
+	}
+}
+
+// boss_dez2
+//# address-hook(0x07fa7e) end(0x07faca)
+function void fn07fa7e()
+{
+	// basically verifying the result of fn085870()...
+	// might not be the best idea, not sure how to do this while allowing a function base.
+	D0.u8 = u8[A0 + 0x29]
+	D0.u16 = (D0.u16 & 0x03) * 2
+	A1 = 0xffff0000 + u16[0x085890 + D0.u16]
+	
+	if (!isECFCharA1("ECC-Mighty"))
+	{
+		base.fn07fa7e()
+		return
+	}
+	
+	fn085870()
+	if (!_equal())
+	{
+		D0.u8 = u8[A0 + 0x3c]
+		D1.s8 = (global.framecounter.low & 0x03) - 2
+		D0.u16 += D1.s8
+		LookupSinCos()
+		D0.u16 <<= 3
+		D1.u16 <<= 3
+		objA1.velocity.x = D0.u16
+		objA1.velocity.y = D1.u16
+		objA1.flags2a |= char.flag.IN_AIR
+		objA1.flags2a &= ~(char.flag.CONTROL_LOCK | char.flag.PUSHING)
+		u8[A1 + 0x40] = 0
+		
+		if (objA1.state == char.state.MIGHTY_HAMMERDROP || objA1.state == char.state.MIGHTY_WALLCLING)
+		{
+			objA1.state = char.state.ROLLING
+			u8[A1 + 0x2f] = 2
+		}
+		
+		objA0.state = 0x01
+		playSound(0xaa)
+	}
+}

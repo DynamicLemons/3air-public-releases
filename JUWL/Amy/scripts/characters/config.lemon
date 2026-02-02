@@ -1,0 +1,143 @@
+function void ECF_buildCharList()
+{
+	ECF_allocChar("ECC-Amy")
+	base.ECF_buildCharList()
+}
+
+function string ECF_getCharDisplayName(string name)
+{
+	if (name == "ECC-Amy")
+		return "Amy"
+	return base.ECF_getCharDisplayName(name)
+}
+
+function bool ECF_isCharacterAttacking()
+{
+	if (isECFCharA0("ECC-Amy") && (char.state == char.state.AMY_HAMMERSPIN_N || char.state == char.state.AMY_HAMMERSPIN_H || char.state == char.state.AMY_TWINSPIN))
+		return true
+	return base.ECF_isCharacterAttacking()
+}
+
+function bool ECF_canCharacterOpenMonitor()
+{
+	if (isECFCharA0("ECC-Amy") && (char.state == char.state.AMY_HAMMERSPIN_N || char.state == char.state.AMY_HAMMERSPIN_H || char.state == char.state.AMY_TWINSPIN))
+		return true
+	return base.ECF_canCharacterOpenMonitor()
+}
+
+function u8 ECF_canCharBreakFloor()
+{
+	if (isECFCharA0("ECC-Amy"))
+		return (char.state == char.state.ROLLING || char.state == char.state.AMY_HAMMERSPIN_N || char.state == char.state.AMY_HAMMERSPIN_H)
+	return base.ECF_canCharBreakFloor()
+}
+
+function u32 ECF_getFollowInitRoutine(string name)
+{
+	return (name == "ECC-Amy") ? addressof(TailsTails.Init) : base.ECF_getFollowInitRoutine(name)
+}
+
+function s16 ECF_getResultsNameTagWidth(string name)
+{
+	if (name == "ECC-Amy")
+		return 56
+	return base.ECF_getResultsNameTagWidth(name)
+}
+
+function u8 ECF_AIZ_introBase(string name)
+{
+	if (name == "ECC-Amy")
+		return CHARACTER_KNUCKLES
+	return base.ECF_AIZ_introBase(name)
+}
+
+function string getECFCharacterFollowObjectSpriteKey(string name, bool isSuperActive)
+{
+	if (name == "ECC-Amy")
+		return "character_ECC-Amy_hammer"
+	return base.getECFCharacterFollowObjectSpriteKey(name, isSuperActive)
+}
+
+function string getECFCharacterPaletteKey(string name)
+{
+	if (name == "ECC-Amy" && ecc_setting_amyAltPalette)
+		return stringformat("%s_alt", base.getECFCharacterPaletteKey(name))
+		
+	return base.getECFCharacterPaletteKey(name)
+}
+
+function string getECFCharacterLivesIcon(string name)
+{
+	if (name == "ECC-Amy" && ecc_setting_amyAltPalette)
+		return stringformat("%s_Alt", base.getECFCharacterLivesIcon(name))
+		
+	return base.getECFCharacterLivesIcon(name)
+}
+
+function string getECFCharacterContinueIcon(string name)
+{
+	if (name == "ECC-Amy" && ecc_setting_amyAltPalette && objA0.update_address != 0x05ca5c)
+		return stringformat("%s_Alt", base.getECFCharacterContinueIcon(name))
+		
+	return base.getECFCharacterContinueIcon(name)
+}
+
+function string getECFCharacterBonusTextIcon(string name)
+{
+	if (name == "ECC-Amy" && ecc_setting_amyAltPalette)
+		return stringformat("%s_Alt", base.getECFCharacterBonusTextIcon(name))
+		
+	return base.getECFCharacterBonusTextIcon(name)
+}
+
+function string getECFCharacterResultsNameplate(string name)
+{
+	if (name == "ECC-Amy" && ecc_setting_amyAltPalette)
+		return stringformat("%s_Alt", base.getECFCharacterResultsNameplate(name))
+		
+	return base.getECFCharacterResultsNameplate(name)
+}
+
+function string Lemons_getSlotIcon(u8 i)
+{
+	if (global_ExChar_P1 == "ECC-Amy" && i == 3)
+	{
+		string key = "sloticon_amy"
+	#if LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+		if (yywtrrshygnds_setting_novemberslots)
+			key = stringformat("%s_alt", key)
+	#endif
+		if (Renderer.hasCustomSprite(key))
+			return key
+	}
+	return base.Lemons_getSlotIcon(i)
+}
+
+function string ECF_getRPCSprite(string name)
+{
+	return (name == "ECC-Amy") ? "https://i.imgur.com/AWZ3Q15.png" : base.ECF_getRPCSprite(name)
+}
+
+function u32 ECF_getLedColor(string name)
+{
+	return (name == "ECC-Amy") ? 0xcd81ff : base.ECF_getLedColor(name)
+}
+
+
+function void ESS_getCharacterColors(string name)
+{
+	if (name == "ECC-Amy")
+	{
+		D0.u32 = 0x9090fc
+		D1.u32 = 0x484890
+	}
+	else
+		base.ESS_getCharacterColors(name)
+}
+
+function s16 ActSelect_CSP_isFaceLeft(string name)
+{
+	if (name == "ECC-Amy")
+		return true
+	return base.ActSelect_CSP_isFaceLeft(name)
+}

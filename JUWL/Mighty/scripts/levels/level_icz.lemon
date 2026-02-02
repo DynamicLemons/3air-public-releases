@@ -1,0 +1,34 @@
+//# address-hook(0x01c9e0) end(0x01c9f8)
+function void fn01c9e0()
+{
+	if (!isECFCharP1("ECC-Mighty"))
+	{
+		base.fn01c9e0()
+		return
+	}
+	
+	if (camera.position.x.u16 >= 0x3700 && camera.position.y.u16 >= 0x068c)
+	{
+		u8[0xffffeec6] = 0xff
+		level.vertical_wrap = 0x068c - getScreenHeight()
+		camera.update_routine += 2
+	}
+}
+
+
+//# address-hook(0x01c9fa) end(0x01ca0a)
+function void fn01c9fa()
+{
+	if (!isECFCharP1("ECC-Mighty"))
+	{
+		base.fn01c9fa()
+		return
+	}
+	
+	if (camera.position.x.u16 >= 0x3940)
+	{
+		u8[0xffffeec6] = 0xff
+		level.vertical_wrap = 0xff00
+		camera.update_routine += 2
+	}
+}

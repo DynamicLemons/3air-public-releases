@@ -1,0 +1,6 @@
+{
+	"character_ECC-Mighty_continue_0x00":  { "File": "character_mighty_continue.bmp", "Rect": "8,8,56,56", "Center": "28,36" },
+	"character_ECC-Mighty_continue_0x01":  { "File": "character_mighty_continue.bmp", "Rect": "72,8,56,56", "Center": "28,36" },
+	"continue_icon_ECC-Mighty_wait_0x00": { "File": "continue_icon_mighty_wait.bmp", "Rect": "8,8,24,24", "Center": "12,12" },
+	"continue_icon_ECC-Mighty_wait_0x01": { "File": "continue_icon_mighty_wait.bmp", "Rect": "40,8,24,24", "Center": "12,12" }
+}

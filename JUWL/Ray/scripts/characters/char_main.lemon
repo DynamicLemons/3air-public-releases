@@ -1,0 +1,833 @@
+//# address-hook(0x010afa) end(0x010bb8)
+function void Character.Initialization.Sonic()
+{
+	base.Character.Initialization.Sonic()
+	setPlayerGlobalValue("ray_boostCounter", 1)
+}
+
+//# address-hook(0x010bba) end(0x010c8e)
+function void Character.UpdateNormalState.Sonic()
+{
+	if (!isECFCharA0("ECC-Ray"))
+	{
+		base.Character.UpdateNormalState.Sonic()
+		return
+	}
+	
+	if (A0 == 0xffffb000)
+	{
+		if (updateDebugModeInput(false))
+			return
+	}
+
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	Character.ControlUpdate()
+#else
+	if (player1.control_override == 0)
+	{
+		// Set player 1 control state
+		control.player1 = control.pad1
+	}
+#endif
+
+	if (char.control_flags & 0x01)
+	{
+		// Character is not directly controllable (but may be indirectly via an object, like when hanging on a pole or similar)
+		char.double_jump_state = 0
+		setPlayerGlobalValue("ray_boostCounter", 1)
+	}
+	else
+	{
+		// Call update function depending on flags
+		pushA456()
+		// Targets:
+		//  - 0x010f2c	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = 0x00												-> Character.UpdateSonicUprightOnGround()
+		//  - 0x010fb6	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = char.flag.IN_AIR									-> Character.UpdateSonicUprightInAir()
+		//  - 0x010fe0	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = char.flag.ROLLING								-> Character.UpdateSonicRollingOnGround()
+		//  - 0x011036	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = (char.flag.IN_AIR | char.flag.ROLLING)			-> Character.UpdateSonicRollingInAir()
+		call tableLookupAddress(0x010c90, char.flags & (char.flag.IN_AIR | char.flag.ROLLING))
+		popA456()
+	}
+
+	if (level.vertical_wrap == 0xff00)
+	{
+		char.position.y.u16 &= level.height.bitmask
+	}
+
+	Character.updateBonusEffects()
+	Character.UpdateRingsInSuperForm()
+	Character.WriteToPositionBackup()
+	Character.checkForWaterSurface()
+		
+	char.angle_sensor_1 = u8[0xfffff768]
+	char.angle_sensor_2 = u8[0xfffff76a]
+
+	if (u8[0xfffff7c8] != 0)
+	{
+		if (char.state == char.state.RUNNING)
+			char.state = char.state.former
+	}
+
+	if ((char.control_flags & 0x02) == 0)	// Hanging flag
+	{
+		UpdateSonicAnimation()
+		if (global.inv_gravity)
+		{
+			char.render_flags ^= render_flag.FLIP_Y
+		}
+		UpdateSonicSpritePatterns()
+	}
+#if LEMONS_TWEAKS_ACTIVE
+	else
+		setPlayerGlobalValue("customKey", 0)
+#endif
+
+	if ((char.control_flags & 0xa0) == 0)
+	{
+		Character.CheckCollisionsWithDynamicObjects()
+	#if LEMONS_TWEAKS_ACTIVE
+		if ((char.control_flags & 0x02) == 0 && char.state != char.state.former)	// Hanging flag
+		{
+			UpdateSonicAnimation()
+			if (global.inv_gravity)
+			{
+				char.render_flags ^= render_flag.FLIP_Y
+			}
+			UpdateSonicSpritePatterns()
+		}
+	#endif
+	}
+	
+#if LEMONS_TWEAKS_ACTIVE
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	A2 = getPAddress("follow")
+#else
+	A2 = 0xffffcc0a
+#endif
+	Ray_getTailAnimState()
+	setPlayerGlobalValue("follow_expectedSprite", objA0.animation.sprite)
+#endif
+}
+
+//# address-hook(0x0160d2)
+function void TailsTails.Update()
+{
+	A2 = 0xffff0000 + u16[A0 + 0x30]
+	
+	if (!isECFCharAt(A2, "ECC-Ray"))
+	{
+		base.TailsTails.Update()
+		return
+	}
+	
+	// Update various properties from Tails main object
+	objA0.position.x.u16 = u16[A2 + 0x10]
+	objA0.position.y.u16 = u16[A2 + 0x14]
+	u8[A0 + 0x26] = u8[A2 + 0x26]			// Rotation
+	objA0.flags2a = u8[A2 + 0x2a]			// Flags
+	objA0.sprite_priority = u16[A2 + 0x08]
+	objA0.sprite_attributes = (objA0.sprite_attributes & ~sprite_attribute.PRIORITY) | (u16[A2 + 0x0a] & sprite_attribute.PRIORITY)
+
+#if LEMONS_TWEAKS_ACTIVE
+	if (getPlayerGlobalValue(A2, "follow_expectedSprite") != u8[A2 + 0x22])
+#endif
+	{
+		u32 A0_o = A0
+		u32 A2_o = A2
+		A0 = A2_o
+		A2 = A0_o
+		Ray_getTailAnimState()
+		A0 = A0_o
+		A2 = A2_o
+	}
+
+	if (char.state)
+	{
+		if (char.state != char.state.former)
+		{
+			char.state.former = char.state
+			char.animation.sprite = 0
+			char.animation.frame = 0
+			char.animation.timer = 0
+		}
+
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+		
+		--char.animation.timer
+		if (s8(char.animation.timer) < 0)
+		{
+			++char.animation.frame
+			if (char.animation.frame > 4)
+				char.animation.frame = 1
+			char.animation.timer = 7
+			char.animation.sprite = char.animation.frame
+			char.animation.sprite += (char.state - 1) * 4
+		}
+		
+		if (global.inv_gravity)
+		{
+			objA0.render_flags ^= render_flag.FLIP_Y
+		}
+
+		DrawObject()
+	}
+	else
+	{
+		char.animation.sprite = 0
+		char.animation.frame = 0
+		char.animation.timer = 0
+	}
+}
+
+function void Ray_getTailAnimState()
+{
+	if (char.animation.sprite == 0x8f)
+		u8[A2 + 0x20] = 0
+#if LEMONS_TWEAKS_ACTIVE
+	else if (char.state == char.state.STANDING || char.state == char.state.COWERING || char.state == char.state.LOOKING_UP || char.state == char.state.COWERING_END || char.state == char.state.LOOKING_UP_END || char.animation.sprite >= 0xb6 && char.animation.sprite <= 0xb9)
+#else
+	else if (char.state == char.state.STANDING || char.state == char.state.COWERING || char.state == char.state.LOOKING_UP || char.animation.sprite >= 0xb6 && char.animation.sprite <= 0xb9)
+#endif
+		u8[A2 + 0x20] = 1
+	else if (char.state == char.state.BALANCING1 || char.state == char.state.BALANCING2)
+		u8[A2 + 0x20] = 3
+	else if (char.animation.sprite >= 0x8f && char.animation.sprite <= 0x93)
+		u8[A2 + 0x20] = 2
+	else
+		u8[A2 + 0x20] = 0
+}
+
+function void Character.updateJumpMoves()
+{
+	if (!isECFCharA0("ECC-Ray"))
+	{
+		base.Character.updateJumpMoves()
+		return
+	}
+	
+	u8 input_state	 = Character.getControlVariable(0)
+	u8 input_pressed   = Character.getControlVariable(1)
+	bool isSuperActive = Character.getSuperState()
+
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	bool secondaryMode = (A0 != 0xffffb000 && tails.ai_routine != pAiRoutine_flyInExit && tails.control_counter == 0 && (isSoloMode || !csp_set_fourPlayer))
+#else
+	bool secondaryMode = false
+#endif
+
+	// Hyper Ray can just turn around idfk lmao
+	bool Thinginator90_suggestion = (Character.getSuperState() & 0x80 && char.double_jump_state == 2)
+		
+	if (char.jumping == 2)
+	{
+		if (char.double_jump_state == 0 && !secondaryMode) 
+		{
+			#if STANDALONE
+			if (Input.buttonPressed(BUTTON_Y))
+			{
+				if (!isSuperActive && char.invuln.countdown == 0)	// Check invulnerability to prevent spamming of super activate + cancel
+				{
+					if (Character.performSuperTransformation())
+						return
+				}
+			}
+			#endif
+
+			// Check if pressed jump again in mid-air
+			if (input_pressed & CONTROL_ABC)
+			{
+			#if STANDALONE
+				// Check for other things to do instead of the usual reaction to jump button pressed
+				if (onCharacterPressedJumpInMidAir(input_state, input_pressed))
+			#endif
+					RayPressedJumpInMidAir()
+			}
+		}
+	}
+	else if (char.jumping)
+	{
+		// Limit velocity.y
+		s16 max_vy = (char.flags & char.flag.UNDERWATER) ? -0x200 : -0x400
+		if (char.velocity.y < max_vy)
+		{
+			// Limit vertical velocity while not pressing any jump button
+			//  -> This is important to support low jumps by just tapping the button briefly
+			if ((input_state & CONTROL_ABC) == 0)
+			{
+				char.velocity.y = max_vy
+			}
+		}
+	#if !LEMONS_TWEAKS_ACTIVE
+		else
+	#endif
+		{
+			if (char.double_jump_state == 0 || Thinginator90_suggestion) && (!secondaryMode)
+			{
+			#if STANDALONE
+				if (Input.buttonPressed(BUTTON_Y) && !Thinginator90_suggestion)
+				{
+					if (!isSuperActive && char.invuln.countdown == 0)	// Check invulnerability to prevent spamming of super activate + cancel
+					{
+						if (Character.performSuperTransformation())
+							return
+					}
+				}
+			#endif
+
+				// Check if pressed jump again in mid-air
+				if (input_pressed & CONTROL_ABC)
+				{
+				#if STANDALONE
+					// Check for other things to do instead of the usual reaction to jump button pressed
+					if (onCharacterPressedJumpInMidAir(input_state, input_pressed))
+				#endif
+						RayPressedJumpInMidAir()
+				}
+			}
+		}
+	}
+#if !LEMONS_TWEAKS_ACTIVE
+	else
+	{
+		if (char.spindash == 0)
+			char.velocity.y = max(char.velocity.y, -0x0fc0)
+	}
+#endif
+}
+
+function void RayPressedJumpInMidAir()
+{
+	u8 input_state	 = Character.getControlVariable(0)
+	u8 input_pressed   = Character.getControlVariable(1)
+	
+	if (char.double_jump_state != 4)
+	{
+		// handle an airboost
+		if (ecc_setting_rayHeadbutt) && (input_state & CONTROL_UP && char.double_jump_state == 0 || input_pressed & CONTROL_UP) && (getPlayerGlobalValue("ray_boostCounter") > 0)
+		{
+			Ray_headButt()
+			return
+		}
+	
+		s32 vx = char.velocity.x << 8
+		s32 newXVel = vx - (vx >> 3)
+		if (char.flags & char.flag.FACING_LEFT)
+			vx = min(newXVel, -0x30000)
+		else
+			vx = max(newXVel, 0x30000)
+		char.velocity.x = vx >> 8
+	}
+	
+	// start diving
+	if ((char.flags & char.flag.FACING_LEFT) == 0 && input_state & CONTROL_RIGHT || char.flags & char.flag.FACING_LEFT && input_state & CONTROL_LEFT) 
+	{
+		char.state = char.state.RAY_GLIDE_D
+		
+		setPlayerGlobalValue("ray_isGlidingUp", false)
+		setPlayerGlobalValue("ray_abilitySpeed", 0)
+	}
+	// start swooping
+	else 
+	{
+		char.state = char.state.RAY_GLIDE_U
+		setPlayerGlobalValue("ray_isGlidingUp", true)
+
+		if (char.double_jump_state == 4)
+			char.velocity.x -= char.velocity.x >> 2
+		else
+			char.velocity.x >>= 1
+		s32 vel = abs(char.velocity.x) << 8 
+		s32 speed = -((vel >> 1) + (vel >> 2) + (vel >> 4)) >> (char.flags & char.flag.UNDERWATER)
+		setPlayerGlobalValue("ray_abilitySpeed", min(speed, 0x400))
+	}
+	
+	if (char.double_jump_state != 4)
+	{
+		char.animation.sprite = 0xd2
+		char.animation.frame = 3
+		char.animation.timer = 2
+		char.state.former = char.state
+	}
+	
+	// general shared glide stuff
+	s32 vy = char.velocity.y << 8
+	vy >>= 1
+	char.velocity.y = vy >> 8
+	setPlayerGlobalValue("ray_glideAngle", 0x40)
+	
+	D0 = abs(char.velocity.x) << 8
+	setPlayerGlobalValue("ray_storedSpeed", D0)
+	if (char.double_jump_state != 2)
+		setPlayerGlobalValue("ray_abilityTimer", 256)
+		
+	char.double_jump_state = 1
+	
+	char.flags &= ~(char.flag.ROLLING | char.flag.CONTROL_LOCK)
+	char.hitbox_extends.y = char.hitbox.default.y
+	char.hitbox_extends.x = char.hitbox.default.x
+}
+
+function void Ray_headButt()
+{
+	char.state = char.state.RAY_HEADBUTT
+
+	setPlayerGlobalValue("ray_boostCounter", getPlayerGlobalValue("ray_boostCounter") - 1)
+	setPlayerGlobalValue("ray_isGlidingUp", true)
+	
+	char.double_jump_state = 3
+
+	char.flags &= ~char.flag.ROLLING
+	char.hitbox_extends.y = char.hitbox.default.y
+	char.hitbox_extends.x = char.hitbox.default.x
+}
+
+//# address-hook(0x010fb6) end(0x010fde)
+function void Character.UpdateSonicUprightInAir()
+{
+	if (!isECFCharA0("ECC-Ray"))
+	{
+		base.Character.UpdateSonicUprightInAir()
+		return
+	}
+	
+	// Headbutt Start up
+	if (char.double_jump_state == 3)
+	{
+		//UpdateSonicJumpMoves()
+		//Character.UpdateControlInAir()
+		Character.CheckAgainstMoveBorders()
+		if (char.state != char.state.RAY_HEADBUTT)
+		{
+			char.double_jump_state = 0
+		}
+		// using animation sprite as an end frame is probably a bad idea, but whatever
+		else if (char.animation.sprite == 0xdb)
+		{
+			s16 vx = (char.flags & char.flag.UNDERWATER) ? 0x180 : 0x300
+			if (char.flags & char.flag.FACING_LEFT)
+				vx = -vx
+
+			if (char.flags & char.flag.FACING_LEFT)
+				char.velocity.x = min(char.velocity.x, vx)
+			else
+				char.velocity.x = max(char.velocity.x, vx)
+				
+			char.velocity.y = (char.flags & char.flag.UNDERWATER) ? -0x320 : -0x640
+			s16 add = (abs(char.velocity.x) - 0x500) / 2
+			if (add > 0)
+				char.velocity.y -= add
+			
+			char.flags |= char.flag.IN_AIR
+			
+			char.double_jump_state = 4
+			playSound(0xA0)
+		}
+		else
+		{
+			if (char.flags & char.flag.FACING_LEFT && char.velocity.x > -0x100)
+				 char.velocity.x = -0x100
+			else if ((char.flags & char.flag.FACING_LEFT) == 0 && char.velocity.x < 0x100)
+				char.velocity.x = 0x100
+
+			if (char.velocity.y < -0x100)
+				char.velocity.y = min(char.velocity.y + 0x40, -0x100)
+			else if (char.velocity.y > 0x100)
+				char.velocity.y = max(char.velocity.y - 0x40, 0x100)
+		}
+		UpdateMovementStraight()
+		
+		Character.UpdateRotationInAir()
+		Character.CheckCollision()
+	}
+	// Headbutt
+	else if (char.double_jump_state == 4)
+	{
+		u8 exit = (char.state != char.state.RAY_HEADBUTT) ? 1 : (char.velocity.y > 0x100) ? 2 : 0
+		if (exit)
+		{
+			RayPressedJumpInMidAir()
+			if (char.state == char.state.RAY_GLIDE_U && exit == 1)
+			{
+				u8 pId = ((A0.u16 - 0xb000) / 0x4a) + 1
+				setPlayerGlobalValue("ray_glideAngle", 0x70)
+				setPlayerGlobalValue("ray_abilitySpeed", 0)
+				
+				char.animation.sprite = 0xd0
+				char.animation.frame = 5
+				char.animation.timer = 2
+				char.state.former = char.state
+			}
+			
+			Character.CheckAgainstMoveBorders()
+			UpdateMovementStraight()
+
+			Character.UpdateRotationInAir()
+			Character.CheckCollision()
+			
+			if (objA0.base_state == base_state.NORMAL)
+				Player_State_RayGlide()
+		}
+		else
+		{
+			Character.CheckAgainstMoveBorders()
+			UpdateMovementStraight()
+			char.velocity.y += (char.flags & char.flag.UNDERWATER) ? 0x10 : 0x38
+			Character.UpdateRotationInAir()
+			Character.CheckCollision()
+		}
+	}
+	// Glide
+	else if (char.double_jump_state == 1)
+	{
+		Character.CheckAgainstMoveBorders()
+		UpdateMovementStraight()
+
+		Character.UpdateRotationInAir()
+		Character.CheckCollision()
+		
+		if (objA0.base_state == base_state.NORMAL)
+			Player_State_RayGlide()
+	}
+	else 
+	{
+		UpdateSonicJumpMoves()
+		if (char.double_jump_state == 1)
+		{
+			Character.CheckAgainstMoveBorders()
+			UpdateMovementStraight()
+			Character.CheckCollision()
+			return
+		}
+		
+		Character.UpdateControlInAir()
+		Character.CheckAgainstMoveBorders()
+		Character.UpdateMovement()
+
+		if (char.flags & char.flag.UNDERWATER)
+		{
+			// Gravity
+			char.velocity.y -= 0x28
+		}
+
+		Character.UpdateRotationInAir()
+		Character.CheckCollision()
+	}
+}
+
+function void Player_State_RayGlide()
+{
+	u8 input_state	 = Character.getControlVariable(0)
+	u8 input_pressed   = Character.getControlVariable(1)
+	
+	s32 ray_abilitySpeed = getPlayerGlobalValue("ray_abilitySpeed")
+	s32 ray_storedSpeed = getPlayerGlobalValue("ray_storedSpeed")
+	s16 ray_glideAngle = getPlayerGlobalValue("ray_glideAngle")
+	s16 ray_isGlidingUp = getPlayerGlobalValue("ray_isGlidingUp")
+	
+	s32 gravityStrength = (char.flags & char.flag.UNDERWATER) ? 0x10 : 0x38
+	gravityStrength = Math.roundToInt(float(gravityStrength) * (ray_isGlidingUp ? 2 : 1.9))
+	gravityStrength <<= 8
+	
+	// replicating mania behavior, when ray lands, reduce his speed
+	if ((char.flags & char.flag.IN_AIR) == 0) 
+	{
+		if (abs(char.groundspeed) < 0x200)
+			char.groundspeed <<= 1
+
+		return
+	}
+	
+	if (ecc_setting_rayHeadbutt) && (input_pressed & CONTROL_UP) && (getPlayerGlobalValue("ray_boostCounter") > 0 && ray_isGlidingUp)
+	{
+		Ray_headButt()
+		return
+	}
+	
+	// set ray's "glide angle" based on his facing direction
+	if (ray_isGlidingUp)
+	{
+		if (ray_glideAngle < 0x70)
+			ray_glideAngle += 8
+	}
+	else
+	{
+		if (ray_glideAngle > 0x10)
+			ray_glideAngle -= 8
+	}
+	
+	// NOTE: velocity values are bitshifted to emulate rsdk's value format, which is neccessary for this math to work the same
+	// rsdk uses signed 32 bit velocity values, while the classic games use signed 16 bit velocity values
+	// however, some fractional percision is lost when translating them back to 3k's value format
+	// ie. rsdk is 0x10000, compared to 3k's 0x100
+	
+	// some small adjustments have been made to make Ray feel a little better to play too...
+	
+	// apply gravity to ray and control his swooping
+	s32 vy = char.velocity.y << 8
+	if (ray_abilitySpeed)
+	{
+		vy += ray_abilitySpeed >> (2 - ((char.flags & char.flag.UNDERWATER) == 0))
+		if (vy < ray_abilitySpeed)
+		{
+			vy = ray_abilitySpeed
+			ray_abilitySpeed = 0
+		}
+	}
+	else
+		vy += (gravityStrength * lookupCos(ray_glideAngle/2)) >> 9
+
+	// Ray has a -0x600 speed cap here in Mania, but it's been removed for sucking ass. 
+	if (ray_isGlidingUp)
+	{
+		if (vy > 0x10000)
+			vy -= vy >> 2
+	}
+
+	if (vy <= 0)
+	{
+		ray_storedSpeed -= 22 * lookupSin(0x50 - ray_glideAngle)
+		if (ray_storedSpeed < 0x40000)
+			ray_storedSpeed = 0x40000
+	}
+	else if (vy > ray_storedSpeed)
+		ray_storedSpeed = vy - (vy >> 6)
+	
+	char.velocity.y = vy >> 8
+	
+	// cap ray's hsp
+	s32 vx = char.velocity.x << 8 
+	if (abs(char.velocity.x) > 0x100)
+	{
+		s32 bitshift = (char.flags & char.flag.UNDERWATER) ? 3 : 2
+		s32 factor = 22
+		if (!ray_isGlidingUp)
+			--bitshift
+		if (char.bonus_effect & char.bonus.SPEED_UP && !ray_isGlidingUp)
+			factor *= 3
+			
+		if (char.flags & char.flag.FACING_LEFT)
+		{
+			vx -= (factor * lookupSin(0x50 - ray_glideAngle)) >> bitshift
+
+			if (vx > -0x10000)
+				vx = -0x10000
+
+			if (vx < -ray_storedSpeed)
+				vx = -ray_storedSpeed
+		}
+		else
+		{
+			vx += (factor * lookupSin(0x50 - ray_glideAngle)) >> bitshift
+
+			if (vx < 0x10000)
+				vx = 0x10000
+			
+			if (vx > ray_storedSpeed) 
+				vx = ray_storedSpeed
+		}
+		
+		char.velocity.x = vx >> 8
+	}
+	
+	// handle ray's switching between glide directions
+	if (char.flags & char.flag.FACING_LEFT && ((input_state & CONTROL_RIGHT) == 0 || ray_glideAngle != 0x10))
+	{
+		if (input_state & CONTROL_LEFT && ray_glideAngle == 0x70 && ray_isGlidingUp) 
+		{
+			ray_abilitySpeed = 0
+			ray_isGlidingUp	= false
+			char.state = char.state.RAY_GLIDE_D
+		}
+	}
+	else if ((char.flags & char.flag.FACING_LEFT) == 0 && ((input_state & CONTROL_LEFT) == 0 || ray_glideAngle != 0x10)) 
+	{
+		if (input_state & CONTROL_RIGHT && ray_glideAngle == 0x70 && ray_isGlidingUp) 
+		{
+			ray_abilitySpeed = 0
+			ray_isGlidingUp = false
+			char.state = char.state.RAY_GLIDE_D
+		}
+	}
+	else if (!ray_isGlidingUp) 
+	{
+		ray_isGlidingUp = true
+	
+		s16 ray_abilityTimer = getPlayerGlobalValue("ray_abilityTimer")
+		// store ray's velocity for swooping
+		if (char.velocity.y > 0x280 || ray_abilityTimer == 256 || (char.flags & char.flag.UNDERWATER && char.velocity.y > 0x180))
+		{
+			s32 xVel = abs(char.velocity.x) << 8 
+	
+			ray_abilitySpeed = -((ray_abilityTimer * ((xVel >> 1) + (xVel >> 2) + (xVel >> 4))) >> 8) 
+			if (char.flags & char.flag.UNDERWATER)
+				ray_abilitySpeed = (ray_abilitySpeed >> 1) + (ray_abilitySpeed >> 3)
+
+			if (ray_abilityTimer > 16)
+				ray_abilityTimer -= 32
+
+			if (ray_abilitySpeed < -0x60000)
+				ray_abilitySpeed = -0x60000
+				
+			setPlayerGlobalValue("ray_abilityTimer", ray_abilityTimer)
+		}
+
+		char.state = char.state.RAY_GLIDE_U
+	}
+
+	// if jump is let go, ray leaves the top screen border, or his velocity is too low, jump into rolling
+	if ((input_state & CONTROL_ABC) == 0 || s16(char.position.y.u16) < s16(level.vertical_wrap) + s16(char.hitbox_extends.y) || abs(char.velocity.x) < 0x100) 
+	{
+		char.state = char.state.ROLLING
+		char.flags |= char.flag.ROLLING
+		characterSetHitbox(char.hitbox.x.ROLLING, char.hitbox.y.ROLLING)
+		
+		char.double_jump_state = 2
+	}
+
+	u32[0xfffff796] = (char.layer_flags1 == 0x0c) ? u32[0xfffff7b4] : u32[0xfffff7b8]
+	D5.u8 = char.layer_flags2
+	
+	// crashing into a roof kills all stored speed
+	Character.CheckCeilingCollision()
+	if (D1.s16 <= 0)
+		ray_abilitySpeed = 0
+		
+	setPlayerGlobalValue("ray_abilitySpeed", ray_abilitySpeed)
+	setPlayerGlobalValue("ray_storedSpeed", ray_storedSpeed)
+	setPlayerGlobalValue("ray_glideAngle", ray_glideAngle)
+	setPlayerGlobalValue("ray_isGlidingUp", ray_isGlidingUp)
+}
+
+function void Character.checkForWaterSurface()
+{
+	if (isECFCharA0("ECC-Ray") && char.double_jump_state == 1)
+	{
+		bool wasUnderwaterBefore = (char.flags & char.flag.UNDERWATER) != 0
+		s16 oldVx = char.velocity.x
+		base.Character.checkForWaterSurface()
+		if (wasUnderwaterBefore != (char.flags & char.flag.UNDERWATER) && abs(oldVx) >= 0x100 && abs(char.velocity.x) < 0x100)
+		{
+			if (oldVx < 0)
+				char.velocity.x = -0x100
+			else if (oldVx > 0)
+				char.velocity.x = 0x100
+		}
+	}
+	else
+		base.Character.checkForWaterSurface()
+}
+
+function void Character.LandingOnGroundResetState()
+{
+	setPlayerGlobalValue("ray_boostCounter", 1)
+	
+	if (!isECFCharA0("ECC-Ray"))
+	{
+		base.Character.LandingOnGroundResetState()
+		return
+	}
+
+	char.flags &= ~char.flag.IN_AIR
+	char.flags &= ~char.flag.PUSHING
+	char.flags &= ~char.flag.CONTROL_LOCK
+	char.jumping = 0
+	score.bonus_counter = 0		// No more increasing bonusses after hitting the ground
+	char.rotation.x = 0
+	u8[A0 + 0x2d] = 0
+	u8[A0 + 0x30] = 0
+	char.look_up_down_timer = 0
+	
+	// Check for double jump state
+	if (char.double_jump_state != 0)
+	{
+		if (char.double_jump_state == 3 && char.base_state == 2)
+		{
+			s16 force = (char.flags & char.flag.UNDERWATER) ? 0x100 : 0x200
+			u8 angle = char.rotation - 0x40
+			char.velocity.x += (s32(lookupCos(angle)) * force) >> 8
+			char.velocity.y += (s32(lookupSin(angle)) * force) >> 8
+			char.flags |= char.flag.IN_AIR
+			char.state = char.state.RAY_HEADBUTT
+		}
+		else
+			char.double_jump_state = 0
+	}
+
+	// mostly unnecessary, but here as a safety catch, similar to vanilla Knuckles.
+	if (char.state == char.state.RAY_GLIDE_U || char.state == char.state.RAY_GLIDE_D)
+	{
+		char.state = char.state.RUNNING
+		if (abs(char.groundspeed) < 0x200)
+			char.groundspeed <<= 1
+	}
+}
+
+
+function void Character.OnHitBoss()
+{
+	if (isECFCharA0("ECC-Ray") && char.state >= char.state.RAY_GLIDE_U && char.state <= char.state.RAY_HEADBUTT)
+	{
+		char.double_jump_state = 0
+		char.state = char.state.ROLLING
+		char.flags |= char.flag.ROLLING
+		characterSetHitbox(char.hitbox.x.ROLLING, char.hitbox.y.ROLLING)
+		char.velocity.x = -char.velocity.x
+		char.velocity.y = -char.velocity.y
+	}
+	else
+		base.Character.OnHitBoss()
+}
+
+function void ECF_characterSoundUpdate()
+{
+	if (isECFCharA0("ECC-Ray"))
+	{
+		// in Mania, Ray's glide sound is stored on a "soundboard"
+		// it automatically plays the sound, while Ray communicates the volume to it.
+		
+		// We don't really have a system like that here, so we just fade in/out the sound
+		
+		u8 channelA = Character.getCharAudioChannelA()
+		u8 channelB = Character.getCharAudioChannelB()
+		
+		float time_i = .05
+		float time_o = .1
+
+		string _swoop	= (ecc_setting_rayManiaSounds) ? "ray_swoop" : "ray_c_swoop"
+		string _dive	= (ecc_setting_rayManiaSounds) ? "ray_dive" : "ray_c_dive"
+		
+		if (char.double_jump_state == 1 && char.flags & char.flag.IN_AIR)
+		{
+			if (getPlayerGlobalValue("ray_isGlidingUp"))
+			{
+				if (!Audio.isPlayingAudio(_swoop))
+					Audio.playOverride(_swoop, AudioContext.CONTEXT_SOUND, channelA, 1)
+				else
+					Audio.fadeInChannel(channelA, time_i)
+					
+				if (Audio.isPlayingAudio(_dive))
+					Audio.fadeOutChannel(channelB, time_o)
+			}
+			else
+			{
+				if (!Audio.isPlayingAudio(_dive))
+					Audio.playOverride(_dive, AudioContext.CONTEXT_SOUND, channelB, 1)
+				else
+					Audio.fadeInChannel(channelB, time_i)
+					
+				if (Audio.isPlayingAudio(_swoop))
+					Audio.fadeOutChannel(channelA, time_o)
+			}
+		}
+		else
+		{
+			if (Audio.isPlayingAudio(_swoop))
+				Audio.stopChannel(channelA)
+			if (Audio.isPlayingAudio(_dive))
+				Audio.stopChannel(channelB)
+		}
+	}
+	else
+		base.ECF_characterSoundUpdate()
+}

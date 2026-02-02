@@ -1,0 +1,701 @@
+function bool Mighty_spawnDust(s16 veloc)
+{
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = 0x39A26a
+		objA1.mapping_offset = 0x018df4
+
+		objA1.position.x = char.position.x 
+		objA1.position.y = char.position.y
+		objA1.position.y.u16 += (char.hitbox_extends.y - 4) * (global.inv_gravity ? -1 : 1)
+		
+		if (objA1.sprite_attributes & sprite_attribute.PRIORITY)
+			objA1.sprite_attributes = sprite_attribute.PRIORITY
+		objA1.render_flags |= render_flag.WORLD
+		if (getRandomNumber() % 2 == 0)
+			objA1.render_flags ^= render_flag.FLIP_X
+		objA1.sprite_priority = 0x80
+		
+		objA1.box_size.x = 4
+		objA1.box_size.y = 4
+		
+		objA1.hitbox_extends.x = 4
+		objA1.hitbox_extends.y = 4
+		u16[A1 + 0x46] = char.layer_flags	
+		
+		objA1.value26 = char.rotation
+		objA1.groundspeed = veloc
+		objA1.velocity.x = (s32(lookupCos(char.rotation)) * objA1.groundspeed) >> 8
+		objA1.velocity.y = (s32(lookupSin(char.rotation)) * objA1.groundspeed) >> 8
+		return true
+	}
+	return false
+}
+
+//# address-hook(0x39A26a) end(0x39A26a)
+function void Mighty_landingDust()
+{
+	--objA0.animation.timer
+	if (s8(objA0.animation.timer) < 0)
+	{
+		objA0.animation.timer = 3
+		++objA0.animation.sprite
+		if (objA0.animation.sprite > 4)
+		{
+			UnloadObject()
+			return
+		}
+	}
+	
+	if (char.flags & char.flag.IN_AIR)
+	{
+		UpdateMovementStraight()
+		
+		MightyDust.collideSurfAir()
+	}
+	else
+	{
+		Character.UpdateUprightSlopeEffect()
+		
+		char.velocity.x = (s32(lookupCos(char.rotation)) * char.groundspeed) >> 8
+		char.velocity.y = (s32(lookupSin(char.rotation)) * char.groundspeed) >> 8
+	
+		MightyDust.UpdateControlOnGroundShared()
+		
+	#if STANDALONE
+		// Experimental high-precision collision check with multiple samples per frame
+		if (Standalone.useMultiSampleCollision())
+		{
+			u8 STEPS = 4
+			for (u8 step = 0; step < STEPS; ++step)
+			{
+				s32 vx = s32(char.velocity.x) << 8
+				s32 vy = s32(char.velocity.y) << 8
+
+				s32 dx = vx / STEPS
+				s32 dy = vy / STEPS
+				char.position.x += dx
+				char.position.y += global.inv_gravity ? -dy : dy
+
+				MightyDust.updateRotationOnGround()
+
+				char.velocity.x = (s32(lookupCos(char.rotation)) * char.groundspeed) >> 8
+				char.velocity.y = (s32(lookupSin(char.rotation)) * char.groundspeed) >> 8
+				char.velocity.x = clamp(char.velocity.x, -0x1000, 0x1000)
+			}
+		}
+		else
+	#endif
+		{
+			UpdateMovementStraight()
+			MightyDust.updateRotationOnGround()
+		}
+		
+		s8 signedRotation = char.rotation
+		if (signedRotation < -0x18 || signedRotation >= 0x18)
+		{
+			if (abs(char.groundspeed) < 0x280)
+			{
+				// Going too slow, losing contact to the ground
+				char.hlock_countdown = 30
+				if (signedRotation >= -0x30 && signedRotation < 0x30)
+				{
+					if (signedRotation > 0)
+						char.groundspeed += 0x80
+					else
+						char.groundspeed -= 0x80
+				}
+				else
+				{
+					char.flags |= char.flag.IN_AIR
+				}
+			}
+		}
+			
+		partialUpdateCharacterOnGround()
+	}
+	
+	DrawObject()
+}
+
+function bool Mighty_spawnDustWall()
+{
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = 0x39A26c
+		objA1.mapping_offset = 0x018df4
+
+		objA1.position.x = char.position.x 
+		objA1.position.y = char.position.y
+		objA1.position.x.u16 += (char.flags & char.flag.FACING_LEFT ? -12 : 11)
+		objA1.position.y.u16 += 8 * (global.inv_gravity ? -1 : 1)
+		
+		objA1.sprite_attributes = sprite_attribute.PRIORITY
+		objA1.render_flags |= render_flag.WORLD
+		if (getRandomNumber() % 2 == 0)
+			objA1.render_flags ^= render_flag.FLIP_X
+		objA1.sprite_priority = 0x80
+		
+		objA1.box_size.x = 4
+		objA1.box_size.y = 4
+		
+		objA1.hitbox_extends.x = 4
+		objA1.hitbox_extends.y = 4
+		u16[A1 + 0x46] = char.layer_flags	
+		objA1.flags2a |= char.flag.IN_AIR
+		objA1.velocity.y = -char.velocity.y
+		return true
+	}
+	return false
+}
+
+//# address-hook(0x39A26c) end(0x39A26c)
+function void Mighty_wallDust()
+{
+	--objA0.animation.timer
+	if (s8(objA0.animation.timer) < 0)
+	{
+		objA0.animation.timer = 3
+		++objA0.animation.sprite
+		if (objA0.animation.sprite > 4)
+		{
+			UnloadObject()
+			return
+		}
+	}
+	
+	DrawObject()
+}
+
+// player collide replica functions
+
+function void MightyDust.UpdateControlOnGroundShared()
+{
+	if (char.rotation & 0x3f)
+	{
+		if (abs(s8(char.rotation)) > 0x40)
+			return
+	}
+
+	D1.u8 = 0x40
+	if (char.groundspeed != 0)
+	{
+		if (char.groundspeed >= 0)
+			D1.s16 = -D1.s16
+		D0.u8 = char.rotation + D1.u8
+
+		u16 backup = D0.u16
+		MightyDust_fn00f61c()
+		D0.u16 = backup
+
+		if (D1.s16 < 0)
+		{
+			D1.s16 <<= 8
+			if (global.zone == 0x08)	// Sandopolis
+			{
+				if (D0.s8 < 0)
+					--D0.s8
+			}
+
+			u8 angle = (D0.u8 + 0x20) & 0xc0
+			if (angle == 0)
+			{
+				// Upright
+				char.velocity.y += D1.s16
+			}
+			else if (angle == 0x40)
+			{
+				// Left wall
+				char.velocity.x -= D1.s16
+				char.groundspeed = 0
+			}
+			else if (angle == 0x80)
+			{
+				// Upside down
+				char.velocity.y -= D1.s16
+			}
+			else
+			{
+				// Right wall
+				char.velocity.x += D1.s16
+				char.groundspeed = 0
+			}
+		}
+	}
+}
+
+function void MightyDust_fn00f61c()
+{
+	u32[0xfffff796] = (char.layer_flags1 == 0x0c) ? u32[0xfffff7b4] : u32[0xfffff7b8]
+
+	u8[0xfffff768] = D0.u8
+	u8[0xfffff76a] = D0.u8
+
+	D5.u8 = char.layer_flags2
+	D3 = objA0.position.x + (s32(objA0.velocity.x) << 8)
+	D2 = objA0.position.y
+
+	if (competition_mode.active == 0)
+	{
+		D1.s16 = objA0.velocity.y
+		if (global.inv_gravity)
+		{
+			D1.s16 = -D1.s16
+			D0.u8 = 0x80 - D0.u8
+		}
+
+		D2 += s32(D1.s16) << 8
+		D2 = (D2 >> 16) + (D2 << 16)
+		D3 = (D3 >> 16) + (D3 << 16)
+
+		D1.u8 = D0.u8
+		D0.u8 = getRotationQuarter(D0.u8)
+		if (D0.u8 == 0)
+		{
+			fn00f802()
+		}
+		else if (D0.u8 == 0x80)
+		{
+			fn00fbce()
+		}
+		else
+		{
+			if (D0.u8 == 0x40)
+			{
+				fn00fdc8()
+			}
+			else
+			{
+				fn00faa4()
+			}
+		}
+	}
+	else
+	{
+		fn00f6b4()
+	}
+}
+
+function void MightyDust.CheckLeftWallCollision()
+{
+	D3.u16 = objA0.position.x.u16 - 1
+	D2.u16 = objA0.position.y.u16
+	fn00fdc8()
+}
+
+function void MightyDust.CheckRightWallCollision()
+{
+	D3.u16 = objA0.position.x.u16 + 1
+	D2.u16 = objA0.position.y.u16
+	fn00faa4()
+}
+
+function void MightyDust.collideSurfAir()
+{
+	u32[0xfffff796] = (char.layer_flags1 == 0x0c) ? u32[0xfffff7b4] : u32[0xfffff7b8]
+
+	D5.u8 = char.layer_flags2
+	D0.u16 = lookupAngleByVector(char.velocity.x, char.velocity.y)
+	D0.u8 = (D0.u8 - 0x20) & 0xc0
+	if (D0.u8 == 0)
+	{
+		MightyDust.CheckLeftWallCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.x.u16 -= D1.u16
+			char.velocity.x = 0
+		}
+
+		MightyDust.CheckRightWallCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.x.u16 += D1.u16
+			char.velocity.x = 0
+		}
+
+		Character.CheckFloorCollision()
+		if (D1.s16 < 0)
+		{
+			D2.u8 = (char.velocity.y >> 8) + 8
+			D2.s8 = -D2.s8
+			if (D0.s8 < D2.s8 && D1.s8 < D2.s8)
+				return
+
+			char.rotation = D3.u8
+			char.position.y.u16 += global.inv_gravity ? -D1.s16 : D1.s16
+
+			if (((D3.u8 + 0x20) & 0x40) == 0)
+			{
+				if (((D3.u8 + 0x10) & 0x20) == 0)
+				{
+					char.velocity.y = 0
+					char.groundspeed = char.velocity.x
+					MightyDust.HitFloor()
+					return
+				}
+				else
+				{
+					char.velocity.y >>= 1
+				}
+			}
+			else
+			{
+				char.velocity.x = 0
+				char.velocity.y = min(char.velocity.y, 0x0fc0)
+			}
+
+			char.groundspeed = char.velocity.y
+			if (D3.s8 < 0)
+			{
+				char.groundspeed = -char.groundspeed
+			}
+			MightyDust.HitFloor()
+		}
+	}
+	else if (D0.u8 == 0x40)
+	{
+		MightyDust.CheckLeftWallCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.x.u16 -= D1.u16
+			char.velocity.x = 0
+			char.groundspeed = char.velocity.y
+		}
+
+		Character.CheckCeilingCollision()
+		if (D1.s16 < 0)
+		{
+			D1.s16 = -D1.s16
+			if (D1.s16 < 0x14)
+			{
+				if (global.inv_gravity)
+					D1.s16 = -D1.s16
+
+				char.position.y.u16 += D1.u16
+				char.velocity.y = max(char.velocity.y, 0)
+			}
+			else
+			{
+				MightyDust.CheckRightWallCollision()
+				if (D1.s16 < 0)
+				{
+					char.position.x.u16 += D1.u16
+					char.velocity.x = 0
+				}
+			}
+		}
+		else
+		{
+			if (char.velocity.y >= 0)
+			{
+				Character.CheckFloorCollision()
+				if (D1.s16 < 0)
+				{
+					char.position.y.u16 += global.inv_gravity ? -D1.s16 : D1.s16
+					char.rotation = D3.u8
+					char.velocity.y = 0
+					char.groundspeed = char.velocity.x
+					MightyDust.HitFloor()
+				}
+			}
+		}
+	}
+	else if (D0.u8 == 0x80)
+	{
+		MightyDust.CheckLeftWallCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.x.u16 -= D1.u16
+			char.velocity.x = 0
+		}
+
+		MightyDust.CheckRightWallCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.x.u16 += D1.u16
+			char.velocity.x = 0
+		}
+
+		Character.CheckCeilingCollision()
+		if (D1.s16 < 0)
+		{
+			if (global.inv_gravity)
+				D1.s16 = -D1.s16
+
+			char.position.y.u16 -= D1.u16
+			if (((D3.u8 + 0x20) & 0x40) == 0)
+			{
+				char.velocity.y = 0
+			}
+			else
+			{
+				char.rotation = D3.u8
+
+				char.groundspeed = char.velocity.y
+				if (D3.s8 < 0)
+					char.groundspeed = -char.groundspeed
+				MightyDust.HitFloor()
+			}
+		}
+	}
+	else 	// (D0.u8 == 0xc0)
+	{
+		MightyDust.CheckRightWallCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.x.u16 += D1.s16
+			char.velocity.x = 0
+			char.groundspeed = char.velocity.y
+		}
+
+		Character.CheckCeilingCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.y.u16 -= global.inv_gravity ? -D1.s16 : D1.s16
+			char.velocity.y = max(char.velocity.y, 0)
+		}
+		else
+		{
+			if (char.velocity.y >= 0)
+			{
+				Character.CheckFloorCollision()
+				if (D1.s16 < 0)
+				{
+					char.position.y.u16 += global.inv_gravity ? -D1.s16 : D1.s16
+					char.rotation = D3.u8
+					char.velocity.y = 0
+					char.groundspeed = char.velocity.x
+					MightyDust.HitFloor()
+				}
+			}
+		}
+	}
+}
+
+function void MightyDust.updateRotationOnGround()
+{
+	if (global.inv_gravity == 0)
+	{
+		MightyDust.updateRotationOnGround_partial()
+	}
+	else
+	{
+		char.rotation = 0x80 - char.rotation
+		MightyDust.updateRotationOnGround_partial()
+		char.rotation = 0x80 - char.rotation
+	}
+}
+
+function void MightyDust.updateRotationOnGround_partial()
+{
+	u32[0xfffff796] = (char.layer_flags1 == 0x0c) ? u32[0xfffff7b4] : u32[0xfffff7b8]
+
+	D5.u8 = char.layer_flags1
+	if (char.flags & char.flag.ON_OBJECT)
+	{
+		u8[0xfffff768] = 0
+		u8[0xfffff76a] = 0
+	}
+	else
+	{
+		// 0x03 seems to be a magic number for the sensors
+		u8[0xfffff768] = 0x03
+		u8[0xfffff76a] = 0x03
+
+		u8 rotation = getRotationQuarter(char.rotation)
+		if (rotation == 0)
+		{
+			MightyDust.updateRotationOnGround0x00()
+		}
+		else if (rotation == 0x40)
+		{
+			MightyDust.updateRotationOnGround0x40()
+		}
+		else if (rotation == 0x80)
+		{
+			MightyDust.updateRotationOnGround0x80()
+		}
+		else  // rotation == 0xc0
+		{
+			MightyDust.updateRotationOnGround0xc0()
+		}
+	}
+}
+
+function void MightyDust.updateRotationOnGround0x00()
+{
+	D3 = char.position.x.u16 + char.hitbox_extends.x
+	D2 = char.position.y.u16 + char.hitbox_extends.y - 1
+	s16 result1 = checkStaticCollisionVertical(D3, D2, 0xfffff768, 0x10, 0)
+
+	D3 = char.position.x.u16 - char.hitbox_extends.x
+	D2 = char.position.y.u16 + char.hitbox_extends.y
+	s16 result2 = checkStaticCollisionVertical(D3, D2, 0xfffff76a, 0x10, 0)
+
+	D0.s16 = result1
+	D1.s16 = result2
+	GetGroundAngle()
+
+	if (D1.s16 != 0)
+	{
+		if (D1.s16 > 0)
+		{
+			if (char.on_convex_surface == 0)
+			{
+				D0.u8 = abs(char.velocity.x >> 8)
+				D0.u8 = min(D0.u8 + 4, 14)
+
+				if (D1.s8 > D0.s8)
+				{
+					char.flags |= char.flag.IN_AIR
+					return
+				}
+			}
+			char.position.y.u16 += D1.u16
+		}
+		else if (D1.s16 >= -14)
+		{
+			char.position.y.u16 += D1.u16
+		}
+	}
+}
+
+function void MightyDust.updateRotationOnGround0xc0()
+{
+	// Moving vertically on a right wall
+	D3 = char.position.x.u16 + char.hitbox_extends.y
+	D2 = char.position.y.u16 - char.hitbox_extends.x
+	s16 result1 = checkStaticCollisionHorizontal(D3, D2, 0xfffff768, 0x10, 0)
+
+	D3 = char.position.x.u16 + char.hitbox_extends.y
+	D2 = char.position.y.u16 + char.hitbox_extends.x - 1
+	s16 result2 = checkStaticCollisionHorizontal(D3, D2, 0xfffff76a, 0x10, 0)
+
+	D0.s16 = result1
+	D1.s16 = result2
+	GetGroundAngle()
+
+	if (D1.u16 != 0)
+	{
+		if (D1.s16 > 0)
+		{
+			if (char.on_convex_surface == 0)
+			{
+				D0.u8 = abs(char.velocity.y >> 8)
+				D0.u8 = min(D0.u8 + 4, 14)
+
+				if (D1.s8 > D0.s8)
+				{
+					char.flags |= char.flag.IN_AIR
+					return
+				}
+			}
+			char.position.x.u16 += D1.u16
+		}
+		else
+		{
+			// This is possibly the part that handles the 3-way-path of a certain AIZ 1 loop
+			//  -> See Stealth's post here: http://hcstealth.tumblr.com/post/100311283757/sonic-3-knuckles-20th-anniversary
+			if (D1.s16 < -14)
+			{
+				if (global.zone_act == 0x0000)
+				{
+					char.rotation = 0xc0
+					u8[A0 + 0x41] = 3
+				}
+			}
+			else if (u8[A0 + 0x41] != 0)
+			{
+				--u8[A0 + 0x41]
+				char.rotation = 0xc0
+			}
+			else
+			{
+				char.position.x.u16 += D1.u16
+			}
+		}
+	}
+}
+
+function void MightyDust.updateRotationOnGround0x40()
+{
+	// Moving vertically on a left wall
+	D3 = (char.position.x.u16 - char.hitbox_extends.y - 1) ^ 0x0f
+	D2 = char.position.y.u16 - char.hitbox_extends.x
+	checkStaticCollisionHorizontal(D3, D2, 0xfffff768, -0x10, 0x400)
+
+	u16 backupD1 = D1.u16
+
+	D3 = (char.position.x.u16 - char.hitbox_extends.y - 1) ^ 0x0f
+	D2 = char.position.y.u16 + char.hitbox_extends.x - 1
+	checkStaticCollisionHorizontal(D3, D2, 0xfffff76a, -0x10, 0x400)
+
+	D0.u16 = backupD1
+	GetGroundAngle()
+
+	if (D1.u16 != 0)
+	{
+		if (D1.s16 > 0)
+		{
+			if (char.on_convex_surface == 0)
+			{
+				D0.u8 = abs(char.velocity.y >> 8)
+				D0.u8 = min(D0.u8 + 4, 14)
+
+				if (D1.s8 > D0.s8)
+				{
+					char.flags |= char.flag.IN_AIR
+					return
+				}
+			}
+			char.position.x.u16 -= D1.u16
+		}
+		else if (D1.s16 >= -14)
+		{
+			char.position.x.u16 -= D1.u16
+		}
+	}
+}
+
+function void MightyDust.updateRotationOnGround0x80()
+{
+	D3 = char.position.x.u16 + char.hitbox_extends.x - 1
+	D2 = (char.position.y.u16 - char.hitbox_extends.y - 1) ^ 0x0f
+	s16 result1 = checkStaticCollisionVertical(D3, D2, 0xfffff768, -0x10, 0x800)
+
+	D3 = char.position.x.u16 - char.hitbox_extends.x
+	D2 = (char.position.y.u16 - char.hitbox_extends.y - 1) ^ 0x0f
+	s16 result2 = checkStaticCollisionVertical(D3, D2, 0xfffff76a, -0x10, 0x800)
+
+	D0.s16 = result1
+	D1.s16 = result2
+	GetGroundAngle()
+
+	if (D1.u16 != 0)
+	{
+		if (D1.s16 > 0)
+		{
+			if (char.on_convex_surface == 0)
+			{
+				D0.u8 = abs(char.velocity.x >> 8)
+				D0.u8 = min(D0.u8 + 4, 14)
+
+				if (D1.s8 > D0.s8)
+				{
+					char.flags |= char.flag.IN_AIR
+					return
+				}
+			}
+			char.position.y.u16 -= D1.u16
+		}
+		else if (D1.s16 >= -14)
+		{
+			char.position.y.u16 -= D1.u16
+		}
+	}
+}
+
+function void MightyDust.HitFloor()
+{
+	char.flags &= ~char.flag.IN_AIR
+}

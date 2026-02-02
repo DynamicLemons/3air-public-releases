@@ -1,0 +1,183 @@
+//# address-hook(0x067472) end(0x06748a)
+function void fn067472()
+{
+	if (isECFCharP1("ECC-Ray"))
+	{
+		A1 = 0xffffb000
+		System.callFunctionByName(stringformat("AizIntro_Ray_state%d", objA0.base_state))
+	}
+	else
+		base.fn067472()
+}
+
+// init 
+function void AizIntro_Ray_state0()
+{
+	player1.camera_lock = 1
+
+	u8[A1 + 0x2e] = control_flag.DISABLE_UPDATE
+	objA1.state = char.state.DISAPPEARED
+	objA1.flags2a |= char.flag.IN_AIR
+	
+	++objA0.base_state
+	
+	Game.startSkippableCutscene()
+}
+
+function void AizIntro_Ray_state1()
+{
+	++objA0.countdown_value
+	if (objA0.countdown_value < 15)
+	{
+		player1.control_override = 0xff
+		control.player1 = 0
+		control.player1.state = (CONTROL_ABC | CONTROL_RIGHT)
+
+		objA0.countdown_value = 0
+		++objA0.base_state
+		
+		objA1.state = char.state.RAY_GLIDE_D
+		p1_ray_isGlidingUp = false
+		p1_ray_abilitySpeed = 0
+		
+		p1_ray_glideAngle = 0x10
+		
+		p1_ray_abilityTimer = 256
+		
+		u8[A1 + 0x2f] = 1
+		objA1.velocity.x = 0x360
+		objA1.velocity.y = 0x360
+		p1_ray_storedSpeed = 0x360
+		
+		objA1.position.x.u16 = 16
+		objA1.position.y.u16 = camera.position.y.u16 - 100
+		camera.position.x.u16 = 40
+		u16[0xffffeeb6] = camera.position.x.u16
+		
+		u8[A1 + 0x2e] = 0
+	}
+}
+
+function void AizIntro_Ray_state2()
+{
+	AizIntro_Ray_autoGlider()
+	
+	if (objA1.position.x.u16 > camera.position.x.u16 + getScreenWidth() / 2)
+	{
+		camera.position.x.u16 = objA1.position.x.u16 - getScreenWidth() / 2
+		++objA0.base_state
+	}
+	else
+		camera.position.x.u16 += 4
+		
+	u16[0xffffeeb6] = camera.position.x.u16 
+}
+
+function void AizIntro_Ray_autoGlider()
+{
+	if (control.player1.state & CONTROL_LEFT)
+	{
+		if (objA1.velocity.y > -0xc0)
+			control.player1.state = (CONTROL_ABC | CONTROL_RIGHT)
+	}
+	else
+	{
+		if (objA1.position.y.u16 > camera.position.y.u16 + Math.roundToInt(getScreenHeight() * 0.7))
+			control.player1.state = (CONTROL_ABC | CONTROL_LEFT)
+	}
+}
+
+function void AizIntro_Ray_state3()
+{
+	camera.position.x.u16 = objA1.position.x.u16 - getScreenWidth() / 2
+	if (objA1.position.x.u16 >= 0xa00)
+	{
+		control.player1.state = CONTROL_RIGHT
+		++objA0.base_state
+	}
+	else
+		AizIntro_Ray_autoGlider()
+}
+
+function void AizIntro_Ray_state4()
+{
+	s16 pos = objA1.position.x.u16 - getScreenWidth() / 2
+	camera.position.x.u16 = pos
+	u16[0xffffeeb6] = pos
+	
+	if (objA1.position.y.u16 >= 0x440)
+	{
+		u8[A1 + 0x2e] = control_flag.DISABLE_UPDATE
+		objA1.state = char.state.RUNNING
+		objA1.groundspeed = 0x600
+		objA1.hitbox_extends.x = u8[A1 + 0x45]
+		objA1.hitbox_extends.y = u8[A1 + 0x44]
+		
+		++objA0.base_state
+	}
+}
+
+function void AizIntro_Ray_state5()
+{
+	objA1.position.x += s32(objA1.groundspeed) << 8
+
+	s16 pos = objA1.position.x.u16 - getScreenWidth() / 2
+	camera.position.x.u16 = pos
+	u16[0xffffeeb6] = pos
+	
+	if (objA1.position.x.u16 >= 0x1210)
+		camera.position.y.u16 = max(camera.position.y.u16 - 1, 0x390)
+		
+	//debugLog(objA1.position.x.u16)
+	if (objA1.position.x.u16 > 0x128e)
+	{
+		u8[A1 + 0x2e] = 0
+		objA1.flags2a = char.flag.IN_AIR
+		objA1.velocity.x = objA1.groundspeed
+		objA1.velocity.y = 0
+		player1.camera_lock = 0
+		++objA0.base_state
+	}
+	else if (objA1.position.x.u16 >= 0x1140)
+		objA1.position.y.u16 = max(objA1.position.y.u16 - 1, 0x41b)
+}
+
+function void AizIntro_Ray_state6()
+{
+	++objA0.countdown_value
+
+	if (objA0.countdown_value == 60)
+	{
+		objA0.countdown_value = 0
+		++objA0.base_state
+	}
+}
+
+function void AizIntro_Ray_state7()
+{
+	level.palettefx.state = 0xff
+	player1.control_override = 0
+	AfterBoss_Cleanup()
+	fn0851e4()
+
+	if (allocDynamicObjectStd())
+	{
+		// Show title card
+		objA1.update_address = addressof(TitleCard.Update)
+	}
+
+#if LEMONS_TWEAKS_ACTIVE
+	hud_scrollProgress = 0
+	global.level_started = 1
+#else
+	global.level_started = -0x6f	// Let HUD fly in
+#endif
+	hud.dirty.timer = 0x80
+	timer.alldata = 0
+	hud.dirty.lives = 0x01
+	Object.TriggerUnloading()
+
+#if STANDALONE
+	Game.endSkippableCutscene()
+#endif
+}

@@ -1,0 +1,276 @@
+constant u8 char.state.RAY_GLIDE_U = 0x20
+constant u8 char.state.RAY_GLIDE_D = 0x21
+constant u8 char.state.RAY_HEADBUTT = 0x22
+constant u8 char.state.RAY_HANGING2 = 0x23
+
+//# address-hook(0x012600) end(0x01286c)
+//# translated(0x012a2a) end(0x012a6e)
+function void UpdateSonicAnimation()
+{
+	if (!isECFCharA0("ECC-Ray"))
+	{
+		base.UpdateSonicAnimation()
+		return
+	}
+	
+	bool wasHeadbutt = (char.state.former == char.state.RAY_HEADBUTT)
+	if (char.state != char.state.former)
+	{
+		char.state.former = char.state
+		char.animation.frame = 0
+		char.animation.timer = 0
+		char.flags &= ~char.flag.PUSHING
+	}
+
+	A1 = tableLookupAddress(0x012aa6, char.state * 2)
+	D0.u8 = u8[A1]
+
+	// D0.u8 is either:
+	//  - 0xff when running
+	//  - 0xfe when rolling (on ground or in air)
+	//  - between 0x00 and 0x7f in other cases (like standing, balancing, spring-jumping, getting hurt, etc.)
+
+	if (char.state == char.state.STANDING)
+	{
+		constant array<u8> AniTable = 
+		{
+			5, // anim speed
+
+			0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba,
+			0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba,
+			0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba, 0xba,
+			0xba, 0xba, 0xba, 
+			
+			0xbb, 0xbc, 0xbc, 
+
+			0xbd, 0xbd, 0xbd, 0xbd, 0xbd,
+			0xbe, 0xbe, 
+			0xbf, 0xbf, 0xbf, 0xbf, 0xbf,
+			0xbe, 0xbe,
+			
+			0xbd, 0xbd, 0xbd, 0xbd, 0xbd,
+			0xbe, 0xbe,
+			0xbf, 0xbf, 0xc0, 0xbf, 0xc0,			
+			0xbe, 0xbe,
+
+			0xbd, 0xbd, 0xbd, 0xbd, 0xbd,
+			
+			0xad, 0xad, 0xad, 0xad, 0xad,
+			0xad, 0xad, 0xad, 0xad, 0xad,
+			0xaf, 0xaf, 0xaf, 0xaf, 0xaf,
+			0xae, 
+
+			0xad, 0xad, 0xad, 0xad, 0xad, 0xc1, 0xc2,
+			
+			0xff
+		}
+
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+		
+		A1 = 0x800000
+		for (u8 i = 0; i < AniTable.length(); ++i)
+			u8[A1 + i] = AniTable[i]
+		D0.u8 = AniTable[0]
+		
+		updateSonicAnimationStanding()
+	}
+	else if (char.state == char.state.BALANCING1)
+	{
+		constant array<u8> AniTable = 
+		{
+			7,
+			0xa4, 0xa5, 0xa6,
+			0xff
+		}
+
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+		
+		A1 = 0x800000
+		for (u8 i = 0; i < AniTable.length(); ++i)
+			u8[A1 + i] = AniTable[i]
+		D0.u8 = AniTable[0]
+		
+		updateSonicAnimationStanding()
+	}
+	else if (char.state == char.state.BALANCING2)
+	{
+		constant array<u8> AniTable = 
+		{
+			5,
+			0xa1, 0xa2, 0xa3,
+			0xff
+		}
+
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+		
+		A1 = 0x800000
+		for (u8 i = 0; i < AniTable.length(); ++i)
+			u8[A1 + i] = AniTable[i]
+		D0.u8 = AniTable[0]
+		
+		updateSonicAnimationStanding()
+	}
+#if LEMONS_TWEAKS_ACTIVE
+	else if (char.state == char.state.BRAKING)
+	{
+		constant array<u8> AniTable = 
+		{
+			3, // anim speed
+			
+			0x9d, 0x9e, 0x9f, 0xa0,
+			0xfe, 2
+		}
+
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+
+		A1 = 0x800000
+		for (u8 i = 0; i < AniTable.length(); ++i)
+			u8[A1 + i] = AniTable[i]
+		D0.u8 = AniTable[0]
+
+		updateSonicAnimationStanding()
+	}
+#endif
+	else if (char.state == char.state.WIN_POSE)
+	{
+		constant array<u8> AniTable = 
+		{
+			10, // anim speed
+			0xb0, 0xb0, 
+			0xb1, 0xb1, 0xb1,
+			0xb0, 0xb0, 
+			0xb2, 0xb2,  
+			0xb3, 0xb3, 0xb3,
+			0xb2, 0xb2,  
+			0xff, 1
+		}
+
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+		
+		A1 = 0x800000
+		for (u8 i = 0; i < AniTable.length(); ++i)
+			u8[A1 + i] = AniTable[i]
+		D0.u8 = AniTable[0]
+		
+		updateSonicAnimationStanding()
+	}
+	else if (char.state == char.state.TRANSFORMING)
+	{
+		constant array<u8> AniTable = 
+		{
+			2, // anim speed
+			0xc5, 0xc5,
+			0xc6, 0xc7, 0xc6, 0xc7, 0xc6,
+			0xc7, 0xc6, 0xc7, 0xc6, 0xc7,
+			0xfd, 0
+		}
+
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+		
+		--char.animation.timer
+		if (s8(char.animation.timer) < 0)
+		{
+			D0.u8 = AniTable[char.animation.frame+1]
+			char.animation.timer = AniTable[0]
+			if (D0.u8 < 0xfc)
+			{
+				// Advance to next frame
+				char.animation.sprite = D0.u8
+				++char.animation.frame
+			}
+			else if (D0.u8 == 0xfd)
+			{
+				// Change to another animation
+				char.state = AniTable[char.animation.frame + 2]
+			}
+		}
+	}
+	else if (char.state == char.state.RAY_GLIDE_U)
+	{
+		constant array<u8> AniTable = 
+		{
+			2, // anim speed
+			0xd4, 0xd3, 0xd2, 0xd1, 0xd0,
+			0xfe, 1
+		}
+		
+		if (wasHeadbutt)
+			char.animation.frame = 5
+			
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+		
+		A1 = 0x800000
+		for (u8 i = 0; i < AniTable.length(); ++i)
+			u8[A1 + i] = AniTable[i]
+		D0.u8 = AniTable[0]
+		
+		updateSonicAnimationStanding()
+	}
+	else if (char.state == char.state.RAY_GLIDE_D)
+	{
+		constant array<u8> AniTable = 
+		{
+			2, // anim speed
+			0xd0, 0xd1, 0xd2, 0xd3, 0xd4,
+			0xfe, 1
+		}
+
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+		
+		A1 = 0x800000
+		for (u8 i = 0; i < AniTable.length(); ++i)
+			u8[A1 + i] = AniTable[i]
+		D0.u8 = AniTable[0]
+		
+		updateSonicAnimationStanding()
+	}
+	else if (char.state == char.state.RAY_HEADBUTT)
+	{
+		constant array<u8> AniTable = 
+		{
+			2, // anim speed
+			0xd9, 0xd9, 0xd9, 0xda, 0xdb, 0xdc, 0xdc, 0xdc, 0xdc, 0xdc, 0xd9,
+			0xfd, 0x20
+		}
+
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+		
+		A1 = 0x800000
+		for (u8 i = 0; i < AniTable.length(); ++i)
+			u8[A1 + i] = AniTable[i]
+		D0.u8 = AniTable[0]
+		
+		updateSonicAnimationStanding()
+	}
+	else if (char.state == char.state.RAY_HANGING2)
+	{
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+			
+		char.animation.sprite = 0xd5
+	}
+	else if (char.state >= 0x31)
+		base.UpdateSonicAnimation()
+	else if (D0.u8 < 0x80)
+	{
+		updateSonicAnimationStanding()
+	}
+	else if (D0.u8 == 0xff)
+	{
+		updateSonicAnimationRunning()
+	}
+	else // if (D0.u8 == 0xfe)
+	{
+		updateSonicAnimationRolling()
+	}
+
+}

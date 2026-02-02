@@ -1,0 +1,6 @@
+function string Standalone.getModdedAnimationSpriteKey(u8 character, u16 animationSpriteEx)
+{
+	if (isECFCharA0("ECC-Ray") && animationSpriteEx >= 0x21 && animationSpriteEx <= 0x30 && (global.zone == 0x0c || global.zone == 0x0d))
+		return stringformat("character_ECC-Ray_superfly_%d", (animationSpriteEx - 0x21))
+	return base.Standalone.getModdedAnimationSpriteKey(character, animationSpriteEx)
+}

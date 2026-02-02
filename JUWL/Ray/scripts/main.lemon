@@ -1,0 +1,34 @@
+include characters/?
+include objects/?
+
+global s32 p1_ray_abilitySpeed
+global s32 p1_ray_storedSpeed
+global s16 p1_ray_glideAngle
+global s16 p1_ray_abilityTimer
+global s16 p1_ray_isGlidingUp
+global u8 p1_ray_boostCounter
+
+global s32 p2_ray_abilitySpeed
+global s32 p2_ray_storedSpeed
+global s16 p2_ray_glideAngle
+global s16 p2_ray_abilityTimer
+global s16 p2_ray_isGlidingUp
+global u8 p2_ray_boostCounter
+
+global s32 p3_ray_abilitySpeed
+global s32 p3_ray_storedSpeed
+global s16 p3_ray_glideAngle
+global s16 p3_ray_abilityTimer
+global s16 p3_ray_isGlidingUp
+global u8 p3_ray_boostCounter
+
+global s32 p4_ray_abilitySpeed
+global s32 p4_ray_storedSpeed
+global s16 p4_ray_glideAngle
+global s16 p4_ray_abilityTimer
+global s16 p4_ray_isGlidingUp
+global u8 p4_ray_boostCounter
+
+global bool ecc_setting_rayManiaSounds
+global bool ecc_setting_rayAltPalette
+global bool ecc_setting_rayHeadbutt

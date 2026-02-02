@@ -1,0 +1,397 @@
+//# address-hook(0x067472) end(0x06748a)
+function void fn067472()
+{
+	if (isECFCharP1("ECC-Mighty"))
+	{
+		A1 = 0xffffb000
+		System.callFunctionByName(stringformat("AizIntro_Mighty_state%d", objA0.base_state))
+	}
+	else
+		base.fn067472()
+}
+
+// init 
+function void AizIntro_Mighty_state0()
+{
+	player1.camera_lock = 1
+
+	u8[A1 + 0x2e] = control_flag.DISABLE_UPDATE
+	objA1.state = char.state.DISAPPEARED
+	objA1.flags2a |= char.flag.IN_AIR
+	
+	++objA0.base_state
+	objA0.velocity.x = 0x600
+	objA0.render_flags = render_flag.WORLD // could've coded this object in screen space... didn't feel like it.
+	objA0.box_size.x = 0x18
+	objA0.box_size.y = 0x18
+	objA0.sprite_priority = 0x100
+	
+	//s16[0xffffeeb6] = -6 * 180
+	
+	objA0.position.x.u16 = camera.position.x.u16 + getScreenWidth() / 2 - 36
+	objA0.position.y.u16 = camera.position.y.u16 + 144
+
+	objA1.position.x.u16 = camera.position.x.u16 - getScreenWidth() / 2
+	objA1.position.y.u16 = camera.position.y.u16 - getScreenHeight() / 2
+	
+	Game.startSkippableCutscene()
+	
+	if (allocDynamicObjectAfterA0())
+	{
+		objA1.update_address = 0x0677ce
+		objA1.render_flags = render_flag.WORLD
+		objA1.box_size.x = 32
+		u16[A1 + 0x46] = A0.u16
+		objA1.sprite_priority = objA0.sprite_priority
+		objA1.animation.timer = 1
+	}
+}
+
+function void AizIntro_Mighty_state1()
+{
+	UpdateMovementStraightSimple()
+	if ((objA0.groundspeed % 6) == 0)
+	{
+		// "spawnChildObjects(0x067a70)" replaced by:
+		if (allocDynamicObjectAfterA0())
+		{
+			objA1.update_address = addressof(AIZIntro.WaveEffect.Init)
+			objA1.mapping_offset = 0x146620
+			objA1.render_flags = render_flag.WORLD
+			objA1.position.x.u16 = objA0.position.x.u16 - 8
+			objA1.position.y.u16 = objA0.position.y.u16 + 16
+		}
+	}
+	
+	++objA0.groundspeed
+	objA0.velocity.x = (s32(lookupSin(objA0.groundspeed) * 0x90) >> 8)
+	objA0.velocity.y = (s32(lookupSin(Math.roundToInt(objA0.groundspeed * 1.5)) * 0x90) >> 8)
+
+	// sprite frame
+	constant array<u8> AniTable = { 1, 1, 2, 3, 4, 5, 6, 6, 6, 6, 5, 4, 3, 2, 1, 1 }
+	
+	u16 temp = Math.roundToInt(objA0.groundspeed * 1.5) % 256
+	objA0.animation.sprite = AniTable[Math.roundToInt(temp / 255.0 * (AniTable.length() - 1))]
+	
+	// fake camera movement
+	if (s16[0xffffeeb6] < 0)
+	{
+		s16[0xffffeeb6] += 6
+		for (u32 address = 0xffffb128; address < 0xffffcfcb; address += 0x4a)
+		{
+			A1 = address
+			if (objA1.update_address == 0x0678a0 || objA1.update_address == 0x0678da)
+				objA1.position.x.u16 -= 6
+		}
+	}
+	// actual movement towards stage
+	else
+	{
+		camera.position.x.u16 += 6
+		objA0.position.x.u16 += 6
+		
+		++objA0.countdown_value
+		if (objA0.countdown_value == 345)
+		{
+			objA0.velocity.x = 0x700
+			objA0.velocity.y = -0x380
+			objA0.animation.sprite = 7
+			objA0.countdown_value = 0
+			++objA0.base_state
+			
+			objA0.position.y.u16 -= 6
+			
+			u8[A0 + 0x38] = 1 // schedule unload of wave child
+			
+			// "spawnChildObjects(0x067a70)" replaced by:
+			if (allocDynamicObjectAfterA0())
+			{
+				objA1.update_address = 0x06777a
+				objA1.render_flags = render_flag.WORLD
+				objA1.box_size.x = 32
+				objA1.position.x.u16 = objA0.position.x.u16
+				objA1.position.y.u16 = objA0.position.y.u16 + 24
+				objA1.velocity.x = 0x600
+				objA1.velocity.y = -0x400
+			}
+	
+			playSound(SFX_JUMP)
+		}
+	}
+	
+	DrawObject()
+}
+
+function void AizIntro_Mighty_state2()
+{
+	UpdateMovementStraightSimple()
+	objA0.velocity.y += 0x20
+	
+	++objA0.countdown_value
+	if (objA0.countdown_value == 8)
+		objA0.animation.sprite = 8
+	else if (objA0.countdown_value == 16)
+		objA0.animation.sprite = 9
+	
+	//objA0.velocity.x = max(objA0.velocity.x - 0x8, 0x700)
+
+	if (objA0.countdown_value > 15)
+	{
+		s16 goalpos = objA0.position.x.u16 - getScreenWidth() / 2
+		if (camera.position.x.u16 < goalpos)
+			camera.position.x.u16 = min(camera.position.x.u16 + 8, goalpos)
+		else if (camera.position.x.u16 > goalpos)
+			camera.position.x.u16 = max(camera.position.x.u16 - 3, goalpos)
+	}
+	else
+		camera.position.x.u16 += 6
+		
+	if (objA0.position.y.u16 >= 0x440)
+	{
+		objA1.position.x.u16 = objA0.position.x.u16
+		objA1.position.y.u16 = objA0.position.y.u16
+		
+		u8[A1 + 0x2e] = control_flag.DISABLE_UPDATE
+		objA1.state = char.state.RUNNING
+		objA1.groundspeed = 0x700
+		objA1.hitbox_extends.x = u8[A1 + 0x45]
+		objA1.hitbox_extends.y = u8[A1 + 0x44]
+		
+		player1.control_override = 0xff
+		control.player1 = 0
+		control.player1.state = CONTROL_RIGHT
+	
+		++objA0.base_state
+	}
+	
+	DrawObject()
+}
+
+function void AizIntro_Mighty_state3()
+{
+	objA1.position.x += s32(objA1.groundspeed) << 8
+
+	camera.position.x.u16 = objA1.position.x.u16 - getScreenWidth() / 2
+	
+	if (objA1.position.x.u16 >= 0x1210)
+		camera.position.y.u16 = max(camera.position.y.u16 - 1, 0x390)
+		
+	//debugLog(objA1.position.x.u16)
+	if (objA1.position.x.u16 > 0x128e)
+	{
+		u8[A1 + 0x2e] = 0
+		objA1.flags2a = char.flag.IN_AIR
+		objA1.velocity.x = objA1.groundspeed
+		objA1.velocity.y = 0
+		objA1.position.x.u16 += 6
+		player1.camera_lock = 0
+		
+		objA0.countdown_value = 0
+		++objA0.base_state
+	}
+	else if (objA1.position.x.u16 >= 0x1140)
+		objA1.position.y.u16 = max(objA1.position.y.u16 - 1, 0x41b)
+}
+
+function void AizIntro_Mighty_state4()
+{
+	if (objA1.position.x.u16 >= 0x1300)
+	{
+		objA0.countdown_value = 0
+		objA1.state = char.state.MIGHTY_INTRO_SLIDE
+		control.player1.state = 0
+		
+		A6 = 0xffffcc54
+		u8[A6 + 0x05] = 0x06		// Base update for braking dust
+		u8[A6 + 0x22] = 0x15		// First frame of dust animation
+		
+		++objA0.base_state
+	}
+}
+
+function void AizIntro_Mighty_state5()
+{
+	if (objA0.countdown_value == 0)
+	{
+		++objA0.countdown_value
+		playSound(SFX_BRAKE)
+	}
+	
+	if (objA1.groundspeed <= 0 && objA1.state != char.state.BRAKING)
+	{
+		objA1.groundspeed = 0
+		objA1.flags2a &= ~char.flag.FACING_LEFT
+		
+		control.player1.state = 0
+		objA0.countdown_value = 0
+		++objA0.base_state
+	}
+}
+
+function void AizIntro_Mighty_state6()
+{
+	++objA0.countdown_value
+	if (objA0.countdown_value == 20)
+		control.player1.state = CONTROL_UP
+	else if (objA0.countdown_value == 20 + 90)
+	{
+		control.player1.state = 0
+		++objA0.base_state
+	}
+}
+
+function void AizIntro_Mighty_state7()
+{
+	level.palettefx.state = 0xff
+	player1.control_override = 0
+	AfterBoss_Cleanup()
+	fn0851e4()
+
+	if (allocDynamicObjectStd())
+	{
+		// Show title card
+		objA1.update_address = addressof(TitleCard.Update)
+	}
+
+#if LEMONS_TWEAKS_ACTIVE
+	hud_scrollProgress = 0
+	global.level_started = 1
+#else
+	global.level_started = -0x6f	// Let HUD fly in
+#endif
+	hud.dirty.timer = 0x80
+	timer.alldata = 0
+	hud.dirty.lives = 0x01
+	Object.TriggerUnloading()
+
+#if STANDALONE
+	Game.endSkippableCutscene()
+#endif
+}
+
+// board
+//# address-hook(0x06777a) end(0x0677c8)
+function void fn06777a()
+{
+	if (!isECFCharP1("ECC-Mighty"))
+	{
+		base.fn06777a()
+		return
+	}
+	
+	UpdateMovementStraightSimple()
+	objA0.velocity.y += 0x18
+	
+	objA0.value26 += objA0.velocity.x >> 8
+	objA0.animation.sprite = Math.roundToInt(objA0.value26 / (256.0 / 8.0)) % 8
+	
+	if (objA0.position.y.u16 > 0x440)
+	{
+		objA0.position.y.u16 = 0x440
+		if (objA0.velocity.x != 0)
+		{
+			objA0.velocity.y = -objA0.velocity.y + 0xc0
+			objA0.velocity.x = max(objA0.velocity.x - 0x100, 0)
+			playSound(0x82) // SFX_SNOWSPLASH
+		}
+	}
+	
+	if (objA0.position.x.u16 + objA0.box_size.x < camera.position.x.u16)
+		UnloadObject()
+	else
+		DrawObject()
+}
+
+// wave child
+//# address-hook(0x0677ce) end(0x0677fa)
+function void fn0677ce()
+{
+	if (!isECFCharP1("ECC-Mighty"))
+	{
+		base.fn0677ce()
+		return
+	}
+	
+	A1 = 0xffff0000 + u16[A0 + 0x46]
+	if (u8[A1 + 0x38] == 0)
+	{
+		if (objA1.animation.sprite != 0)
+		{
+			--objA0.animation.timer
+			if (s8(objA0.animation.timer) < 0)
+			{
+				objA0.animation.sprite = (objA0.animation.sprite + 1) % 7
+				objA0.animation.timer = 1
+			}
+			
+			constant array<s16> offsetTable = 
+			{ 
+				-16, 16, 
+				-18, 19, 
+				-22, 22, 
+				-22, 21, 
+				-20, 20, 
+				-19, 24, 
+				-18, 21
+			}
+			
+			objA0.sprite_priority = (objA1.animation.sprite >= 5) ? 0x80 : 0x100
+			
+			u8 index = (objA1.animation.sprite - 1) * 2
+			objA0.position.x.u16 = objA1.position.x.u16 + offsetTable[index]
+			objA0.position.y.u16 = objA1.position.y.u16 + offsetTable[index + 1]
+			DrawObject()
+		}
+	}
+	else
+		UnloadObject()
+}
+
+// brake dust
+//# address-hook(0x018cb6) end(0x018d68)
+function void fn018cb6()
+{
+	A2 = 0xffff0000 + objA0.dustcloud.character_address
+	if (!isECFCharAt(A2, "ECC-Mighty") || u8[A2 + 0x20] != char.state.MIGHTY_INTRO_SLIDE)
+	{
+		base.fn018cb6()
+		return
+	}
+	
+	D1 = 0x10
+
+	--u8[A0 + 0x36]
+	if (s8[A0 + 0x36] < 0)
+	{
+		u8[A0 + 0x36] = 3
+		if ((u8[A2 + 0x2a] & char.flag.UNDERWATER) == 0)
+		{
+			if (allocDynamicObjectStd())
+			{
+				// Spawn skidding dust
+				objA1.update_address = objA0.update_address
+				objA1.position.x.u16 = u16[A2 + 0x10]
+				objA1.position.y.u16 = u16[A2 + 0x14]
+				if (objA0.flags38 != 0)
+				{
+					D1.u16 -= 4
+				}
+				if (global.inv_gravity)
+					D1.s16 = -D1.s16
+
+				objA1.position.y.u16 += D1.u16
+				objA1.render_flags = objA0.render_flags
+				u8[A1 + 0x05] += 2
+				objA1.box_size.x = 4
+				objA1.sprite_priority = 0x80
+				objA1.sprite_attributes = (objA0.sprite_attributes & ~sprite_attribute.PRIORITY) | (u16[A2 + 0x0a] & sprite_attribute.PRIORITY)
+				objA1.mapping_offset = objA0.mapping_offset
+				u8[A1 + 0x20] = 3
+				u8[A1 + 0x2a] = 0
+				objA1.dustcloud.character_address = objA0.dustcloud.character_address
+			}
+		}
+	}
+
+	fn018d6a()
+}

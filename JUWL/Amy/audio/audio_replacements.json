@@ -1,0 +1,10 @@
+{
+	"amy_attack": { "File": "hammercurl.ogg", "Type": "Sound"},
+	"amy_bounce": { "File": "hammerbounce.ogg", "Type": "Sound"},
+	"amy_loop": { "File": "locomotionloop.ogg", "Type": "Music", "SoundTestVisibility": "hidden"},
+	"amy_loop_c": { "File": "clutchloop.ogg", "Type": "Music", "SoundTestVisibility": "hidden"},
+	"amy_hammerready": { "File": "DropDash.ogg", "Type": "Sound"},
+	
+	"amy_s_attack": { "File": "SuperstarsHammer.ogg", "Type": "Sound"},
+	"amy_s_bounce": { "File": "SuperstarsHammerHit.ogg", "Type": "Sound"}
+}

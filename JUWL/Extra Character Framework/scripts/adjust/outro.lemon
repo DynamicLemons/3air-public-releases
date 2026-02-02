@@ -1,0 +1,439 @@
+// --- pilot
+//# address-hook(0x05eb32) end(0x05eb66)
+function void fn05eb32()
+{
+	if (!global_ExChar_P1 || ECF_disableBranchBase)
+	{
+		base.fn05eb32()
+		return
+	}
+	
+	objA0.update_address = 0x05ebb4
+
+	A1 = 0xffff0000 + u16[A0 + 0x46]
+	objA0.sprite_priority = objA1.sprite_priority
+	objA0.box_size.x = 0x20
+	objA0.box_size.y = 0x20
+	if (objA1.render_flags & render_flag.WORLD)
+	{
+		objA0.render_flags |= render_flag.WORLD
+	}
+
+	// Pass ECF funct instead of deciding by character selection
+	if (getECFCharacterTornadoPilot(global_ExChar_P1) == CHARACTER_TAILS)
+		fn05eb72()
+	else
+		fn05eb88()
+}
+
+//# address-hook(0x05ecb4) end(0x05ed0c)
+function void fn05ecb4()
+{
+	base.fn05ecb4()
+	// force Sonic if he's your small pilot; ...this has the wrong palette line and he's incorrectly pivoted
+	// the sprite is covered by a renderhook instead, but this is a fallback.
+	if (objA0.subtype2c == 0 && global_ExChar_P1 && !ECF_disableBranchBase && getECFCharacterTornadoPilot(global_ExChar_P1) == CHARACTER_SONIC)
+		objA0.animation.sprite = 19
+}
+
+//# address-hook(0x05e412) end(0x05e456)
+function void fn05e412()
+{
+	if (!global_ExChar_P1 || ECF_disableBranchBase)
+	{
+		base.fn05e412()
+		return
+	}
+	
+	A1 = 0xffffb000
+	if (u8[A1 + 0x2e] == 0)
+	{
+		if (!ECF_endposeFlyRight(global_ExChar_P1))
+		{
+			if (allocDynamicObjectStd())
+				objA1.update_address = (getECFCharBase(global_ExChar_P1) == CHARACTER_TAILS) ? 0x05fcdc : 0x05fcfc
+			objA0.render_flags |= render_flag.FLIP_X
+			fn05e3c0()
+		}
+		else
+		{
+			objA0.base_state = 0x0c
+			u8[A1 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_UPDATE)
+			objA1.state = char.state.RUNNING
+			u16[A1 + 0x18] = 0x0800
+			u16[A1 + 0x1c] = 0x0800
+		}
+	}
+}
+
+// --- follow assurance
+//# address-hook(0x05e1c2) end(0x05e282)
+function void fn05e1c2()
+{
+	if (!global_ExChar_P1 || ECF_disableBranchBase)
+	{
+		base.fn05e1c2()
+		return
+	}
+	
+	objA0.base_state = 0x02
+	objA0.render_flags |= render_flag.FLIP_X
+	objA0.position.x.u16 = 0xc0 + getScreenExtend()
+	objA0.position.y.u16 = 0xe0
+	fn0685e2()
+
+	if (outro.ending_type != 2)
+	{
+		playMusic(MUSIC_CREDITSMEDLEY)
+
+	#if STANDALONE
+		// Reset frame counter so we can use it to get the current credits music playback position
+		level.framecounter = 0
+
+		// Start skippable cutscene again, to reset the timer
+		Game.startSkippableCutscene()
+	#endif
+	}
+
+	A1 = 0xffffb000
+	objA1.render_flags |= render_flag.FLIP_X
+	u8[A1 + 0x2a] |= char.flag.FACING_LEFT
+	u8[A1 + 0x0a] &= ~0x80
+	u8[A1 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_ANIMATION | control_flag.DISABLE_UPDATE)
+	objA1.state = char.state.STANDING
+	
+	A2 = 0xffffcc0a
+	u32 routine = ECF_getFollowInitRoutine(global_ExChar_P1)
+	if (routine)
+	{
+		u32[A2] = routine
+		u16[A2 + 0x30] = A1.u16
+	}
+
+	fn05fd88()
+
+	// "spawnChildObjects(0x0601ba)" replaced by:
+	spawnChildObject(0x05ea52, 0x00, -32, 43)
+	if (_equal())
+	{
+		u8[A1 + 0x38] |= 0x04
+	}
+
+	if (outro.ending_type >= 0)
+	{
+		// "spawnSimpleChildObjects(0x060214)" replaced by:
+		spawnSimpleChildObjects(0x05e504, 5)	// The birds
+
+		// "spawnSimpleChildObjects(0x06021a)" replaced by:
+		spawnSimpleChildObjects(0x05e612, 2)	// The dolphins
+	}
+
+	Kosinski.addToDMAQueue(0x163418, 0x3c60)	// Tornado
+	Kosinski.addToDMAQueue(0x162914, 0x4dc0)	// Smaller ending sprites + Sonic pilot head + chain
+	Kosinski.addToDMAQueue(0x160d8c, 0x5fe0)	// Dolphin and seagull sprites
+}
+
+// --- end pose
+//# address-hook(0x05e3c0) end(0x05e3e8)
+function void fn05e3c0()
+{
+	if (global_ExChar_P1)
+	{
+		// Medium end pose sprite
+
+	#if STANDALONE
+		super.palettefx.state = 0
+		u32 targetAddress = 0x802000 + getMainCharacter() * 0x40
+		loadECFCharacterEndPosePalette(global_ExChar_P1, targetAddress, 0)
+		targetAddress += 0x180
+		loadECFCharacterEndPosePalette(global_ExChar_P1, targetAddress, 0)
+	#endif
+
+		objA0.base_state = 0x08
+		objA0.countdown_value = 0x05
+		if (isMainCharacter(CHARACTER_TAILS))
+		{
+			objA0.render_flags |= render_flag.FLIP_X
+		}
+
+	#if STANDALONE
+		// Flip sprite horizontally to reflect larger sprite's hand/foot position, #contributed by mrgrassman14
+		if (isMainCharacter(CHARACTER_SONIC) && objA0.animation.sprite == 0)
+			objA0.render_flags &= ~render_flag.FLIP_X
+	#endif
+
+		A1 = 0xffffb000
+		u8[A1 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_ANIMATION | control_flag.DISABLE_UPDATE)
+		objA1.animation.sprite = 0
+		DrawObject()
+	}
+	else
+		base.fn05e3c0()
+}
+
+//# address-hook(0x05e474) end(0x05e4b4)
+function void fn05e474()
+{
+	if (global_ExChar_P1)
+	{
+		--objA0.countdown_value
+		if (objA0.countdown_value >= 0)
+			return
+
+	#if STANDALONE
+		super.palettefx.state = 0
+		loadECFCharacterEndPosePalette(global_ExChar_P1, 0x802000, 1)
+		loadECFCharacterEndPosePalette(global_ExChar_P1, 0x802180, 1)
+	#endif
+
+		objA0.base_state = 0x10
+		objA0.animation.sprite = 0x02
+		objA0.render_flags &= ~render_flag.FLIP_X
+
+		A1 = 0xffffb000
+		u8[A1 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_ANIMATION | control_flag.DISABLE_UPDATE)
+		objA1.animation.sprite = 0
+
+		if (allocDynamicObjectStd())
+		{
+			objA1.update_address = 0x05fcfc
+			if (outro.ending_type != 0)
+			{
+				u8[A1 + 0x2c] = 0x02
+			}
+		}
+	}
+	else
+		base.fn05e474()
+}
+
+//# address-hook(0x05f480) end(0x05f4e2)
+function void fn05f480()
+{
+	if (global_ExChar_P1)
+	{
+		objA0.update_address = 0x05f4e4
+		objA0.mapping_offset = 0x060a4c
+		objA0.sprite_attributes = 0x02c1
+		objA0.sprite_priority = 0x0100
+		objA0.box_size.x = 0x40
+		objA0.box_size.y = 0x40
+		objA0.position.x.u16 = 0x0120 + getScreenExtend()
+		objA0.position.y.u16 = 0x0108
+		u32[A0 + 0x30] = 0x0602ca
+
+		copyMemory(0xfffffc00, 0x060bea, 0x20)
+
+	#if STANDALONE
+		super.palettefx.state = 0
+		loadECFCharacterEndPosePalette(global_ExChar_P1, 0x802080, 0)
+		loadECFCharacterEndPosePalette(global_ExChar_P1, 0x802200, 0)
+	#endif
+
+		if (outro.ending_type > 0)
+		{
+			if (allocDynamicObjectStd())
+			{
+				objA1.update_address = 0x05fba0
+			}
+		}
+	}
+	else
+		base.fn05f480()
+}
+
+function void loadECFCharacterEndPosePalette(string name, u32 targetAddress, u8 paletteVariant)
+{
+	// Palette variants:
+	//  - 0 = Normal character palette
+	//  - 1 = Super character palette
+
+	// Load original character palette from ROM
+	u8 character = getECFCharBase(name)
+	u32 sourceAddress = (character == CHARACTER_SONIC) ? ((paletteVariant == 0) ? 0x060b6a : 0x060b8a) : (character == CHARACTER_TAILS) ? 0x060b4a : 0x060bea
+	copyMemory(targetAddress, sourceAddress, 0x20)
+
+	// Allow for loading modded palettes
+	if (EXTENDED_CHARACTER_PALETTES)
+	{
+		u16 numColors = System.loadExternalPaletteData(getECFCharacterEndPosePaletteKey(name), paletteVariant, 0x800000, 0x20)
+		for (u8 i = 0; i < numColors; ++i)
+		{
+			u32 rgba = u32[0x800000 + i * 4]
+			u16[targetAddress + i * 2] = packColorExt(rgba)
+		}
+
+		if (numColors < 0x20)
+		{
+			// First 16 colors got written in any case
+			numColors = max(numColors, 0x10)
+			zeroMemory(targetAddress + numColors * 2, 0x40 - numColors * 2)
+		}
+	}
+}
+
+function bool UpdatePaletteEffects.SuperForm.endpose()
+{
+	if (global_ExChar_P1)
+	{
+		// Palette effects depend on the character, and for Sonic on Hyper vs. Super form:
+		//  - 0x00 = Hyper Sonic
+		//  - 0x01 = Super Sonic
+		//  - 0x02 = Super/Hyper Tails
+		//  - 0x03 = Super/Hyper Knuckles
+		u8 characterVersion = isMainCharacter(CHARACTER_SONIC) ? ((objA0.subtype2c == 0x02) ? 0 : 1) : (getMainCharacter() + 1)
+		
+		// There's three variants of this function:
+		//  - The original code -- handled outside this function
+		//  - Smoothed palette effects when an anti-flicker setting is active
+		//  - Variant for modded palettes
+
+		string characterPaletteKey = getECFCharacterEndPosePaletteKey(global_ExChar_P1)
+
+		if (System.hasExternalPaletteData(characterPaletteKey, 2))
+		{
+			// Modded super palettes (possible using different super colors) need a special handling
+			UpdatePaletteEffects.SuperForm.endpose.moddingVersion(characterVersion)
+			return true
+		}
+		else if (Game.getSetting(SETTING_GFX_ANTIFLICKER) != 0)
+		{
+			// Smoothed version of effects
+			UpdatePaletteEffects.SuperForm.endpose.smoothedVersion(characterVersion)
+			return true
+		}
+	}
+	return base.UpdatePaletteEffects.SuperForm.endpose()
+}
+
+
+function u8 getModdedEndPosePaletteLine(u8 character, bool isHyperEffect)
+{
+	if (global_ExChar_P1)
+	{
+		string key = getECFCharacterEndPosePaletteKey(global_ExChar_P1)
+		u8 line = 2
+		if (isHyperEffect)
+		{
+			// Hyper color cycle (if mod supports it)
+			line = 3 + super.palettefx.frame / 18
+			if (!System.hasExternalPaletteData(key, line))
+			{
+				line = 1
+			}
+		}
+		return line
+	}
+	return base.getModdedEndPosePaletteLine(character, isHyperEffect)
+}
+
+// --- best end congrats screen
+
+//# address-hook(0x05f26c) end(0x05f2dc)
+function void fn05f26c()
+{
+	if (!global_ExChar_P1 || ECF_disableBranchBase)
+	{
+		base.fn05f26c()
+		return
+	}
+	
+	setupObjectAttributesFull(0x060154)
+
+	// "Sonic the Hedgehog 3"
+	objA0.update_address = 0x05f1f6
+	if (objA0.subtype2c != 0)
+	{
+		objA0.update_address = 0x05f2ea
+		objA0.countdown_value = 0x04af
+		u8[0xfffffab8] &= ~0x04
+	}
+
+	A1 = 0x05f2e2
+	fn05ff1c()
+
+	copyMemory(0xfffffca0, 0x060ada, 0x20)
+
+#if LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+	// Attach trademark
+	if (yywtrrshygnds_setting_brandingMode != L_BRANDINGMODE_AIR && allocDynamicObjectStd())
+#else 
+	if (allocDynamicObjectStd())
+#endif
+	{
+		objA1.update_address = 0x05f4fa
+		u16[A1 + 0x46] = A0.u16
+		u8[A1 + 0x2c] = 0x04
+	}
+
+	// Attach "& Knuckles"
+#if LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+	// Attach trademark
+	if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_S3K && allocDynamicObjectStd())
+#else 
+	if (allocDynamicObjectStd())
+#endif
+	{
+		objA1.update_address = 0x05f546
+		u16[A1 + 0x46] = A0.u16
+	}
+
+	// "spawnChildObjects(0x0601f0)" replaced by:
+	spawnChildObject(addressof(ECF_EndScreen_char), 0x00, 0, 0)		// Sonic in best ending final screen
+}
+
+//# address-hook(0x39A300) end(0x39A300)
+function void ECF_EndScreen_char()
+{
+	if (objA0.base_state == 0)
+		ECF_EndScreen_char_init()
+	else
+		ECF_EndScreen_char_ani()
+}
+
+function void ECF_EndScreen_char_init()
+{
+	setupObjectAttributesMost(0x060160)
+
+	objA0.render_flags &= ~render_flag.WORLD
+	objA0.base_state = 1
+
+	A1 = 0x05f36e
+	fn05fefe()
+
+	copyMemory(0xfffffc80, 0x0a8a3c, 0x20)
+
+	loadECFCharacterPalette(global_ExChar_P1, 0x802180 + u32(getECFCharBase(global_ExChar_P1)) * 0x40, 0)
+
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = 0x05ff62
+		u16[A1 + 0x30] = 0xfc02
+		u16[A1 + 0x32] = 0xfc82
+		u16[A1 + 0x3a] = 0x0e
+	}
+}
+
+function void ECF_EndScreen_char_ani()
+{
+	string key = getECFCharacterSpriteKey(global_ExChar_P1, false)
+	if (objA0.state == 0 && u8[0xfffffab8] & 0x04 && Renderer.hasCustomSprite(stringformat("%s_ending_1_1", key)))
+	{
+		objA0.state = 1
+		objA0.animation.frame = 0
+		objA0.animation.timer = 0
+	}
+	
+	--objA0.animation.timer
+	if (s8(objA0.animation.timer) < 0)
+	{
+		objA0.animation.timer = 9
+
+		key = stringformat("%s_ending_%d_%d", key, objA0.state, objA0.animation.frame + 1)
+		if (Renderer.hasCustomSprite(key))
+			++objA0.animation.frame
+		else if (objA0.state == 0)
+			objA0.animation.frame = 1
+	}
+	DrawObject()
+}

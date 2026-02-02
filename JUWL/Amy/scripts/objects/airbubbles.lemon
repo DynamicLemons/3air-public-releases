@@ -1,0 +1,60 @@
+//# address-hook(0x02fbb2)
+function void fn02fbb2()
+{
+	if (!isECFCharA1("ECC-Amy"))
+	{
+		base.fn02fbb2()
+		return
+	}
+	
+	if (u8[A1 + 0x2e] & control_flag.DISABLE_INTERACTION)
+		return
+
+	D0.u16 = objA1.position.x.u16
+	D1.u16 = objA0.position.x.u16
+	if (D0.u16 <= D1.u16 - 0x10 || D0.u16 > D1.u16 + 0x10)
+		return
+
+	D0.u16 = objA1.position.y.u16
+	D1.u16 = objA0.position.y.u16
+	if (D0.u16 <= D1.u16 || D0.u16 > D1.u16 + 0x10)
+		return
+
+	if (u8[A1 + 0x2b] & char.bonus.SHIELD_BUBBLE)
+		return	// Ignore if player has a bubble shield
+
+	// Collect bubble
+	UpdateMusicOnWaterTransition()
+
+	playSound(0x38)
+
+	objA1.velocity.x = 0
+	objA1.velocity.y = 0
+	objA1.groundspeed = 0
+	objA1.state = char.state.BREATHE
+	u16[A1 + 0x32] = 0x23
+	u8[A1 + 0x40] = 0
+	objA1.flags2a &= ~(char.flag.CONTROL_LOCK | char.flag.PUSHING)
+
+	if (u8[A1 + 0x2a] & char.flag.ROLLING)
+	{
+		if (objA1.update_address == addressof(Character.BaseUpdate.Sonic))		// Checking for Sonic, might be clearer to check `u8[A1 + 0x38] == CHARACTER_SONIC` instead
+		{
+			u8[A1 + 0x2a] &= ~char.flag.ROLLING
+			objA1.hitbox_extends.x = u8[A1 + 0x45]
+			objA1.hitbox_extends.y = u8[A1 + 0x44]
+			objA1.position.y.u16 -= 5
+		}
+		else
+		{
+			objA1.hitbox_extends.x = u8[A1 + 0x45]
+			objA1.hitbox_extends.y = u8[A1 + 0x44]
+			--objA1.position.y.u16
+		}
+	}
+	if (objA0.base_state != 0x06)
+	{
+		objA0.base_state = 0x06
+		objA0.state += 0x04
+	}
+}

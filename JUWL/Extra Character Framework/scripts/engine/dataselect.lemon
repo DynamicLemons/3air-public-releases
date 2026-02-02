@@ -1,0 +1,563 @@
+function void DataSelect.setup()
+{
+	ECFmenus_globalVarReset()
+	ECF_loadIdValues()
+	
+	base.DataSelect.setup()
+}
+
+function void ECFmenus_globalVarReset()
+{
+	ExChar_P1 = 0
+	ExChar_P1_id = 0
+	ExChar_P2 = 0
+	ExChar_P2_id = 0
+	ExChar_P3 = 0
+	ExChar_P3_id = 0
+	ExChar_P4 = 0
+	ExChar_P4_id = 0
+	global_ExChar_P1 = 0
+	global_ExChar_P1_id = 0
+	global_ExChar_P2 = 0
+	global_ExChar_P2_id = 0
+	global_ExChar_P3 = 0
+	global_ExChar_P3_id = 0
+	global_ExChar_P4 = 0
+	global_ExChar_P4_id = 0
+	levelselect_ExChar_P1_id = 0
+	levelselect_ExChar_P2_id = 0
+	levelselect_ExChar_P3_id = 0
+	levelselect_ExChar_P4_id = 0
+	noSave_ExChar_P1_id = 0
+	noSave_ExChar_P2_id = 0
+	noSave_ExChar_P3_id = 0
+	noSave_ExChar_P4_id = 0
+}
+
+function string ECF_dataselect_getNum()
+{
+	return ECF_dataselect_getNum(A0)
+}
+
+function string ECF_dataselect_getNum(u32 address)
+{
+	u8 read = (u16(address) - 0xb0de) / 0x4a
+#if GAMEAPP >= 0x26012400
+	return (read) ? ECF_Save_num[read - 1] : noSave_ExChar_P1_id
+#else
+	return (read) ? System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1_id", read)) : noSave_ExChar_P1_id
+#endif
+}
+
+function string ECF_dataselect_getStr()
+{
+	return ECF_dataselect_getStr(A0)
+}
+
+function string ECF_dataselect_getStr(u32 address)
+{
+	u8 read = (u16(address) - 0xb0de) / 0x4a
+#if GAMEAPP >= 0x26012400
+	return (read) ? ECF_Save_str[read - 1] : getECFCharNameAtId(noSave_ExChar_P1_id)
+#else
+	return (read) ? System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1", read)) : getECFCharNameAtId(noSave_ExChar_P1_id)
+#endif
+}
+
+//# address-hook(0x00d6d0) end(0x00d70a)
+function void fn00d6d0()
+{
+	if (!ECF_charList_length)
+	{
+		base.fn00d6d0()
+		return
+	}
+	
+	// Character selection
+	u8 character = D0.u8
+	if (u16[0xffffb04a + 0x30] == 0)
+	{
+		u8 maxCharacterSelection = ActSelect.GetNumCharacterCombinations()
+	
+		u16 id = ECF_dataselect_getNum()
+	
+		s16 optionChange
+		if (control.pad1.pressed & CONTROL_UP)
+			++optionChange
+		if (control.pad1.pressed & CONTROL_DOWN)
+			--optionChange
+		
+		if (optionChange != 0)
+		{
+			if (id != 0)
+			{
+				while (true)
+				{
+					id = (id + optionChange + ECF_charList_length + 1) % (ECF_charList_length + 1)
+					if (id == 0)
+					{
+						character = (optionChange < 0) ? maxCharacterSelection - 1 : 0
+						break
+					}
+					else if (!ECF_isSelectionHidden(getECFCharNameAtId(id)))
+						break
+				}
+			}
+			else
+			{
+				if (character == 0 && optionChange < 0)
+				{
+					id = ECF_lastSelectableId
+					character = 5
+				}
+				else if (character == maxCharacterSelection - 1 && optionChange > 0)
+				{
+					id = ECF_firstSelectableId
+					character = 5
+				}
+				else
+					character += optionChange
+			}
+			
+			playSound(SFX_CLICK)
+		}
+		
+		if (objA0.update_address == 0x00d42c)
+		{
+		#if GAMEAPP >= 0x26012400
+			u8 read = (A0.u16 - 0xb128) / 0x4a
+			ECF_Save_str[read] = getECFCharNameAtId(id)
+			ECF_Save_num[read] = id
+		#else
+			u8 read = (A0.u16 - 0xb0de) / 0x4a
+			System.setGlobalVariableValueByName(stringformat("ECF_Save%d_P1_id", read), id)
+			System.setGlobalVariableValueByName(stringformat("ECF_Save%d_P1", read), getECFCharNameAtId(id))
+		#endif
+		}
+		else
+			noSave_ExChar_P1_id = id
+	}
+	D0 = character
+}
+
+
+//# address-hook(0x00d30c) end(0x00d39a)
+function void fn00d30c()
+{
+	if (!ECF_charList_length || !noSave_ExChar_P1_id && !noSave_ExChar_P2_id)
+	{
+		base.fn00d30c()
+		return
+	}
+	
+	objA0.compound.sprite1.animation.sprite = 0x0f
+	objA0.animation.sprite = dataselect.nosave_characters + 4
+
+	if (dataselect.slot_selected == 0 && u16[0xffffb04a + 0x2e] == 0 && u16[0xffffeee4] == 0)
+	{
+		if (control.pad1.pressed & DataSelect.CONTROLS_ACCEPT)
+		{
+			levelselect.characters = dataselect.nosave_characters
+			levelselect_ExChar_P1_id = noSave_ExChar_P1_id
+			levelselect_ExChar_P2_id = noSave_ExChar_P2_id
+			levelselect_ExChar_P3_id = noSave_ExChar_P3_id
+			levelselect_ExChar_P4_id = noSave_ExChar_P4_id
+			
+			DataSelect.sharedNewGameStartup()
+
+			global.active_saveslot = 0
+			DataSelect.SharedGameSlotContinue()
+
+			DrawObject()
+			return
+		}
+
+		D0.u16 = dataselect.nosave_characters
+		fn00d6d0()
+		dataselect.nosave_characters = D0.u16
+
+		objA0.animation.sprite = D0.u8 + 4
+		objA0.compound.count = 1
+		if (level.framecounter.low & 0x10)
+		{
+			fn00d69e()
+			return
+		}
+	}
+
+	objA0.compound.count = 0
+	fn00d69e()
+}
+
+function bool fn00d458()
+{
+	if (!ECF_charList_length)
+		return base.fn00d458()
+	
+	// mostly unchanged, but some character stuff needs to be accounted for here.
+	
+	// Result values:
+	//  - 0 = Abort outer function
+	//  - 1 = Allow character selection (up/down)
+	//  - 2 = Continue normally outside
+
+	if (u8[A1] & 0x80)
+	{
+		// Empty save slot
+		objA0.compound.sprite1.animation.sprite = 0x0f
+		objA0.animation.frame = 0
+		if (u16[0xffffb04a + 0x2e] != 0 || u16[0xffffeee4] != 0)
+		{
+			return 2
+		}
+		else
+		{
+			return 1
+		}
+	}
+	else
+	{
+		// Used save slot
+		D1.u16 = u16[A0 + 0x36]
+		fn00d96a()
+
+		objA0.animation.frame = 0x17
+		D1.u16 = u16[A0 + 0x36]
+		if (D1.u8 == objA0.value3a && objA0.value3b != 0)
+		{
+			// This gets entered only for completed games
+			if (objA0.value3b == 1)
+				++objA0.animation.frame
+			else if (objA0.value3b == 2)
+				objA0.animation.frame += 2
+			else
+				objA0.animation.frame += 4
+
+			if (objA0.value3b == 1 || objA0.value3b == 2)
+			{
+				if (u16[A0 + 0x34] >= CHARS_TAILS_ALONE)	// It feels strange that this is the same for Tails and Knuckles
+					objA0.animation.frame = 0x23
+			}
+		}
+
+		u8 read = (A0.u16 - 0xb0de) / 0x4a
+		
+		string name = ECF_dataselect_getStr()
+		string id = ECF_dataselect_getNum()
+		
+		if (u16[A0 + 0x38] == 0 && objA0.value3b == 0)
+		{
+			if (u16[0xffffb04a + 0x2e] != 0)
+				return 2
+
+			objA0.compound.sprite1.animation.sprite = 0
+		}
+		else
+		{
+			if (u16[A0 + 0x38] == 0)
+				objA0.flags38 = 0xff
+
+			if (u16[0xffffb04a + 0x2e] != 0)
+				return 2
+
+			if (u16[0xffffeee4] != 0)
+			{
+				objA0.compound.sprite1.animation.sprite = 0
+				objA0.compound.count = 2
+				return 2
+			}
+
+			if (u16[A0 + 0x34] >= CHARS_KNUCKLES_ALONE)		// Originally this is only an equality check
+				D6 = 0x0b
+			else if (u16[A0 + 0x34] == CHARS_TAILS_ALONE || objA0.value3b < 2 || name && !ECF_visitsDoomsday(name))
+				D6 = 0x0c
+			else
+				D6 = 0x0d
+
+			D1.u16 = u16[A0 + 0x36]
+			if (control.pad1.pressed & CONTROL_DOWN)
+			{
+				playSound(SFX_CLICK)
+				--D1.u16
+				if (D1.s16 < 0)
+					D1.u16 = D6.u16
+				
+				// safety check for "corrupted" files
+				if (D1.u16 == 0xd && name && !ECF_visitsDoomsday(name))
+					--D1.u16
+			}
+			else if (control.pad1.pressed & CONTROL_UP)
+			{
+				playSound(SFX_CLICK)
+				++D1.u16
+				if (D1.u16 > D6.u16)
+					D1 = 0
+			}
+
+			u16[A0 + 0x36] = D1.u16
+			objA0.compound.sprite1.animation.sprite = (level.framecounter.low & 0x10) ? 0x1a : 0
+		}
+
+		objA0.compound.count = 2
+		if (u16[0xffffeee4] != 0)
+		{
+			return 2
+		}
+		if ((control.pad1.pressed & DataSelect.CONTROLS_ACCEPT) == 0)
+		{
+			return 2
+		}
+		
+		if (name && id == 0)
+		{
+			playSound(0xb2)
+			return 2
+		}
+		
+		level.giantrings_clear.u16 = u16[A1 + 0x04]
+		if (objA0.value3b == 0)
+		{
+			D0.u8 = u8[A1 + 0x03]
+		}
+		else
+		{
+			D0.u16 = u16[A0 + 0x36]
+			if (D0.u8 >= objA0.value3a)
+			{
+				return 2
+			}
+			level.giantrings_clear = 0
+		}
+		fn00da4e()
+
+		global.zone_act = D0.u16
+		global.zone_act.apparent = D0.u16
+		levelselect.characters  = (u8[A1 + 0x02] >> 4)
+		levelselect_ExChar_P1_id = id
+		if (name)
+			u8[A1 + 0x02] = getECFGlobalCharId(getECFCharNameAtId(levelselect_ExChar_P1_id)) << 4
+		debugLog(u8[A1 + 0x02])
+		global.next_bluespheres = (u8[A1 + 0x02] & 0x0f)
+
+		D0 = u16[A1 + 0x06]
+		A2 = 0xffffffb2		// Start of emerald collection states
+		fn00da1e()
+		global.chaos_emeralds = D1.u8
+		global.super_emeralds = D2.u8
+	#if STANDALONE
+		global.game_random_base = u8[A1 + 0x01]
+		if (global.game_random_base == 0)
+		{
+			// Intentionally not using the (more deterministic) "getRandomNumber" here
+			global.game_random_base = 1 + (System.rand() % 0xff)		// Avoid the 0 value
+		}
+	#endif
+
+		global.active_saveslot = A1
+		DataSelect.SharedGameSlotContinue()
+
+		D0.u8 = u8[A1 + 0x08]
+		if ((D0.u8 == 0) || (D0.u8 < 3 && u8[A1 + 0x09] == 0))
+		{
+			u8[A1 + 0x08] = 3
+			if (u8[A1 + 0x09] > 0)
+				--u8[A1 + 0x09]
+		}
+
+		lives_counter = u8[A1 + 0x08]
+		continues_counter = u8[A1 + 0x09]
+
+	#if STANDALONE
+		if (continues_counter >= 5)
+		{
+			Game.setAchievementComplete(ACHIEVEMENT_CONTINUES)
+		}
+
+		// Load additional data
+		u32 slotIndex = (A1 - 0xffffe6ac) / 0x0a
+		u32 address = 0x801100 + slotIndex * 0x20
+		if (u8[A1] == 0)
+		{
+			// Load score, but only for non-completed games
+			player.score = u32[address]
+			player.next_life_score = (player.score / 5000 + 1) * 5000
+		}
+	#endif
+
+		sram.block_interrupts.u8 = 0xff
+		SaveGameSlot()
+
+		global.game_mode = 0x0c			// Main Game
+		DrawObject()
+		return 0
+	}
+}
+
+//# address-hook(0x00d42c) end(0x00d69a)
+function void fn00d42c()
+{
+	if (!ECF_charList_length)
+	{
+		base.fn00d42c()
+		return
+	}
+		
+	objA0.compound.count = 0
+	A1 = u32[A0 + 0x30]
+
+	D0.u8 = dataselect.slot_selected - 1
+	if (D0.u8 != objA0.flags2e)
+	{
+		u8[A0 + 0x37] = u8[A1 + 0x03]
+		u16[A0 + 0x38] = 0
+	}
+	else
+	{
+		u8 result = fn00d458()
+		if (result == 0)
+			return
+
+		if (result == 1)
+		{
+			if (control.pad1.pressed & DataSelect.CONTROLS_ACCEPT)
+			{
+				levelselect.characters = u16[A0 + 0x34]
+				levelselect_ExChar_P1_id = ECF_dataselect_getNum()
+
+				// Initialize the new save state
+				u32[A1] = 0
+				if (u16[A0 + 0x34] == 5)
+					u8[A1 + 0x02] = u16(getECFGlobalCharId(getECFCharNameAtId(levelselect_ExChar_P1_id))) << 4
+				else
+					u8[A1 + 0x02] = (levelselect.characters << 4)
+				u32[A1 + 0x04] = 0
+				u16[A1 + 0x08] = 0x0300
+
+				DataSelect.sharedNewGameStartup()
+				global.active_saveslot = A1
+				DataSelect.SharedGameSlotContinue()
+
+			#if STANDALONE
+				u8[A1 + 0x01] = global.game_random_base
+			#endif
+
+				sram.block_interrupts.u8 = 0xff
+				SaveGameSlot()
+
+				DrawObject()
+				return
+			}
+
+			D0.u16 = u16[A0 + 0x34]
+			fn00d6d0()
+			u16[A0 + 0x34] = D0.u16
+
+			objA0.compound.count = (level.framecounter.low & 0x10) ? 1 : 0
+		}
+	}
+
+	objA0.animation.sprite = u16[A0 + 0x34] + 4
+	fn00d69e()
+}
+
+//# address-hook(0x00d8c4) end(0x00d90c)
+function void fn00d8c4()
+{
+	fn00d912()
+
+	if ((control.pad1.pressed & CONTROL_RIGHT) == 0)
+	{
+		if ((control.pad1.pressed & CONTROL_LEFT) == 0)
+		{
+			DrawObject()
+			return
+		}
+
+		playSound(0x68)
+
+		// Clear save slot
+		A1 = u32[A0 + 0x2e]
+		u16[A1] = 0x8000
+		u32[A1 + 0x02] = 0
+		u16[A1 + 0x06] = 0
+		u16[A1 + 0x08] = 0x0300
+	#if STANDALONE
+		zeroMemory(0x801100 + 0x20 * u32(dataselect.slot_selected - 1), 0x20)
+	#endif
+		
+		sram.block_interrupts.u8 = 0xff
+		SaveGameSlot()
+	}
+
+	objA0.base_state = 0x08
+	u16[0xffffeee2] = 0
+	fn00d854()
+}
+
+
+//# address-hook(0x00c97a) end(0x00ca12)
+function void fn00c97a()
+{
+	base.fn00c97a()
+
+#if !LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+	A2 = 0x00da8a
+	A3 = 0xffffb128
+	D7.u16 = 0xd220
+	A0 = 0xffffe6ac
+	for (u8 slot = 0; slot < 8; ++slot)
+	{
+		u16 characters = u16[A3 + 0x34]
+		
+		// Draw icons for lives & continues
+		A1 = A2
+		D0 = VDPHelper.getDirectVRAMWriteCode(D7.u16)
+		D1 = 2
+		D2 = 4
+		if (ECF_dataselect_getStr(A3))
+			fn001506()
+		
+		D7.u16 += 0x1a
+		A0 += 10
+		A3 += 0x4a
+	}
+#endif
+}
+
+//# address-hook(0x00d1fa) end(0x00d30a)
+function void fn00d1fa()
+{
+	base.fn00d1fa()
+	if (global.game_mode == 0x04)
+		ECF_saveIdValuesAll()
+}
+
+#if LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+function void LemonsRender_DataSelect_setPortrait(u8 result, u8 value)
+{
+	string name = ECF_dataselect_getStr()
+	if (result == L_PORT_RESULT_END && name)
+	{
+		dataSelect_shownImage = stringformat("saveimage_%s_%d", name, value)
+		if (!Renderer.hasCustomSprite(dataSelect_shownImage))
+			dataSelect_shownImage = "saveimage_unknown"
+	}
+	else
+		base.LemonsRender_DataSelect_setPortrait(result, value)
+}
+#else
+//# address-hook(0x00d96a) end(0x00d9f2)
+function void fn00d96a()
+{
+	u8 shownImage = D1.u8
+	u8 defaultImage = objA0.value3a
+	u8 playthroughStatus = objA0.value3b
+
+	if (shownImage == defaultImage && playthroughStatus != 0)
+		objA0.value26 = playthroughStatus
+	else
+		objA0.value26 = 0
+	base.fn00d96a()
+}
+#endif
+

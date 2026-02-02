@@ -1,0 +1,13 @@
+{
+	"bluesphere_ECC-Amy_0x01":  { "File": "bluesphere_amy.bmp", "Rect": "32,24,24,40", "Center": "12,31" },
+	"bluesphere_ECC-Amy_0x02":  { "File": "bluesphere_amy.bmp", "Rect": "64,24,24,49", "Center": "12,40" },
+	"bluesphere_ECC-Amy_0x03":  { "File": "bluesphere_amy.bmp", "Rect": "96,24,32,49", "Center": "19,40" },
+	"bluesphere_ECC-Amy_0x04":  { "File": "bluesphere_amy.bmp", "Rect": "136,24,32,49", "Center": "14,40" },
+	"bluesphere_ECC-Amy_0x05":  { "File": "bluesphere_amy.bmp", "Rect": "176,24,32,49", "Center": "19,40" },
+	"bluesphere_ECC-Amy_0x06":  { "File": "bluesphere_amy.bmp", "Rect": "216,24,32,49", "Center": "13,40" },
+	"bluesphere_ECC-Amy_0x07":  { "File": "bluesphere_amy.bmp", "Rect": "256,24,32,49", "Center": "18,40" },
+	"bluesphere_ECC-Amy_0x08":  { "File": "bluesphere_amy.bmp", "Rect": "296,24,32,49", "Center": "13,40" },
+	"bluesphere_ECC-Amy_0x09":  { "File": "bluesphere_amy.bmp", "Rect": "336,24,24,35", "Center": "12,35" },
+	"bluesphere_ECC-Amy_0x0a":  { "File": "bluesphere_amy.bmp", "Rect": "368,24,24,35", "Center": "12,35" },
+	"bluesphere_ECC-Amy_0x0b":  { "File": "bluesphere_amy.bmp", "Rect": "400,24,24,35", "Center": "12,35" }
+}

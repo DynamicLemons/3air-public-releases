@@ -1,0 +1,7 @@
+{
+	"ray_swoop": { "File": "RaySwoop.ogg", "Type": "Music", "SoundTestVisibility": "hidden", "LoopStart": "41417"},
+	"ray_dive": { "File": "RayDive.ogg", "Type": "Music", "SoundTestVisibility": "hidden", "LoopStart": "72323"},
+	// by icy_kirisame
+	"ray_c_swoop": { "File": "raySwoop_alternative.ogg", "Type": "Music", "SoundTestVisibility": "hidden", "LoopStart": "44073"},
+	"ray_c_dive": { "File": "rayDive_alternative.ogg", "Type": "Music", "SoundTestVisibility": "hidden", "LoopStart": "52922"},
+}

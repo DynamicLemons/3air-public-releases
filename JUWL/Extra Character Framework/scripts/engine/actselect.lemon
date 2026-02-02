@@ -1,0 +1,375 @@
+function string ActSelect.GetCharacterCombinationName(u8 index)
+{
+	if (index > CHARS_KNUCKLES_AND_TAILS)
+		return ECF_getCharDisplayName(getECFCharNameAtId(index - CHARS_KNUCKLES_AND_TAILS))
+	
+	return base.ActSelect.GetCharacterCombinationName(index)
+}
+
+function void ActSelect.DrawMenu(u8 selectedEntry, u8 selectedZone, u8 selectedAct, s16 anchorX)
+{
+	if (!ECF_charList_length)
+	{
+		base.ActSelect.DrawMenu(selectedEntry, selectedZone, selectedAct, anchorX)
+		return
+	}
+	
+	// Title text
+	Renderer.drawText(ActSelect.TITLE_FONT, anchorX, 12, "ACT SELECT", 0xffffffff, 5, 0, 0xf010, false, true)
+
+	// Character preview
+	{
+		s16 px = max(anchorX - 125, 52)		// Move to the right in 4:3
+		Renderer.drawSprite("charselectionbox", px + 3, 159, 0, 0x00, 0xf002)
+		if (levelselect.characters > CHARS_KNUCKLES_AND_TAILS)
+		{
+			string name = getECFCharNameAtId(levelselect.characters - CHARS_KNUCKLES_AND_TAILS)
+			string key = stringformat("charselect_%s", name)
+			if (Renderer.hasCustomSprite(key))
+			{
+				SpriteHandle cspr = Renderer.addSpriteHandle(key, px, 156, 0xf004)
+				cspr.setFlags(0)
+				cspr.setPalette(getECFCharacterPaletteKey(name), 0)
+			}
+		}
+		else
+			Renderer.drawSprite(ActSelect.GetCharacterCombinationSprite(levelselect.characters), px, 156, 0, 0x00, 0xf004)
+	}
+
+	// Render menu texts
+	constant array<s16> TEXT_LINE_Y = { 121, 143, 165, 203 }
+	for (u32 entryIndex = 0; entryIndex < 4; ++entryIndex)
+	{
+		bool isSelected = (entryIndex == selectedEntry)
+		u32 color = isSelected ? 0xffff00ff : 0xffffffe8
+
+		bool canGoLeft = false
+		bool canGoRight = false
+
+		string text
+		if (entryIndex == 0)
+		{
+			text = ActSelect.GetZoneName(selectedZone)
+			canGoLeft = (selectedZone > 0)
+			canGoRight = (selectedZone < ActSelect.GetNumZones() - 1)
+		}
+		else if (entryIndex == 1)
+		{
+			if (ActSelect.GetNumActs(selectedZone) == 1)
+				text = "Single Act"
+			else
+				text = stringformat("Act %d", selectedAct + 1)
+			canGoLeft = (selectedZone > 0 || selectedAct > 0)
+			canGoRight = (selectedZone < ActSelect.GetNumZones() - 1 || selectedAct < ActSelect.GetNumActs(selectedZone) - 1)
+		}
+		else if (entryIndex == 2)
+		{
+			text = ActSelect.GetCharacterCombinationName(levelselect.characters)
+			canGoLeft = (levelselect.characters > 0)
+			canGoRight = (levelselect.characters < ActSelect.GetNumCharacterCombinations() + ECF_lastSelectableId - 1)
+		}
+		else
+		{
+			text = "Back"
+		}
+
+		s16 px = anchorX
+		s16 py = TEXT_LINE_Y[entryIndex]
+
+		s16 arrowAnimOffset = 0
+		if (isSelected)
+		{
+			float seconds = global.framecounter / 60.0f
+			arrowAnimOffset = Math.roundToInt(seconds * 6.0f) % 6
+			arrowAnimOffset = (arrowAnimOffset > 3) ? (6 - arrowAnimOffset) : arrowAnimOffset
+		}
+
+		if (canGoLeft)
+			Renderer.drawText(ActSelect.MENU_FONT, px - 50 - arrowAnimOffset, py, "<", color, 5, 0, 0xf000, false, true)
+		if (canGoRight)
+			Renderer.drawText(ActSelect.MENU_FONT, px + 110 + arrowAnimOffset, py, ">", color, 5, 0, 0xf000, false, true)
+
+		Renderer.drawText(ActSelect.MENU_FONT, px + 29, py, text, color, 5, 0, 0xf000, false, true)
+	}	
+}
+
+
+function void ActSelect.Menu(u8 fadeInMethod)
+{
+	if (!ECF_charList_length)
+	{
+		base.ActSelect.Menu(fadeInMethod)
+		return
+	}
+	
+	// Load palette for the background
+	{
+		copyMemory(0xfffffc00, 0x39d262, 0x20)
+		for (u32 i = 0; i < 0x20; ++i)
+		{
+			u16[0xfffffc00 + i * 2] = blendColorsPacked(u16[0xfffffc00 + i * 2], 0x0eee, 0x80)
+		}
+
+		copyMemory(0xfffffc80, 0xfffffc00, 0x20)
+		for (u32 i = 0; i < 0x20; ++i)
+		{
+			Renderer.setPaletteColor(i, unpackColor(u16[0xfffffc80 + i * 2]))
+		}
+	}
+
+	playMusic(MUSIC_DATASELECT)
+
+	ExChar_P1 = 0
+	ExChar_P1_id = 0
+	ExChar_P2 = 0
+	ExChar_P2_id = 0
+	global_ExChar_P1 = 0
+	global_ExChar_P1_id = 0
+	global_ExChar_P2 = 0
+	global_ExChar_P2_id = 0
+	levelselect_ExChar_P1_id = 0
+	levelselect_ExChar_P2_id = 0
+	noSave_ExChar_P1_id = 0
+	noSave_ExChar_P2_id = 0
+	
+	// TODO: Maybe make these persistent, or somehow semi-persistent (only persist during application run-time)?
+	u8 selectedEntry = 0
+	u8 selectedZone = 0			// Using the order of zones as shown to the player, not the internal zone IDs
+	u8 selectedAct = 0			// Starting at 0 for Act 1
+	levelselect.characters = 0
+
+	u8 previewImage = 0
+	float previewAnimationDelay = 0.0f
+	float previewAnimationPosition = 0.0f
+	u32 frameCounter = 0
+
+	constant float KEY_REPEAT_TIMEOUT = 0.4f
+	constant float KEY_REPEAT_DELAY   = 0.125f
+	float keyRepeatTimer = KEY_REPEAT_TIMEOUT
+	s8 lastPressedInput = -1
+
+	constant u8 RESULT_NONE       = 0
+	constant u8 RESULT_START_GAME = 1
+	constant u8 RESULT_GO_BACK    = 2
+
+	u8 result = RESULT_NONE
+	while (result == RESULT_NONE)
+	{
+		Renderer.resetSprites()
+
+		s16 anchorX = getScreenWidth() / 2
+		float deltaSeconds = 1.0f / 60.0f
+		++frameCounter
+
+		ActSelect.HandleFadeIn(fadeInMethod, frameCounter)
+		ActSelect.DrawBackground()
+
+		// Level preview
+		{
+			// Update animation
+			constant float MOVE_TIME = 2.5f
+			constant float CHANGE_TIME = 0.6f
+
+			if (previewAnimationDelay < MOVE_TIME)
+			{
+				previewAnimationDelay += deltaSeconds
+			}
+			else
+			{
+				previewAnimationPosition += deltaSeconds / CHANGE_TIME
+				if (previewAnimationPosition >= 1.0f)
+				{
+					previewAnimationDelay = 0.0f
+					previewAnimationPosition = 0.0f
+					previewImage = (previewImage + 1) % ActSelect.GetNumZonePreviews(selectedZone, selectedAct)
+				}
+			}
+
+			// Render the preview sprites
+			s16 offset = -Math.roundToInt((1.0f - Math.cos(previewAnimationPosition * PI_FLOAT)) * 40.0f)
+			string key
+			{
+				key = ActSelect.GetZonePreviewKey(selectedZone, selectedAct, previewImage)
+
+				SpriteHandle spr = Renderer.addSpriteHandle(key, s16(getScreenWidth() - 480) / 2 + offset, 18, 0xf004)
+				spr.setPrimaryPalette(key, 0)
+				spr.setFlags(SPRITE_FLAG_FULLY_OPAQUE)
+				spr.setUseGlobalComponentTint(true)
+			}
+
+			if (previewAnimationPosition > 0.0f)
+			{
+				s16 splitX = Math.roundToInt((1.0f - previewAnimationPosition) * getScreenWidth())
+				Renderer.setViewport(splitX, 0, getScreenWidth() - splitX, getScreenHeight(), 0xf005)
+
+				offset += 80
+				key = ActSelect.GetZonePreviewKey(selectedZone, selectedAct, previewImage + 1)
+
+				SpriteHandle spr = Renderer.addSpriteHandle(key, s16(getScreenWidth() - 480) / 2 + offset, 18, 0xf006)
+				spr.setPrimaryPalette(key, 0)
+				spr.setFlags(SPRITE_FLAG_FULLY_OPAQUE)
+				spr.setUseGlobalComponentTint(true)
+
+				Renderer.resetViewport(0xf007)
+			}
+
+			// Render the border
+			Renderer.drawSprite("level_preview_border_left", 0, 8, 0, 0x00, 0xf008)
+			Renderer.drawSpriteTransformed("level_preview_border_center", getScreenWidth() / 2, 8, 0, 0x00, 0xf008, 0xffffffff, float(getScreenWidth() - 20) / 10.0f, 0.0f, 0.0f, 1.0f)
+			Renderer.drawSprite("level_preview_border_right", getScreenWidth(), 8, 0, 0x00, 0xf008)
+		}
+
+		ActSelect.DrawMenu(selectedEntry, selectedZone, selectedAct, anchorX)
+
+		waitForNextFrame()
+
+		// Handle key repeat
+		s8 currentInput = -1
+		{
+			if (Input.buttonPressed(BUTTON_UP))
+				currentInput = BUTTON_UP
+			else if (Input.buttonPressed(BUTTON_DOWN))
+				currentInput = BUTTON_DOWN
+			else if (Input.buttonPressed(BUTTON_LEFT))
+				currentInput = BUTTON_LEFT
+			else if (Input.buttonPressed(BUTTON_RIGHT))
+				currentInput = BUTTON_RIGHT
+			else if (lastPressedInput >= 0 && Input.buttonDown(lastPressedInput))
+				currentInput = lastPressedInput
+
+			lastPressedInput = currentInput
+
+			if (currentInput == -1)
+			{
+				// No input at all, so reset key repeat
+				keyRepeatTimer = KEY_REPEAT_TIMEOUT
+			}
+			else if (Input.buttonPressed(currentInput))
+			{
+				// Input pressed for the first frame now
+				keyRepeatTimer = KEY_REPEAT_TIMEOUT
+			}
+			else
+			{
+				// Input held down
+				keyRepeatTimer -= deltaSeconds
+				if (keyRepeatTimer <= 0.001f)
+					keyRepeatTimer = KEY_REPEAT_DELAY
+				else
+					currentInput = -1
+			}
+		}
+
+		s8 entryChange = (currentInput == BUTTON_UP) ? -1 : (currentInput == BUTTON_DOWN) ? 1 : 0
+		if (entryChange != 0)
+		{
+			Audio.playAudio(0x5b)
+			selectedEntry = (selectedEntry + 4 + entryChange) % 4
+		}
+
+		s8 optionChange = (currentInput == BUTTON_LEFT) ? -1 : (currentInput == BUTTON_RIGHT) ? 1 : 0
+		if (optionChange != 0)
+		{
+			u8 oldZone = selectedZone
+			u8 oldAct = selectedAct
+			u16 oldCharacters = levelselect.characters
+			
+			if (selectedEntry == 0)
+			{
+				selectedZone = clamp(s16(selectedZone) + optionChange, 0, ActSelect.GetNumZones() - 1)
+				selectedAct = clamp(selectedAct, 0, ActSelect.GetNumActs(selectedZone) - 1)
+			}
+			else if (selectedEntry == 1)
+			{
+				if (optionChange < 0)
+				{
+					if (selectedAct > 0)
+					{
+						--selectedAct
+					}
+					else if (selectedZone > 0)
+					{
+						--selectedZone
+						selectedAct = ActSelect.GetNumActs(selectedZone) - 1
+					}
+				}
+				else
+				{
+					if (selectedAct < ActSelect.GetNumActs(selectedZone) - 1)
+					{
+						++selectedAct
+					}
+					else if (selectedZone < ActSelect.GetNumZones() - 1)
+					{
+						++selectedZone
+						selectedAct = 0
+					}
+				}
+			}
+			else if (selectedEntry == 2)
+			{
+				if (levelselect.characters >= ActSelect.GetNumCharacterCombinations())
+				{
+					while (true)
+					{
+						levelselect.characters = min(levelselect.characters + optionChange, ECF_lastSelectableId + CHARS_KNUCKLES_AND_TAILS)
+						if (!ECF_isSelectionHidden(getECFCharNameAtId(levelselect.characters - CHARS_KNUCKLES_AND_TAILS)))
+							break
+					}
+				}
+				else
+					levelselect.characters = clamp(s16(levelselect.characters) + optionChange, 0, ActSelect.GetNumCharacterCombinations())
+			}
+			
+			if (selectedZone != oldZone || selectedAct != oldAct)
+			{
+				Audio.playAudio(0x5b)
+				previewAnimationDelay = 0.0f
+				previewAnimationPosition = 0.0f
+				previewImage = 0
+			}
+			else if (levelselect.characters != oldCharacters)
+			{
+				Audio.playAudio(0x5b)
+			}
+		}
+
+		if (Input.buttonPressed(BUTTON_START))
+		{
+			result = (selectedEntry == 3) ? RESULT_GO_BACK : RESULT_START_GAME
+		}
+		else if (Input.buttonPressed(BUTTON_B) || Input.buttonPressed(BUTTON_BACK))
+		{
+			result = 2
+		}
+	}
+
+	if (result == RESULT_START_GAME)
+	{
+		// Start game now
+		global.zone_act = ActSelect.TranslateZoneAct(selectedZone, selectedAct)
+		Audio.playAudio(0xaf)
+		
+		if (levelselect.characters > CHARS_KNUCKLES_AND_TAILS)
+		{
+			levelselect_ExChar_P1_id = levelselect.characters - CHARS_KNUCKLES_AND_TAILS
+			levelselect.characters = getECFGlobalCharId(getECFCharNameAtId(levelselect_ExChar_P1_id))
+		}
+		else
+			levelselect_ExChar_P1_id = 0
+		
+		System.setupCallFrame("EntryFunctions.actSelect")
+	}
+	else if (result == RESULT_GO_BACK)
+	{
+		playSound(0xad)
+
+		u32 backupA0 = A0
+		FadeOutScreenBlocking()
+		A0 = backupA0
+
+		// Do not fade out music in this case, Data Select music is meant to keep playing
+		Game.returnToMainMenu()
+		yieldExecution()
+	}
+}

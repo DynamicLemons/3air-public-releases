@@ -1,0 +1,29 @@
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+function void SwapMode_dataSwap_globals()
+{
+	base.SwapMode_dataSwap_globals()
+	
+	SwapMode_handleGlobalSwap("ray_abilitySpeed")
+	SwapMode_handleGlobalSwap("ray_storedSpeed")
+	SwapMode_handleGlobalSwap("ray_glideAngle")
+	SwapMode_handleGlobalSwap("ray_abilityTimer")
+	SwapMode_handleGlobalSwap("ray_isGlidingUp")
+	SwapMode_handleGlobalSwap("ray_boostCounter")
+}
+
+function void Character.TailsAI.DKC.translateCharState(u8 i)
+{
+	string trail_name = SwapMode_trail_name[i]
+	if (trail_name == "ECC-Ray" && getECFCharBufferName(A0) != "ECC-Ray" && char.state >= char.state.RAY_GLIDE_U && char.state <= char.state.RAY_HANGING2)
+	{
+		char.control_flags &= ~control_flag.DISABLE_ANIMATION
+		if (char.state == char.state.RAY_HEADBUTT)
+			char.state = char.state.STRAIGHTJUMP
+		else
+			char.state = Character.TailsAI.DKC.getHoverState(Character.TailsAI.DKC.getName())
+		return
+	}
+	
+	base.Character.TailsAI.DKC.translateCharState(i)
+}
+#endif

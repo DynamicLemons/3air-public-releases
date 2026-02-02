@@ -1,0 +1,64 @@
+function s16 Ray_getShieldXPivot()
+{
+	if (objA1.animation.sprite >= 0x80 && objA1.animation.sprite <= 0x85)
+	{
+		constant array<s16> pivX = { -16, -20, -22, -16, -20, -16 }
+		return pivX[objA1.animation.sprite - 0x80] * ((objA1.flags2a & char.flag.FACING_LEFT) ? -1 : 1)
+	}
+	return 0
+}
+
+// shields
+//# address-hook(0x019602) end(0x0196c0)
+function void FireShield.Update()
+{
+	base.FireShield.Update()
+	
+	A1 = 0xffff0000 + objA0.shield.character_address
+	if (isECFCharA1("ECC-Ray"))
+		objA0.position.x.u16 += Ray_getShieldXPivot()
+}
+
+//# address-hook(0x019732) end(0x01980a)
+function void LightningShield.Update()
+{
+	base.LightningShield.Update()
+	
+	A1 = 0xffff0000 + objA0.shield.character_address
+	if (isECFCharA1("ECC-Ray"))
+		objA0.position.x.u16 += Ray_getShieldXPivot()
+}
+
+//# address-hook(0x019922) end(0x019998)
+function void BubbleShield.Update()
+{
+	base.BubbleShield.Update()
+	
+	A1 = 0xffff0000 + objA0.shield.character_address
+	if (isECFCharA1("ECC-Ray"))
+		objA0.position.x.u16 += Ray_getShieldXPivot()
+}
+
+// invince
+//# address-hook(0x01898a) end(0x01899e)
+function void fn01898a()
+{
+	base.fn01898a()
+	
+	// it doesn't really make sense to pivot the sparkle trail like this, but I'm not coding a system just to make sure these are offset right LOL
+	if (isECFCharA1("ECC-Ray"))
+		D2.u16 += Ray_getShieldXPivot()
+}
+
+// hypersonicstars
+//# address-hook(0x0193ec) end(0x019486)
+function void fn0193ec()
+{
+	base.fn0193ec()
+	if (objA0.update_address)
+	{
+		A1 = 0xffffb000
+		if (isECFCharA1("ECC-Ray"))
+			objA0.position.x.u16 += Ray_getShieldXPivot()
+	}
+}

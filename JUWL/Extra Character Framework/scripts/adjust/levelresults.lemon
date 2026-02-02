@@ -1,0 +1,60 @@
+// nametags
+
+//# address-hook(0x02dd3e) end(0x02dd92)
+function void LevelResults.UpdateCharacterNameDisplay()
+{
+	if (!ExChar_P1 || ECF_disableBranchBase)
+	{
+		base.LevelResults.UpdateCharacterNameDisplay()
+		return
+	}
+	
+	if (isMainCharacter(CHARACTER_TAILS))
+	{
+		++objA0.animation.sprite
+		if (global.region_code & 0x80)
+		{
+			// Small changes for "Miles" instead of "Tails"
+			++objA0.animation.sprite
+			D0 = 8
+			objA0.position.x.u16 += D0.u16
+			u16[A0 + 0x46] += D0.u16
+			objA0.box_size.x -= D0.u8
+		}
+	}
+	else if (isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		objA0.animation.sprite += 3
+		D0 = 0x30
+		objA0.position.x.u16 -= D0.u16
+		u16[A0 + 0x46] -= D0.u16
+		objA0.box_size.x += D0.u8
+	}
+
+
+	// 0x13 - Sonic | 0x14 - Miles | 0x15 - Tails | 0x16 - Knuckles
+	u16 originalSize = (objA0.animation.sprite == 0x15) ? 64 : (objA0.animation.sprite == 0x16) ? 120 : 72
+	s16 offset = originalSize - ECF_getResultsNameTagWidth(ExChar_P1)
+	
+	objA0.position.x.u16 += offset
+	u16[A0 + 0x46] += offset
+	objA0.box_size.x -= s8(offset)
+	
+	A1 = 0xffff0000 + u16[A0 + 0x48]
+	D0 = (u16[A1 + 0x2c] != 0) ? 0x0028 : 0
+	objA0.sprite_attributes = D0.u16
+	objA0.update_address = addressof(LevelResults.UpdateStaticTextDisplay)
+	LevelResults.UpdateStaticTextDisplay()
+}
+
+//# address-hook(0x02ec80) end(0x02eca6)
+function void fn02ec80()
+{
+	base.fn02ec80()
+	if (ExChar_P1 && !ECF_disableBranchBase)
+	{
+		// 0 - Sonic | 1 - Miles | 2 - Tails | 3 - Knuckles
+		u16 originalSize = (D0 == 2) ? 64 : (D0 == 3) ? 120 : 72
+		D0 = (originalSize - ECF_getResultsNameTagWidth(ExChar_P1)) / 2
+	}
+}

@@ -1,0 +1,430 @@
+function string getZoneRawdataVariant()
+{
+	return base.getZoneRawdataVariant()
+}
+
+function void ECF_introMusicAndTitlecardStuff()
+{
+	if (!isECFCharP1("ECC-Amy") || global.zone_act != 0x0000 || checkpoint.number != 0)
+	{
+		base.ECF_introMusicAndTitlecardStuff()
+		return
+	}
+	
+	bool isKnucklesIntro = (Game.getSetting(SETTING_AIZ_INTRO_KNUCKLES) != 0 && global.zone_act == 0x0000 && ECF_AIZ_introBase(global_ExChar_P1) == CHARACTER_KNUCKLES && checkpoint.number == 0 && !Game.isTimeAttack())
+	
+	u8 musicId = u8[0x005f82 + global.zone * 2 + global.act]
+	level.default_music = musicId
+	if (musicId != 0)
+		playMusic(musicId)
+
+	// This loads the critters graphics
+#if !STANDALONE
+	set_status_register(0x2700)
+
+	// Use AIZ critters and not the MHZ critters in Knuckles' intro, #contributed by iCloudius
+	//  -> Also requires a ROM manipulation, search for the comment above to find that one
+	Nemesis.loadDataToVRAM(0x1935a8, 0xb000)
+#else
+	Nemesis.loadDataToVRAM(0x1931d6, 0xb000)
+#endif
+	Nemesis.loadDataToVRAM(0x193308, 0xb240)
+
+	level.skip_titlecard = false
+}
+
+//# address-hook(0x01be46) end(0x01bfae)
+function void SetupCharacterAtStartPosition()
+{
+	if (checkpoint.number == 0 && global.zone_act == 0x0000 && isECFCharP1("ECC-Amy") && getZoneRawdataVariant() == "")
+	{
+		A1 = isMainCharacter(CHARACTER_KNUCKLES) ? 0x1e3cd8 : 0x1e3c18		// Get starting positions from respective tables
+		A1 += global.zone * 8 + global.act * 4
+		D1 = u16[A1]		// Get x-position
+		D0 = u16[A1+2]		// Get y-position
+		u16[0xffffb000 + 0x10] = D1.u16		// Set Player 1 x-position
+		u16[0xffffb000 + 0x14] = D0.u16		// Set Player 1 y-position
+
+		D1.u16 += getScreenWidth() / 2
+		D0.u16 += 96
+
+		D1.s16 = max(D1.s16 - getScreenWidth() / 2, 0)
+		if (competition_mode.active == 0)
+		{
+		#if STANDALONE
+			// Avoid exact tile edges
+			//  -> This was particularly added in to avoid glitches in first pixel row after exiting first Giant Ring in AIZ 2
+			//     (There's probably a better solution, that generally solves this type of glitches when going left in AIZ 2)
+			if ((D1.u16 & 0x0f) == 0)
+				++D1.u16
+		#endif
+			D1.u16 = min(D1.u16, move_area.right)
+		}
+
+		camera.position.x.u16 = D1.u16
+		camera.position.x.u16.player2 = D1.u16
+
+		D0.s16 = clamp(D0.s16 - 96, 0, s16(move_area.bottom.current))
+		camera.position.y.u16 = D0.u16
+		camera.position.y.u16.player2 = D0.u16
+	}
+	else
+		base.SetupCharacterAtStartPosition()
+}
+
+function void AizIntro_Amy_aniAnimals()
+{
+	constant array<u8> AniTable = 
+	{
+		5,
+		
+		1,
+		1,
+		1,
+		1,
+		1,
+		
+		2,
+		2,
+		
+		3,
+		3,
+		3,
+		3,
+		3,
+		
+		2,
+		2,
+		
+		0xff
+	}
+
+	A1 = 0x800000
+	for (u8 i = 0; i < AniTable.length(); ++i)
+		u8[A1 + i] = AniTable[i]
+	D0.u8 = AniTable[0]
+	
+	updateSonicAnimationStanding()
+}
+
+//# address-hook(0x063446) end(0x063460)
+function void fn063446()
+{
+	if (isECFCharP1("ECC-Amy"))
+	{
+		objA0.update_address = 0x063466
+		
+		fn063466()
+	}
+	else
+		base.fn063446()
+}
+
+//# address-hook(0x063466) end(0x063480)
+function void fn063466()
+{
+	if (!isECFCharP1("ECC-Amy"))
+	{
+		base.fn063466()
+		return
+	}
+	
+	A1 = 0xffffb000
+	if (control.pad1.pressed & CONTROL_START || control.pad2.pressed & CONTROL_START)
+	{
+		checkpoint.number = 1
+		checkpoint.x = 0x1460
+		checkpoint.y = 0x041a
+
+		Checkpoint.SaveCurrentState()
+		checkpoint.time = 0
+
+		Game.endSkippableCutscene()
+		
+		level.restart = 1
+	}
+	else if (!System.callFunctionByName(stringformat("AizIntro_Amy_state%d", objA0.base_state)))
+		fn06364e()
+}
+
+
+function void AizIntro_Amy_state0()
+{
+	u8[A1 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_ANIMATION | control_flag.DISABLE_UPDATE)
+
+	objA0.position.x.u16 = 0x1446
+	objA0.position.y.u16 = 0x0419
+	camera.position.x.u16 = objA0.position.x.u16 - getScreenWidth() / 2
+	camera.position.y.u16 = 0x0390
+	
+	player1.camera_lock = 0xff
+	global.random.seed = global.framecounter
+	global.level_started = 0
+
+	// "spawnSimpleChildObjects(0x066656)" replaced by:
+	spawnSimpleChildObjects(0x063694, 8)		// Spawn the 8 critters
+
+	copyMemory(0xfffffca0, 0x066a32, 0x20)
+	
+	objA0.render_flags = render_flag.WORLD
+	objA0.base_state = 1
+	objA0.sprite_priority = 0x300
+	
+	Game.startSkippableCutscene()
+}
+
+function void AizIntro_Amy_state1()
+{
+	AizIntro_Amy_aniAnimals()
+	
+	++objA0.countdown_value
+	if (objA0.countdown_value >= 240)
+	{
+		objA0.countdown_value = 0
+		u8[0xfffffab8] |= 0x04
+		playSound(SFX_COLLAPSE)
+
+		loadCharacterPalette(CHARACTER_SONIC,    0x802040, 0)
+		loadCharacterPalette(CHARACTER_TAILS,    0x802080, 0)
+		loadCharacterPalette(CHARACTER_KNUCKLES, 0x8020c0, 0)
+		
+		objA0.animation.sprite = 4
+		++objA0.base_state
+		
+		for (u8 i; i < 3; ++i)
+		{
+			if (allocDynamicObjectStd())
+			{
+				objA1.update_address = 0x063790
+				objA1.position.y.u16 = objA0.position.y.u16
+				objA1.sprite_priority = 0x100
+				
+				objA1.hitbox_extends.x = char.hitbox.x.UPRIGHT
+				objA1.hitbox_extends.y = char.hitbox.y.UPRIGHT
+				
+				if (i == 0)
+				{
+					objA1.position.x.u16 = camera.position.x.u16 - 32
+					objA1.subtype2c = CHARACTER_KNUCKLES
+				}
+				else
+				{
+					objA1.position.x.u16 = camera.position.x.u16 - 128
+					if (i == 2)
+					{
+						objA1.position.x.u16 -= 40
+						objA1.position.y.u16 += 4
+						objA1.hitbox_extends.y = char.hitbox.y.UPRIGHT_TAILS
+					}
+					objA1.subtype2c = (i == 2) ? CHARACTER_TAILS : CHARACTER_SONIC
+				}
+			}
+		}
+	}
+	
+	DrawObject()
+}
+
+function void AizIntro_Amy_state2()
+{
+	++objA0.countdown_value
+	if (objA0.countdown_value >= 30)
+	{
+		objA0.countdown_value = 0
+		objA0.animation.sprite = 6
+		objA0.render_flags |= render_flag.FLIP_X
+		++objA0.base_state
+	}
+	
+	DrawObject()
+}
+
+function void AizIntro_Amy_state3()
+{
+	++objA0.countdown_value
+	
+	//debugLog(stringformat("%d", objA0.countdown_value))
+	if (objA0.countdown_value == 120)
+	{
+		objA0.animation.sprite = 5
+		objA0.render_flags |= render_flag.FLIP_X
+	}
+	else if (objA0.countdown_value == 134)
+	{
+		objA0.animation.sprite = 5
+		objA0.render_flags &= ~render_flag.FLIP_X
+	}
+	else if (objA0.countdown_value == 160)
+		objA0.animation.sprite = 6
+	else if (objA0.countdown_value == 220)
+		++objA0.base_state
+		
+	DrawObject()
+}
+
+//# address-hook(0x06364e) end(0x06367c)
+function void fn06364e()
+{
+	if (!isECFCharP1("ECC-Amy"))
+	{
+		base.fn06364e()
+		return
+	}
+	
+	checkpoint.number = 1
+	checkpoint.x = 0x1460
+	checkpoint.y = 0x041a
+
+	Checkpoint.SaveCurrentState()
+	checkpoint.time = 0
+
+	Game.endSkippableCutscene()
+
+	u32 backupA0 = A0
+
+	u16[0xffffb000 + 0x10] = objA0.position.x.u16
+	u16[0xffffb000 + 0x14] = objA0.position.y.u16
+	s16[0xffffb000 + 0x18] = objA0.velocity.x
+	s16[0xffffb000 + 0x1c] = objA0.velocity.x
+	u8[0xffffb000 + 0x2e] = 0
+
+	// Give Knuckles another update, to make sure he's rendered this frame at all
+	A0 = 0xffffb000
+	call objA0.update_address
+	A0 = backupA0
+
+	// Remove the critters, and the object that listens to CONTROL_START
+	for (u32 address = 0xffffb128; address < 0xffffcfcb; address += 0x4a)
+	{
+		A1 = address
+		if (objA1.update_address == 0x063720 || objA1.update_address == 0x063750 || objA1.update_address == 0x063682)
+		{
+			unloadObjectAt(A1)
+		}
+	}
+
+	// unload extra palettes
+	loadCharacterPalette(CHARACTER_TAILS,    0x802040, 0)
+	loadCharacterPalette(CHARACTER_KNUCKLES,    0x802080, 0)
+	zeroMemory(0x8020c0, 0x40)
+		
+	// Load palette line 1 for enemies
+	copyMemory(0xfffffc20, 0x0a8b7c, 0x20)
+
+	player1.control_override = 0
+	player1.camera_lock = 0
+	fn0851e4()
+
+	if (allocDynamicObjectStd())
+	{
+		// Show title card
+		objA1.update_address = addressof(TitleCard.Update)
+	}
+
+#if LEMONS_TWEAKS_ACTIVE
+	hud_scrollProgress = 0
+	global.level_started = 1
+#else
+	global.level_started = -0x6f	// Let HUD fly in
+#endif
+	hud.dirty.timer = 0x80
+	timer.alldata = 0
+	hud.dirty.lives = 0x01
+
+	UnloadObject()
+
+	// Spawn Tails
+	if (getNumPlayers() > 1)
+	{
+		tails.respawn_counter = 60
+		tails.ai_routine = 0x02
+	}
+}
+
+// critters
+//# address-hook(0x065e02) end(0x065e4a)
+function void fn065e02()
+{
+	if (u8[0xfffffab8] & 0x04 && isECFCharP1("ECC-Amy"))
+	{
+		GetRandomNumber()
+		D0.u16 = -(D0.u16 & 0x01ff) - 0x0100
+		objA0.velocity.y = Math.roundToInt(D0.s16 * 1.35)
+
+		D0 = (D0 << 16) + (D0 >> 16)
+		D1.u16 = 0x0100
+		
+		objA0.render_flags &= ~render_flag.FLIP_X
+		D2.u16 = objA0.position.x.u16
+		objA0.velocity.x = D1.u16 * 2
+	}
+	else
+		base.fn065e02()
+}
+
+// idiots that run by
+//# address-hook(0x063790) end(0x0637e6)
+function void fn063790()
+{
+	if (isECFCharP1("ECC-Amy"))
+	{
+		A1 = 0xffffb000
+		System.callFunctionByName(stringformat("AizIntro_Amy_STK_state%d", objA0.base_state))
+	}
+	else
+		base.fn063790()
+}
+
+function void AizIntro_Amy_STK_state0()
+{
+	objA0.render_flags = render_flag.WORLD
+	objA0.animation.sprite = 0x21
+	objA0.box_size.x = 0x18
+	objA0.box_size.y = 0x18
+	objA0.sprite_priority = 0x100
+	
+	++objA0.base_state
+	
+	objA0.velocity.x = 0x600
+}
+
+function void AizIntro_Amy_STK_state1()
+{
+	if (objA0.countdown_value < 60 * 2)
+	{
+		++objA0.countdown_value
+		return
+	}
+	
+	UpdateMovementStraightSimple()
+	
+	u16[A0 + 0x46] = u16[A1 + 0x46]
+	u32[0xfffff796] = (char.layer_flags1 == 0x0c) ? u32[0xfffff7b4] : u32[0xfffff7b8]
+	D5.u8 = char.layer_flags2
+	Character.CheckFloorCollision()
+	char.position.y.u16 += D1.s16
+	
+	constant array<u8> AniTable = 
+	{
+		3,
+		
+		0x21,
+		0x22,
+		0x23,
+		0x24,
+		
+		0xff
+	}
+
+	A1 = 0x800000
+	for (u8 i = 0; i < AniTable.length(); ++i)
+		u8[A1 + i] = AniTable[i]
+	D0.u8 = AniTable[0]
+	
+	updateSonicAnimationStanding()
+	
+	if (objA0.position.x.u16 > camera.position.x.u16 + getScreenWidth() + objA0.box_size.x)
+		UnloadObject()
+	else
+		DrawObject()
+}

@@ -1,0 +1,8 @@
+{
+	"character_ECC-Amy_tryagain_continue_1":  { "File": "character_amy_continue.bmp", "Rect": "8,8,56,56", "Center": "28,36" },
+	"character_ECC-Amy_tryagain_continue_2":  { "File": "character_amy_continue.bmp", "Rect": "72,8,56,56", "Center": "28,36" },
+	"character_ECC-Amy_continue_0x00":  { "File": "character_amy_continue.bmp", "Rect": "8,8,56,56", "Center": "28,36" },
+	"character_ECC-Amy_continue_0x01":  { "File": "character_amy_continue.bmp", "Rect": "72,8,56,56", "Center": "28,36" },
+	"continue_icon_ECC-Amy_wait_0x00": { "File": "continue_icon_amy_wait.bmp", "Rect": "8,8,24,24", "Center": "12,12" },
+	"continue_icon_ECC-Amy_wait_0x01": { "File": "continue_icon_amy_wait.bmp", "Rect": "40,8,24,24", "Center": "12,12" }
+}

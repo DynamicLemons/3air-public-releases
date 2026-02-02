@@ -1,0 +1,61 @@
+#if !LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+//# address-hook(0x04c3f0) end(0x04c3f8)
+function void BonusSM.UpdateSlotMachine()
+{
+	base.BonusSM.UpdateSlotMachine()
+	Lemons_renderSlotIcons()
+}
+
+function void Lemons_renderSlotIcons()
+{
+	A0 = 0xffffb128
+	s16 _x = objA0.position.x.u16 - camera.foreground.x.u16 - 32
+	s16 _y = objA0.position.y.u16 - camera.foreground.y.u16 - 48
+	
+	u16 renderQueue = 0x2000
+	
+	Renderer.resetViewport(0)
+	Renderer.setViewport(_x - 16, _y - 16, 96, 32, renderQueue)
+	++renderQueue
+	
+	for (u32 i; i < 3; ++i)
+	{
+		s16 px = _x + i * 32
+		
+		A1 = 0xffffe40e + i * 4 // rom list that stores the order in which the slot icons appear
+		A2 = 0x04c8cc + i * 8 // and the current offset + y scroll of the icon
+		u8 slot = u8[A1] & 0x07
+		s16 scroll = (u16[A1] & 0xf8) >> 3
+		
+		string key = Lemons_getSlotIcon(u8[A2 + slot])
+		if (Renderer.hasCustomSprite(key))
+			Renderer.drawSprite(key, px, _y - scroll, 0, SPRITE_FLAG_PRIO, renderQueue)
+		if (scroll)
+		{
+			key = Lemons_getSlotIcon(u8[A2 + ((slot + 1) & 0x07)])
+			if (Renderer.hasCustomSprite(key))
+				Renderer.drawSprite(key, px, _y - scroll + 32, 0, SPRITE_FLAG_PRIO, renderQueue)
+		}
+	}
+	++renderQueue
+	
+	Renderer.resetViewport(renderQueue)
+}
+
+function string Lemons_getSlotIcon(u8 i)
+{
+	constant array<string> _ico =
+	{
+		"sloticon_jackpot",
+		"sloticon_sonic",
+		"sloticon_tails",
+		"sloticon_knuckles",
+		"sloticon_eggman",
+		"sloticon_ring",
+		"sloticon_bar",
+		"sloticon_err"
+	}
+	string key = _ico[min(i, _ico.length())]
+	return key
+}
+#endif

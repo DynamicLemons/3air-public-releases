@@ -1,0 +1,41 @@
+//# address-hook(0x05c6b6) end(0x05c6de)
+function void fn05c6b6()
+{
+	if (global_ExChar_P1 != "ECC-Ray")
+	{
+		base.fn05c6b6()
+		return
+	}
+	
+	// ECF characters use distinct sprite ids for this scene rather than reusing a waiting animation.
+	A1 = 0xffff0000 + u16[0xfffffaa4]
+	if ((u8[A1 + 0x38] & 0x04) == 0)
+	{
+		constant array<u8> AniTable = 
+		{
+			1,
+			0, 0, 0,
+			1,
+			2, 2, 2,
+		}
+		
+		--objA0.animation.timer
+		if (s8(objA0.animation.timer) < 0)
+		{
+			objA0.animation.timer = 11
+			
+			objA0.animation.frame = (objA0.animation.frame + 1) % AniTable.length()
+			objA0.animation.sprite = AniTable[objA0.animation.frame]
+		}
+		
+		objA0.subtype2c = 1
+		return
+	}
+
+	objA0.base_state = 0x04
+	objA0.animation.sprite = 0x56
+	objA0.countdown_value = 0x07
+	objA0.animation.frame = 0
+	objA0.animation.timer = 0
+	objA0.subtype2c = 0
+}

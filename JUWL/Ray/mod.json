@@ -1,0 +1,81 @@
+{
+	"Metadata":
+	{
+		"Name": "Juwl Ray",
+		"Author": "Juwl Modding Group",
+		"UniqueID": "juwl-ecc-ray",
+		"Description": "Adds Ray as an additional character. A port of Sonic Mania's Ray, with an optional headbutt move.",
+		"URL": "https://x.com/juwlmodding",
+		"ModVersion": "2/2/2026",
+	},
+	"Settings":
+	{
+		"List":
+		[
+			{
+				"InternalName": "audio",
+				"DisplayName": "Sound Effects",
+				"Variable": "ecc_setting_rayManiaSounds",
+				"DefaultValue": "1",
+				"Category": "Sound Selection",
+				//"Category": "Mod Options",			
+				"Options":
+				{
+					"0": "Original",
+					"1": "Mania",
+				}
+			},
+
+			{
+				"InternalName": "palette",
+				"DisplayName": "Character Palette",
+				"Variable": "ecc_setting_rayAltPalette",
+				"DefaultValue": "0",
+				"Category": "Color Changes",
+				//"Category": "Mod Options",			
+				"Options":
+				{
+					"0": "Original",
+					"1": "Mania",
+				}
+			},
+
+			{
+				"InternalName": "headbutt",
+				"DisplayName": "Headbutt",
+				"Variable": "ecc_setting_rayHeadbutt",
+				"DefaultValue": "1",
+				"Category": "Abilities",
+				//"Category": "Mod Options",				
+				"Options":
+				{
+					"0": "Off",
+					"1": "On",
+				}
+			}
+		]
+	},
+	"OtherMods":
+	{
+		"extra-character-framework":
+		{
+			"IsRequired": "1",
+			"Priority": "Lower"
+		},
+
+		"dynamic-lemons-extrasaveslots":
+		{
+			"Priority": "Lower"
+		},
+		
+		"dynamic-lemons-renderhooks":
+		{
+			"Priority": "Lower"
+		},
+
+		"dynamic-lemons-tweaks":
+		{
+			"Priority": "Lower"
+		}
+	}
+}

@@ -1,0 +1,183 @@
+//# address-hook(0x04d64e) end(0x04d6b2)
+function void fn04d64e()
+{
+	objA0.mapping_offset = 0x04d926
+	objA0.sprite_attributes = (levelselect.characters == CHARS_KNUCKLES_ALONE) ? (sprite_attribute.PRIORITY | (BlueSphereGame.Bumpers.targetInVRAM >> 5)) : (sprite_attribute.PRIORITY | sprite_attribute.PALETTE.LINE3 | (BlueSphereGame.Bumpers.targetInVRAM >> 5))
+#if STANDALONE
+	if (levelselect.characters == CHARS_TAILS_ALONE)
+		objA0.sprite_attributes = (sprite_attribute.PRIORITY | sprite_attribute.PALETTE.LINE2 | (BlueSphereGame.Bumpers.targetInVRAM >> 5))
+#endif
+
+	objA0.position.x.u16 = ((objA0.render_flags & render_flag.FLIP_X) ? 0x140 : 0x100) + getScreenExtend()
+	objA0.position.y.u16 = (bluespheregame.fully_unlocked == 0) ? 0xbe : 0x0126
+	u32[A0 + 0x30] = (objA0.render_flags & render_flag.FLIP_X) ? 0x04d7b2 : 0x04d7a6
+	objA0.sprite_priority = 0
+	
+	// changed sprite bounds and start frame
+	objA0.box_size.x = 16
+	objA0.box_size.y = 16
+	objA0.animation.sprite = 3
+	
+	objA0.update_address = 0x04d6b8
+	fn04d6b8()
+}
+
+//# address-hook(0x04cb1a) end(0x04cb34)
+function void fn04cb1a()
+{
+	A1 = (bluespheregame.enable_progress == 0) ? 0x04cb36 : 0x04cbb6
+	copyMemory(A2, A1, 0x80)
+	
+	// Usually some Tails-related palette loading logic here, not necessary, so it's been removed
+}
+
+//# address-hook(0x04d6b8) end(0x04d7a0)
+function void fn04d6b8()
+{
+	// some awkward draw logic and palette forcing is also originally here, not needed.
+	
+	// untouched
+	if (bluespheregame.fully_unlocked != 0)
+	{
+		A1 = u32[A0 + 0x30]
+		D0 = bluespheregame.menu_selection * 4
+		D2.u16 = u16[A1 + D0.u16] + getScreenExtend()
+		D3.u16 = u16[A1 + D0.u16 + 2]
+
+		// Update velocity-x
+		bool skipPart = false
+		if (D2.u16 == objA0.position.x.u16)
+		{
+			D0.u16 = objA0.velocity.x + 0x80
+			if (D0.u16 <= 0x0100)
+			{
+				D1 = 0
+				objA0.velocity.x = D1.u16
+				skipPart = true
+			}
+		}
+
+		if (!skipPart)
+		{
+			D1.u16 = 0x40
+			if (D2.s16 < s16(objA0.position.x.u16))
+			{
+				D1.s16 = -D1.s16
+				if (objA0.velocity.x >= 0)
+				{
+					D1.u16 *= 4
+				}
+			}
+			else
+			{
+				if (objA0.velocity.x < 0)
+				{
+					D1.u16 *= 4
+				}
+			}
+		}
+		objA0.velocity.x += D1.u16
+
+		// Update velocity-y
+		skipPart = false
+		if (D3.u16 == objA0.position.y.u16)
+		{
+			D0.u16 = objA0.velocity.y + 0x0100
+			if (D0.u16 <= 0x0200)
+			{
+				D1 = 0
+				objA0.velocity.y = D1.u16
+				skipPart = true
+			}
+		}
+
+		if (!skipPart)
+		{
+			D1.u16 = 0x80
+			if (D3.s16 < s16(objA0.position.y.u16))
+			{
+				D1.s16 = -D1.s16
+				if (objA0.velocity.y >= 0)
+				{
+					D1.u16 *= 4
+				}
+			}
+			else
+			{
+				if (objA0.velocity.y < 0)
+				{
+					D1.u16 *= 4
+				}
+			}
+		}
+		objA0.velocity.y += D1.u16
+
+		UpdateMovementStraightSimple()
+	}
+
+	// ani
+	--objA0.animation.timer
+	if (s8(objA0.animation.timer) < 0)
+	{
+		objA0.animation.timer = 5
+		++objA0.animation.sprite
+		objA0.animation.sprite &= 0x07
+	}
+	
+	if (A0 != 0xffffbd4c) // Only consider first of the two objects
+	{
+		DrawObject()
+		return
+	}
+		
+#if STANDALONE
+	if (control.pad1.pressed & CONTROL_B || Input.buttonPressed(BUTTON_BACK))
+	{
+		if (bluespheregame.menu_selection != 2)
+		{
+			// Back to the main menu
+			playSound(0xad)
+
+			u32 backupA0 = A0
+			FadeOutScreenBlocking()
+			A0 = backupA0
+
+			Game.returnToMainMenu()
+			yieldExecution()
+		}
+		else
+		{
+			fn04d488()
+		}
+		DrawObject()
+		return
+	}
+#endif
+
+	if (control.pad1.pressed & CONTROL_ABC)
+		levelselect.characters = (levelselect.characters + 1) % (ECF_charList_length + 3)
+
+	DrawObject()
+}
+
+//# address-hook(0x04cf82) end(0x04d03c)
+function void fn04cf82()
+{
+	base.fn04cf82()
+	// kind of awkward, but we don't need to remove any code here.
+	if (global.game_mode == 0x34)
+	{
+		if (levelselect.characters <= CHARACTER_KNUCKLES)
+		{
+			global.characters = levelselect.characters + 1
+			global_ExChar_P1_id = 0
+			global_ExChar_P1 = 0
+		}
+		else
+		{
+			global_ExChar_P1_id = levelselect.characters - 2
+			global_ExChar_P1 = getECFCharNameAtId(global_ExChar_P1_id)
+			global.characters = getECFGlobalCharId(global_ExChar_P1)
+		}
+	}
+}

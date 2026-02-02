@@ -1,0 +1,4 @@
+{
+	"endpose_ECC-Amy_0x00":  { "File": "endpose_amy.bmp", "Rect": "8,8,48,64", "Center": "24,32" },
+	"endpose_ECC-Amy_0x01":  { "File": "endpose_amy.bmp", "Rect": "64,8,96,120", "Center": "40,64" }
+}

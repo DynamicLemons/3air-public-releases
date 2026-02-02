@@ -1,0 +1,18 @@
+#if !LEMONS_TWEAKS_ACTIVE
+//# address-hook(0x01e0a2)
+function void fn01e0a2()
+{
+	if (isECFCharA1("ECC-Ray") && u8[A1 + 0x2f] == 1)
+	{
+		u8 bit = 1 << (D6.u16 + 2)
+		if (objA0.flags2a & bit)
+		{
+			objA0.flags2a &= ~bit
+			objA1.flags2a &= ~char.flag.PUSHING
+		}
+		D4 = 0
+	}
+	else
+		base.fn01e0a2()
+}
+#endif

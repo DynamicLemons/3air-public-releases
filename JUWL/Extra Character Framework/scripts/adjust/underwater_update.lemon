@@ -1,0 +1,227 @@
+//# address-hook(0x018466) end(0x018680)
+function void fn018466()
+{
+	A2 = u32[A0 + 0x40]
+	if (getECFCharBufferName(A2) == 0)
+	{
+		base.fn018466()
+		return
+	}
+	
+	// entirely unchanged beyond adding ECF_charAirBubble_setPos().
+	
+#if GAMEAPP
+	if (A2 == 0xffffb000 && u8[0xffffb000 + 0x05] <= base_state.HURT)
+	{
+		if (Game.getSetting(SETTING_UNDERWATER_AUDIO))
+		{
+			s16 diff = s16[0xffffb000 + 0x14] - s16(water.height.current)
+			Game.setUnderwaterAudioEffect(clamp(diff - 8, 0, 64) * 0xff / 64)
+		}
+		else
+		{
+			Game.setUnderwaterAudioEffect(0)
+		}
+	}
+#endif
+
+	bool doChecks = true
+	if (u16[A0 + 0x30] == 0)
+	{
+		// Character died?
+		if (u8[A2 + 0x05] >= base_state.DIED)
+			return
+
+		// Protected by bubble shield?
+		if (u8[A2 + 0x2b] & char.bonus.SHIELD_BUBBLE)
+			return
+
+	#if STANDALONE
+		// Hyper form active?
+		if (u8[A2 + 0x38] == CHARACTER_TAILS)
+		{
+			if (super.active.tails & 0x80)
+				return
+		}
+		else
+	#endif
+		{
+			if (super.active & 0x80)
+				return
+		}
+
+		// Left the water?
+		if ((u8[A2 + 0x2a] & char.flag.UNDERWATER) == 0)
+			return
+
+		// Decrease the drown countdown
+		--u16[A0 + 0x3c]
+		if (s16[A0 + 0x3c] < 0)
+		{
+			u16[A0 + 0x3c] = 0x3b
+			u16[A0 + 0x3a] = 0x01
+			objA0.flags38 = (getRandomNumber() & 0x01)
+
+			D0 = u8[A2 + 0x2c]
+			if (D0.u16 != 0x0f && D0.u16 != 0x14 && D0.u16 != 0x19)
+			{
+				if (D0.u16 <= 0x0c)
+				{
+					if (D0.u16 == 0x0c && u8[A0 + 0x43] == 0)
+					{
+						playMusic(MUSIC_DROWNING)
+					}
+
+					--u8[A0 + 0x36]
+					if (s8[A0 + 0x36] < 0)
+					{
+						u8[A0 + 0x36] = u8[A0 + 0x37]
+						objA0.value3a |= 0x80
+					}
+				}
+			}
+			else
+			{
+				if (u8[A0 + 0x43] == 0)
+				{
+					playSound(SFX_UNDERWATER_BELL)
+				}
+			}
+
+			--u8[A2 + 0x2c]
+			if (s8[A2 + 0x2c] < 0)
+			{
+				// Drowned
+				u8[A2 + 0x2e] = 0x81
+				playSound(SFX_DROWN)
+
+				objA0.flags38 = 0x0a
+				u16[A0 + 0x3a] = 0x01
+				u16[A0 + 0x30] = 0x78
+
+				A1 = A2
+				UpdateMusicOnWaterTransition()
+				u32 backupA0 = A0
+
+				A0 = A2
+				Character.LandingOnGroundNoSpindash()
+
+				objA0.state = char.state.DROWNED
+				objA0.flags2a |= 0x02
+				u8[A0 + 0x0a] |= 0x80
+				objA0.velocity.y = 0
+				objA0.velocity.x = 0
+				s16[A0 + 0x1c] = 0
+				objA0.base_state = base_state.DROWNED
+				A0 = backupA0
+				if (A2 == 0xffffb000)
+				{
+					u8[0xffffee30] = 1
+				}
+				return
+			}
+			else
+			{
+				doChecks = false
+			}
+		}
+	}
+	else
+	{
+		u8[A2 + 0x20] = char.state.DROWNED
+		--u16[A0 + 0x30]
+		if (u16[A0 + 0x30] == 0)
+		{
+			u8[A2 + 0x05] = base_state.DIED
+			return
+		}
+	}
+
+	if (doChecks)
+	{
+		if (u16[A0 + 0x3a] == 0)
+			return
+
+		--objA0.value3e
+		if (s16[A0 + 0x3e] >= 0)
+			return
+	}
+
+	objA0.value3e = 8 + (getRandomNumber() & 0x0f)
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = objA0.update_address
+		
+		if (u8[A2 + 0x2a] & char.flag.FACING_LEFT)
+			u8[A1 + 0x26] = 0x40
+		u32[A1 + 0x40] = u32[A0 + 0x40]
+		u8[A1 + 0x2c] = 6
+		
+		ECF_charAirBubble_setPos()
+		
+		if (u16[A0 + 0x30] != 0)
+		{
+			objA0.value3e &= 0x07
+			u8[A1 + 0x26] = getRandomNumber()
+			D0.u16 = level.framecounter & 0x03
+			if (D0.u8 == 0)
+			{
+				u8[A1 + 0x2c] = 0x0e
+			}
+		}
+		else
+		{
+			if (objA0.value3a & 0x80)
+			{
+				D2 = u8[A2 + 0x2c]
+				if (D2.u8 < 0x0c)
+				{
+					D2.u16 >>= 1
+					D0.u16 = getRandomNumber() & 0x03
+					if (D0.u16 == 0)
+					{
+						if ((objA0.value3a & 0x40) == 0)
+						{
+							objA0.value3a |= 0x40
+							u8[A1 + 0x2c] = D2.u8
+							u16[A1 + 0x3c] = 28
+						}
+					}
+					if (objA0.flags38 == 0)
+					{
+						if ((objA0.value3a & 0x40) == 0)
+						{
+							objA0.value3a |= 0x40
+							u8[A1 + 0x2c] = D2.u8
+							u16[A1 + 0x3c] = 28
+						}
+					}
+				}
+			}
+		}
+
+		--objA0.flags38
+		if (s8[A0 + 0x38] < 0)
+			u16[A0 + 0x3a] = 0
+	}
+}
+
+// allows for a simple way to move the bubbles into more fitting locations
+function void ECF_charAirBubble_setPos()
+{
+	objA1.position.x.u16 = u16[A2 + 0x10]
+	D0 = 6
+	if (u8[A2 + 0x2a] & char.flag.FACING_LEFT)
+		D0.s16 = -D0.s16
+	objA1.position.x.u16 += D0.u16
+	objA1.position.y.u16 = u16[A2 + 0x14]
+		
+	// Drowned
+	if (u16[A0 + 0x30] != 0)
+	{
+		D0.u16 = u16[A2 + 0x14] - 12
+		objA1.position.y.u16 = D0.u16
+	}
+	else
+		objA1.position.y.u16 = u16[A2 + 0x14]
+}

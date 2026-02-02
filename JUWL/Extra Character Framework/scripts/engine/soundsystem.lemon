@@ -1,0 +1,28 @@
+//# address-hook(0x01aada) end(0x01ab18)
+function void UpdateGameObjects()
+{
+	base.UpdateGameObjects()
+	// is there a better place to update this? probably...
+	if ((global.game_mode & 0x7c) == 0x0c)
+		ECF_handleLoopingSounds()
+}
+
+function void ECF_handleLoopingSounds()
+{
+	u32 A0_o = A0
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	for (u32 addr = 0xffffb000; addr <= 0xffffb0de; addr += 0x4a)
+#else
+	for (u32 addr = 0xffffb000; addr <= 0xffffb04a; addr += 0x4a)
+#endif
+	{
+		A0 = addr
+		ECF_characterSoundUpdate()
+	}
+	A0 = A0_o
+}
+
+function void ECF_characterSoundUpdate()
+{
+	
+}

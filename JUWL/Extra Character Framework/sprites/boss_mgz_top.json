@@ -1,0 +1,8 @@
+{
+	"boss_mgz_top_0":  { "File": "boss_mgz_top.bmp", "Rect": "16,24,64,48", "Center": "32,24" },
+	"boss_mgz_top_1":  { "File": "boss_mgz_top.bmp", "Rect": "88,24,64,48", "Center": "32,24" },
+	"boss_mgz_top_rocket_0":  { "File": "boss_mgz_top.bmp", "Rect": "160,24,16,24", "Center": "8,12" },
+	"boss_mgz_top_rocket_1":  { "File": "boss_mgz_top.bmp", "Rect": "184,24,16,24", "Center": "8,12" },
+	"boss_mgz_top_rocket_2":  { "File": "boss_mgz_top.bmp", "Rect": "208,24,16,24", "Center": "8,12" },
+	"boss_mgz_top_rocket_flame":  { "File": "boss_mgz_top.bmp", "Rect": "232,32,16,24", "Center": "8,-4" }
+}

@@ -1,0 +1,123 @@
+//# address-hook(0x083832) end(0x0838bc)
+function void fn083832()
+{
+	if (ExChar_P1 == 0 || ECF_disableBranchBase)
+	{
+		base.fn083832()
+		return
+	}
+	
+	if ((global.framecounter & 0x03) == 0)
+	{
+		// "spawnSimpleChildObjects(0x083b36)" replaced by:
+		spawnSimpleChildObjects(0x0839a2, 1)		// Sparkles
+	}
+
+	fn083a50()
+	objA0.velocity.y += 0x0c
+	UpdateMovementStraightSimple()
+	fn083ac6()
+	ECF_SignpostAnimate()
+
+	D0.u16 = camera.position.y.u16 + 0x50
+	if (D0.u16 <= objA0.position.y.u16 && objA0.velocity.y >= 0)
+	{
+		bool touchedGround = false
+
+		// Special handling for SOZ 1 (because of sand pit?)
+		if (global.zone == 0x08)
+		{
+			D0 = (objA0.position.x.u16 >= 0x4210) ? 2 : 0
+			if (D0.u16 != objA0.value3e)
+			{
+				objA0.value3e = D0.u16
+				objA0.sprite_priority = u16[0x0838be + D0.u16]
+			}
+			touchedGround = (objA0.position.y.u16 >= 0x09f2)
+		}
+
+		if (!touchedGround)
+		{
+			CheckGroundCollision()
+			if (D1.s16 < 0)
+			{
+				objA0.position.y.u16 += D1.s16
+				touchedGround = true
+			}
+		}
+
+		if (touchedGround)
+		{
+			// This also gets called when the signpost hits a hidden monitor
+			//  -> In that case, flag 0x01 will get reset in "fn083708()"
+			objA0.base_state = 0x04
+			objA0.flags38 |= 0x01
+			objA0.countdown_value = 0x40
+		}
+	}
+}
+
+//# address-hook(0x0838c2) end(0x08390c)
+function void fn0838c2()
+{
+	if (ExChar_P1 == 0 || ECF_disableBranchBase)
+	{
+		base.fn0838c2()
+		return
+	}
+	
+	if (objA0.flags38 & 0x01)
+	{
+		ECF_SignpostAnimate()
+		--objA0.countdown_value
+		if (objA0.countdown_value >= 0)
+			return
+
+		objA0.base_state = 0x06
+		u8[0xfffffabe] = 0xff
+		objA0.velocity.x = 0
+		objA0.velocity.y = 0
+		objA0.animation.sprite = ECF_SignpostGetCharFrame()
+		player2.control_override = 0xff
+	}
+	else
+	{
+		// Touched a monitor
+		objA0.base_state = 0x02
+		objA0.state = 0x20
+		objA0.velocity.y = -0x200
+	}
+}
+
+function void ECF_SignpostAnimate()
+{
+	constant array<u8> AniTable = 
+	{
+		1,
+		0, 4, 5, 6, 3, 4, 5, 6,
+		0xff
+	}
+		
+	A1 = u32[A0 + 0x30]
+	--objA0.animation.timer
+	if (s8(objA0.animation.timer) < 0)
+	{
+		++objA0.animation.frame
+		// Advance to next frame
+		objA0.animation.timer = AniTable[0]
+		objA0.animation.sprite = AniTable[objA0.animation.frame]
+		if (objA0.animation.sprite == 0xff)
+		{
+			objA0.animation.sprite = AniTable[1]
+			objA0.animation.frame = 1
+		}
+		
+		if (objA0.animation.sprite == 0)
+			objA0.animation.sprite = ECF_SignpostGetCharFrame()
+	}
+}
+
+function u8 ECF_SignpostGetCharFrame()
+{
+	return u8[0x08390e + global.characters]
+}

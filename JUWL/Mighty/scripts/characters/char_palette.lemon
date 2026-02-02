@@ -1,0 +1,271 @@
+#if !CHARACTER_SELECTION_PLUS_ACTIVE
+//# address-hook(0x003750) end(0x00398c)
+function void UpdatePaletteEffects.SuperForm()
+{
+	if (isECFCharP1("ECC-Mighty") && super.palettefx.state)
+		UpdatePaletteEffects.Mighty()
+	else
+		base.UpdatePaletteEffects.SuperForm()
+}
+
+function void UpdatePaletteEffects.Mighty()
+{
+	string palKey = getECFCharacterPaletteKey("ECC-Mighty")
+	u8 character = getMainCharacter()
+	bool isHyperEffect = (super.active == 0xff)
+	
+	if (super.palettefx.state & 0x80)
+	{
+		// Update ongoing palette effect
+		if (Game.getSetting(SETTING_GFX_ANTIFLICKER))
+		{
+			constant array<u8> LineTable = 
+			{
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				4,
+				3,
+				2,
+				1
+			}
+		
+			u16 blendFactor = 0x100 - (min(super.palettefx.timer, 2) * 0x100 / 2)
+			
+			for (u8 underwater = 0; underwater < (level.water_present ? 2 : 1); ++underwater)
+			{
+				u32 offset = character * 64 + (underwater ? 0x300 : 0)
+				u32 source = 0x802180 + offset
+				u32 dest   = 0x802000 + offset
+
+				u8 line1 = 5 + LineTable[super.palettefx.frame]
+				u8 line2 = 5 + LineTable[(super.palettefx.frame + 1) % LineTable.length()]
+				//debugLog(stringformat("%d %d", line1, line2))
+				if (underwater)
+				{
+					if (System.hasExternalPaletteData(palKey, line1 + getUnderwaterPaletteVariantByCurrentZone() * 7))
+						line1 += getUnderwaterPaletteVariantByCurrentZone() * 7
+					if (System.hasExternalPaletteData(palKey, line2 + getUnderwaterPaletteVariantByCurrentZone() * 7))
+						line2 += getUnderwaterPaletteVariantByCurrentZone() * 7
+				}
+				
+				zeroMemory(dest, 32)
+				u16 numColors1 = System.loadExternalPaletteData(palKey, line1, 0x800000, 0x20)
+				u16 numColors2 = System.loadExternalPaletteData(palKey, line2, 0x800040, 0x20)
+				
+				for (u16 i = 0; i < numColors1; ++i)
+				{
+					u32 rgba = u32[0x800000 + i * 4]
+					u16[dest + i * 2] = (rgba & 0xff000000) ? packColorExt(rgba) : 0
+				}
+				
+				for (u8 k = 0; k < 32; ++k)
+				{
+					u32 rgba1 = u32[0x800000 + k * 4]
+					u32 rgba2 = u32[0x800040 + k * 4]
+					if (rgba1 & 0xff000000 && rgba2 & 0xff000000)
+					{
+						rgba1 = convertColors32(rgba1)
+						rgba2 = convertColors32(rgba2)
+						
+						//debugLog(rgba1)
+						//debugLog(rgba2)
+						
+						u16[dest + k * 2] = packColorExt(convertColors32(blendColors_RGBA32(rgba1, rgba2, blendFactor)))
+						
+					}
+					else
+						u16[dest + k * 2] = u16[source + k * 2]
+				}
+			}
+			
+			--super.palettefx.timer
+			if (super.palettefx.timer < 0)
+			{
+				super.palettefx.timer = 2
+				++super.palettefx.frame
+				if (super.palettefx.frame == 10)
+				{
+					super.palettefx.timer = 14
+					super.palettefx.frame = 0
+				}
+			}
+		}
+		else
+		{
+			constant array<u8> LineTable = 
+			{
+				1,
+				2,
+				3,
+				4,
+				5,
+				4,
+				3,
+				2,
+				1,
+				0
+			}
+		
+			--super.palettefx.timer
+			if (super.palettefx.timer >= 0)
+				return
+
+			for (u8 underwater = 0; underwater < (level.water_present ? 2 : 1); ++underwater)
+			{
+				u32 offset = character * 64 + (underwater ? 0x300 : 0)
+				u32 source = 0x802180 + offset
+				u32 dest   = 0x802000 + offset
+
+				u8 line = 5 + LineTable[super.palettefx.frame]
+				//debugLog(stringformat("%d", line))
+				if (underwater && System.hasExternalPaletteData(palKey, line + getUnderwaterPaletteVariantByCurrentZone() * 7))
+					line += getUnderwaterPaletteVariantByCurrentZone() * 7
+					
+				zeroMemory(dest, 64)
+				u16 numColors = System.loadExternalPaletteData(palKey, line, 0x800000, 0x20)
+				for (u16 i = 0; i < numColors; ++i)
+				{
+					u32 rgba = u32[0x800000 + i * 4]
+					u16[dest + i * 2] = (rgba & 0xff000000) ? packColorExt(rgba) : 0
+				}
+
+				for (u8 k = 0; k < 64; k += 2)
+				{
+					if (u16[dest + k] == 0)
+					{
+						// Use original color as fallback
+						u16[dest + k] = u16[source + k]
+					}
+				}
+			}
+
+			super.palettefx.timer = 2
+			++super.palettefx.frame
+			if (super.palettefx.frame == 10)
+			{
+				super.palettefx.timer = 14
+				super.palettefx.frame = 0
+			}
+		}
+	}
+	else if (super.palettefx.state == 1)
+	{
+		--super.palettefx.timer
+		if (super.palettefx.timer >= 0)
+			return
+
+		// Fully faded in
+		super.palettefx.state = 0xff
+		super.palettefx.frame = 0
+		u8[0xffffb000 + 0x2e] = 0		// Reset "char.control_flags"
+	}
+	else if (super.palettefx.state == 2)
+	{
+		for (u8 underwater = 0; underwater < (level.water_present ? 2 : 1); ++underwater)
+		{
+			u32 offset = character * 64 + (underwater ? 0x300 : 0)
+			u32 source = 0x802180 + offset
+			u32 dest   = 0x802000 + offset
+
+			for (u8 k = 0; k < 32; ++k)
+			{
+				u16[dest + k * 2] = u16[source + k * 2]
+			}
+		}
+		super.palettefx.state = 0
+	}
+}
+#endif
+
+function bool UpdatePaletteEffects.SuperForm.endpose()
+{
+	if (isECFCharP1("ECC-Mighty"))
+	{
+		UpdatePaletteEffects.SuperForm.endpose.Mighty()
+		return true
+	}
+	return base.UpdatePaletteEffects.SuperForm.endpose()
+}
+
+function void UpdatePaletteEffects.SuperForm.endpose.Mighty()
+{
+	string palKey = getECFCharacterEndPosePaletteKey(global_ExChar_P1)
+	u8 character = getECFCharBase(global_ExChar_P1)
+	
+	u32 offset = character * 0x40
+	u32 source = 0x802180 + offset
+	u32 dest   = 0x802000 + offset
+
+	// Load modded Super palette
+	constant array<u8> LineTable = 
+	{
+		0,
+		1,
+		2,
+		3,
+		4,
+		5,
+		4,
+		3,
+		2,
+		1
+	}
+
+	u8 line = 2 + LineTable[super.palettefx.frame]
+	
+	zeroMemory(dest, 0x40)
+	u16 numColors = System.loadExternalPaletteData(palKey, line, 0x800000, 0x20)
+	for (u16 i = 0; i < numColors; ++i)
+	{
+		u32 rgba = u32[0x800000 + i * 4]
+		u16[dest + i * 2] = (rgba & 0xff000000) ? packColorExt(rgba) : 0
+	}
+	
+	u16 blendFactor
+	if (Game.getSetting(SETTING_GFX_ANTIFLICKER))
+	{
+		blendFactor = 0x100 - (min(super.palettefx.timer, 2) * 0x100 / 2)
+		
+		line = 2 + LineTable[(super.palettefx.frame + 1) % LineTable.length()]
+		numColors = System.loadExternalPaletteData(palKey, line, 0x800040, 0x20)
+		for (u16 i = 0; i < numColors; ++i)
+			u32 rgba = u32[0x800040 + i * 4]
+	}
+	
+	for (u8 k = 0; k < 0x40; k += 2)
+	{
+		if (u16[dest + k] == 0)
+		{
+			// Use original color as fallback
+			u16[dest + k] = u16[source + k]
+		}
+		else if (Game.getSetting(SETTING_GFX_ANTIFLICKER))
+		{
+			u32 rgba1 = u32[0x800000 + k * 4]
+			u32 rgba2 = u32[0x800040 + k * 4]
+			if (rgba1 & 0xff000000 && rgba2 & 0xff000000)
+			{
+				rgba1 = convertColors32(rgba1)
+				rgba2 = convertColors32(rgba2)
+				
+				u16[dest + k * 2] = packColorExt(convertColors32(blendColors_RGBA32(rgba1, rgba2, blendFactor)))
+			}
+		}
+	}
+	
+	--super.palettefx.timer
+	if (super.palettefx.timer < 0)
+	{
+		super.palettefx.timer = 2
+		++super.palettefx.frame
+		if (super.palettefx.frame == 10)
+		{
+			super.palettefx.timer = 14
+			super.palettefx.frame = 0
+		}
+	}
+}

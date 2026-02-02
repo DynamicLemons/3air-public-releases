@@ -1,0 +1,22 @@
+{
+	"charselect_ECC-Mighty":  { "File": "charselect_mighty.bmp", "Rect": "0,0,48,48", "Center": "24,28" },
+	"charselect_ECC-Mighty_icons":  { "File": "charselect_mighty.bmp", "Rect": "0,48,24,40", "Center": "0,0" },
+	"signpost_ECC-Mighty":  { "File": "signpost_mighty.bmp", "Rect": "0,0,48,32", "Center": "24,16" },
+	"signpost_ECC-Mighty_spin_1":  { "File": "signpost_mighty.bmp", "Rect": "48,0,32,32", "Center": "16,16" },
+	"signpost_ECC-Mighty_spin_2":  { "File": "signpost_mighty.bmp", "Rect": "80,0,32,32", "Center": "16,16" },
+	"monitor_icon_ECC-Mighty":  { "File": "monitor_icon_mighty.bmp", "Rect": "0,0,16,16", "Center": "8,8" },
+	"hud_lives_icon_ECC-Mighty":  { "File": "hud_life_mighty.png", "Rect": "0,0,72,16", "Center": "0,0" },
+	"hud_lives_icon_ECC-Mighty_Mania":  { "File": "hud_life_mighty.png", "Rect": "0,16,72,16", "Center": "0,0" },
+	"hud_bonus_icon_ECC-Mighty":  { "File": "hud_bonus_mighty.png", "Rect": "0,0,24,24", "Center": "0,5" },
+	"hud_bonus_icon_ECC-Mighty_Mania":  { "File": "hud_bonus_mighty.png", "Rect": "24,0,24,24", "Center": "0,5" },
+	"continue_icon_ECC-Mighty":  { "File": "hud_bonus_mighty.png", "Rect": "0,24,24,24", "Center": "12,24" },
+	"continue_icon_ECC-Mighty_Mania":  { "File": "hud_bonus_mighty.png", "Rect": "24,24,24,24", "Center": "12,24" },
+	"result_nameplate_ECC-Mighty":  { "File": "result_mighty.png", "Rect": "8,8,88,16", "Center": "-1,0" },
+	"result_nameplate_ECC-Mighty_super":  { "File": "result_mighty.png", "Rect": "8,32,80,16", "Center": "0,0" },
+	"result_nameplate_ECC-Mighty_hyper":  { "File": "result_mighty.png", "Rect": "96,32,80,16", "Center": "0,0" },
+	"saveimage_ECC-Mighty_1":  { "File": "saveimage_mighty.png", "Rect": "0,0,80,56", "Center": "40,0" },
+	"saveimage_ECC-Mighty_2":  { "File": "saveimage_mighty.png", "Rect": "80,0,80,56", "Center": "40,0" },
+	"saveimage_ECC-Mighty_3":  { "File": "saveimage_mighty.png", "Rect": "160,0,80,56", "Center": "40,0" },
+	"sloticon_mighty":  { "File": "slots_display_mighty.png", "Rect": "0,0,32,32", "Center": "16,16" },
+	"sloticon_mighty_alt":  { "File": "slots_display_mighty.png", "Rect": "0,32,32,32", "Center": "16,16" }
+}

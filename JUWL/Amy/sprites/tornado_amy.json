@@ -1,0 +1,7 @@
+{
+	"tornado_ECC-Amy_pilot":  { "File": "tornado_amy.bmp", "Rect": "8,8,32,16", "Center": "20,8" },
+	"tornado_ECC-Amy_pilot_small":  { "File": "tornado_amy.bmp", "Rect": "48,8,16,8", "Center": "12,4" },
+	"tornado_ECC-Amy_small":  { "File": "tornado_amy.bmp", "Rect": "72,8,16,24", "Center": "8,12" },
+	"tornado_ECC-Amy_tiny":  { "File": "tornado_amy.bmp", "Rect": "48,24,8,9", "Center": "0,8" },
+	"tornado_ECC-Amy_pilot_tiny":  { "File": "tornado_amy.bmp", "Rect": "59,27,2,2", "Center": "2,-1" }
+}

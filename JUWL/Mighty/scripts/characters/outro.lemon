@@ -1,0 +1,12 @@
+function void ECF_EndScreen_char_init()
+{
+	base.ECF_EndScreen_char_init()
+	if (global_ExChar_P1 == "ECC-Mighty")
+	{
+		objA0.position.x.u16 += 38
+	#if LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+		if (yywtrrshygnds_setting_brandingMode == L_BRANDINGMODE_S3K)
+	#endif
+			objA0.position.y.u16 -= 16
+	}
+}

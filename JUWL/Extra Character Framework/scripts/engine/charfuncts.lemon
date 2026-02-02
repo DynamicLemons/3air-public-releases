@@ -1,0 +1,641 @@
+// --- System ---
+function u16 getCharId(string name)
+{
+	// perhaps not as optimal as it could be, but the performance impact when compiling for a small list size is minimal.
+	for (u16 i = 1; i <= ECF_charList_length; ++i)
+	{
+		if (getECFCharNameAtId(i) == name)
+			return i
+	}
+	return 0
+}
+
+function string getECFCharNameAtId(u16 i)
+{
+#if GAMEAPP >= 0x26012400
+	return ECF_charList[i]
+#else
+	return System.getGlobalVariableValueByName(stringformat("ECF_charList_%d", i))
+#endif
+}
+
+function u8 isECFCharAt(u32 address, string name)
+{
+	if (address != 0xffffb000 && address != 0xffffb04a)
+		return false
+		
+	return (getECFCharBufferName(address) == name && u8[address + 0x38] == getECFCharBase(name))
+}
+
+function u8 isECFCharP1(string name)
+{
+	return (global_ExChar_P1 == name && isMainCharacter(getECFCharBase(name)))
+}
+
+function u8 isECFCharP2(string name)
+{
+	return (global_ExChar_P2 == name && isMainCharacter(getECFCharBase(name)))
+}
+
+function u8 isECFCharA0(string name)
+{
+	return isECFCharAt(A0, name)
+}
+
+function u8 isECFCharA1(string name)
+{
+	return isECFCharAt(A1, name)
+}
+
+function s16 getECFCharBufferId()
+{
+	return getECFCharBufferId(A0)
+}
+
+function s16 getECFCharBufferId(u32 address)
+{
+	return (address == 0xffffb04a) ? ExChar_P2_id : (address == 0xffffb000) ? ExChar_P1_id : 0
+}
+
+function string getECFCharBufferName()
+{
+	return	getECFCharBufferName(A0)
+}
+
+function string getECFCharBufferName(u32 address)
+{
+	return (address == 0xffffb04a) ? ExChar_P2 : (address == 0xffffb000) ? ExChar_P1 : 0
+}
+
+function string ECF_ExtraCheckBaseMatch(u8 character)
+{
+	if (ECF_disableBranchBase)
+		return 0
+		
+	string name
+	if (ExChar_P1 && character == getECFCharBase(ExChar_P1))
+		name = ExChar_P1
+	else if (ExChar_P2 && character == getECFCharBase(ExChar_P2))
+		name = ExChar_P2
+		
+	return name
+}
+
+function string ECF_ExtraCheckBaseMatchGlobal(u8 character)
+{
+	if (ECF_disableBranchBase)
+		return 0
+		
+	string name
+	if (global_ExChar_P1 && character == getECFCharBase(global_ExChar_P1))
+		name = global_ExChar_P1
+	else if (global_ExChar_P2 && character == getECFCharBase(global_ExChar_P2))
+		name = global_ExChar_P2
+		
+	return name
+}
+
+function bool isCharValid(string name)
+{
+	for (u16 i = 1; i <= ECF_charList_length; ++i)
+	{
+		if (System.getGlobalVariableValueByName(stringformat("ECF_charList_%d", i)) == name)
+		{
+			return true
+		}
+	}
+	return false
+}
+
+function void loadECFCharacterPalette(string name, u32 targetAddress, u8 paletteVariant)
+{
+	u16 numColors = System.loadExternalPaletteData(getECFCharacterPaletteKey(name), paletteVariant, 0x800000, 0x20)
+	// If palette cannot be found, refer to base cast.
+	if (numColors == 0)
+	{
+		u8 character = getECFCharBase(name)
+		
+		u32 sourceAddress
+		if (paletteVariant == 0)
+		{
+			// Normal palette variant
+			copyMemory(targetAddress, (character != CHARACTER_KNUCKLES) ? 0x0a8a3c : 0x0a8afc, 0x20)
+		}
+		else
+		{
+			// Underwater palette variant
+			if (paletteVariant <= 2)
+				copyMemory(targetAddress, 0x0a8c9c, 0x20)
+			else
+				copyMemory(targetAddress, 0x0a8e5c, 0x20)
+	
+			if (character == CHARACTER_KNUCKLES)
+			{
+				// Copying in Knuckles' colors into underwater palette; these are in fact mostly different:
+				//  - paletteVariant == 1  -> AIZ:		0x0a6a, 0x0a2a, 0x0624
+				//  - paletteVariant == 2  -> ICZ:		0x0a4c, 0x0a28, 0x0428
+				//  - paletteVariant == 3  -> HCZ:		0x0e2a, 0x0c0a, 0x0a06
+				//  - paletteVariant == 4  -> CNZ/LBZ:	0x064c, 0x0628, 0x0624
+				if (paletteVariant == 1)
+					A1 = 0x007a4a
+				else if (paletteVariant == 2)
+					A1 = 0x007a4a + 30
+				else if (paletteVariant == 3)
+					A1 = 0x007a4a + 6
+				else
+					A1 = 0x007a4a + 18
+				copyMemory(targetAddress + 0x04, A1, 6)
+			}
+		}
+	}
+	else
+	{
+		for (u8 i = 0; i < numColors; ++i)
+		{
+			u32 rgba = u32[0x800000 + i * 4]
+			u16[targetAddress + i * 2] = packColorExt(rgba)
+		}
+
+		if (numColors < 0x20)
+		{
+			// First 16 colors got written in any case
+			numColors = max(numColors, 0x10)
+			zeroMemory(targetAddress + numColors * 2, 0x40 - numColors * 2)
+		}
+	}
+}
+
+// totally not from lemons tweaks
+function u8 getPId()
+{
+	return getPId(A0)
+}
+
+function u8 getPId(u32 address)
+{
+	return (u16(address) - 0xb000) / 0x4a
+}
+
+function s8 getDpadH(u8 input)
+{
+	return (input & CONTROL_LEFT ? -1 : 0) + (input & CONTROL_RIGHT ? 1 : 0)
+}
+
+function s8 getDpadV(u8 input)
+{
+	return (input & CONTROL_UP ? -1 : 0) + (input & CONTROL_DOWN ? 1 : 0)
+}
+
+function u8 getDpadAngle(u8 input)
+{
+	s16 _h = getDpadH(input)
+	if (input & CONTROL_UP)
+		return 0xc0 + _h * 0x20
+	else if (input & CONTROL_DOWN)
+		return 0x40 - _h * 0x20
+	else
+		return 0x40 - _h * 0x40
+}
+
+function s64 getPlayerGlobalValue(string value)
+{
+	return getPlayerGlobalValue(A0, value)
+}
+
+function float getPlayerGlobalValueFloat(string value)
+{
+	return getPlayerGlobalValueFloat(A0, value)
+}
+
+function double getPlayerGlobalValueDouble(string value)
+{
+	return getPlayerGlobalValueDouble(A0, value)
+}
+
+function string getPlayerGlobalValueString(string value)
+{
+	return getPlayerGlobalValueString(A0, value)
+}
+
+function s64 getPlayerGlobalValue(u32 address, string value)
+{
+	return System.getGlobalVariableValueByName(stringformat("p%d_%s", getPId(address) + 1, value))
+}
+
+function float getPlayerGlobalValueFloat(u32 address, string value)
+{
+	return System.getGlobalVariableValueByNameFloat(stringformat("p%d_%s", getPId(address) + 1, value))
+}
+
+function double getPlayerGlobalValueDouble(u32 address, string value)
+{
+	return System.getGlobalVariableValueByNameDouble(stringformat("p%d_%s", getPId(address) + 1, value))
+}
+
+function string getPlayerGlobalValueString(u32 address, string value)
+{
+	return System.getGlobalVariableValueByNameString(stringformat("p%d_%s", getPId(address) + 1, value))
+}
+
+function void setPlayerGlobalValue(string value, s64 input)
+{
+	setPlayerGlobalValue(A0, value, input)
+}
+
+function void setPlayerGlobalValue(u32 address, string value, s64 input)
+{
+	System.setGlobalVariableValueByName(stringformat("p%d_%s", getPId(address) + 1, value), input)
+}
+
+function u8 Character.getControlVariable(u8 usePress)
+{
+	u8 held
+	u8 pressed
+	
+	if (A0 == 0xffffb000)
+	{
+		held = control.player1.state
+		pressed = control.player1.pressed
+	}
+	else if (A0 == 0xffffb04a)
+	{
+		held = control.player2.state
+		pressed = control.player2.pressed
+	}
+
+	return (usePress) ? pressed : held
+}
+
+function u8 Character.getSuperState()
+{
+	return Character.getSuperState(A0)
+}
+
+function u8 Character.getSuperState(u32 address)
+{
+	return (u8[address + 0x38] == CHARACTER_TAILS) ? super.active.tails : super.active
+}
+
+function u32 Character.getLocationOfSpeedCap()
+{
+	return Character.getLocationOfSpeedCap(A0)
+}
+
+function u32 Character.getLocationOfSpeedCap(u32 address)
+{
+	return (u8[address + 0x38] == CHARACTER_TAILS) ? 0xfffffec0 : 0xfffff760
+}
+
+function u8 Character.getCharAudioChannelA()
+{
+	return Character.getCharAudioChannelA(A0)
+}
+
+function u8 Character.getCharAudioChannelA(u32 address)
+{
+	return 104 + getPId(address)
+}
+
+function u8 Character.getCharAudioChannelB()
+{
+	return Character.getCharAudioChannelB(A0)
+}
+
+function u8 Character.getCharAudioChannelB(u32 address)
+{
+	return 108 + getPId(address)
+}
+
+function void characterSetHitbox(u8 width, u8 height)
+{
+	char.position.y.u16 += (s16(char.hitbox_extends.y) - s16(height)) * ((global.inv_gravity != (char.rotation + 0x40 >= 0x80)) ? -1 : 1)
+	char.hitbox_extends.x = width
+	char.hitbox_extends.y = height
+}
+
+function void characterSetHitboxAngled(u8 width, u8 height)
+{
+	s16 diff = (s16(char.hitbox_extends.y) - s16(height))
+	if (global.inv_gravity)
+		diff = -diff
+	u8 quart = getRotationQuarter(char.rotation)
+	if (quart == 0x40)
+		char.position.x.u16 -= diff
+	else if (quart == 0x80)
+		char.position.y.u16 -= diff
+	else if (quart == 0xc0)
+		char.position.x.u16 += diff
+	else
+		char.position.y.u16 += diff
+	char.hitbox_extends.x = width
+	char.hitbox_extends.y = height
+}
+
+// --- Configuration ---
+
+function u8 getECFCharBase(string name)
+{
+	// one of the CHARACTER_[X] constants
+	return CHARACTER_SONIC
+}
+
+function string ECF_getCharDisplayName(string name)
+{
+	return name
+}
+
+// one of the CHARS_[X] constants
+// you shouldn't really need to change this, but here you are.
+function u8 getECFGlobalCharId(string name)
+{
+	return getECFCharBase(name) + 1
+}
+
+// hides a character in menu-selects 
+function bool ECF_isSelectionHidden(string name)
+{
+	return false
+}
+
+// some repeated checks moved to reused functions.
+function bool ECF_isCharacterAttacking()
+{
+	return (char.state == char.state.ROLLING || char.state == char.state.SPINDASH)
+}
+
+function bool ECF_canCharacterOpenMonitor()
+{
+	return (char.state == char.state.ROLLING || char.state == char.state.SPINDASH && Game.getSetting(SETTING_MONITOR_BEHAVIOR))
+}
+
+function u8 ECF_canCharBreakFloor()
+{
+	return (char.state == char.state.ROLLING)
+}
+
+function u8 ECF_canCharBreakWall()
+{
+	// return 2 if this should break a Knuckles-only wall.
+	if (char.character == CHARACTER_KNUCKLES)
+		return 2
+
+	// vanilla excludes rolling if you are in the air, but via object pushing flags.
+	// perfer to check for air flag here
+	return (super.active || char.state == char.state.ROLLING && abs(D1.s16) >= 0x480 && (char.flags & char.flag.IN_AIR) == 0)
+}
+
+// Allow equivalents to Tails' Fluffy Rear Parts.
+function u32 ECF_getFollowInitRoutine(string name)
+{
+	return (getECFCharBase(name) == CHARACTER_TAILS) ? addressof(TailsTails.Init) : 0
+}
+
+function u32 ECF_getFollowContinueIconInitRoutine(string name)
+{
+	return (getECFCharBase(name) == CHARACTER_TAILS) ? 0x05ca78 : 0
+}
+
+function u32 ECF_getFollowBluespheresInitRoutine(string name)
+{
+	return (getECFCharBase(name) == CHARACTER_TAILS) ? 0x009444 : 0
+}
+
+// "convenience additions"
+function s16 ECF_getResultsNameTagWidth(string name)
+{
+	u8 base = getECFCharBase(name)
+	if (base == CHARACTER_SONIC)
+		return 72
+	else if (base == CHARACTER_TAILS)
+		return (global.region_code & 0x80) ? 64 : 72
+	else if (base == CHARACTER_KNUCKLES)
+		return 120
+	return 0
+}
+
+
+function s16 ECF_getLivesIconMobileXPivot(string name)
+{
+	return 0
+}
+
+function u8 ECF_visitsDoomsday(string name)
+{
+	return false
+}
+
+function bool ECF_endposeFlyRight(string name)
+{
+	return false
+}
+
+function u32 ECF_getLedColor(string name)
+{
+	return getCharacterColorsForControllerLEDs(getECFCharBase(name))
+}
+
+function bool ECF_enableBossTop()
+{
+	return (ExChar_P1 && (ExChar_P2 == 0 || !isSecondCharacter(CHARACTER_TAILS)))
+}
+
+function u8 ECF_AIZ_introBase(string name)
+{
+	return CHARACTER_TAILS
+}
+
+function u8 ECF_getCharRollWidth()
+{
+	return char.hitbox.x.ROLLING
+}
+
+function u8 ECF_getCharRollHeight()
+{
+	return char.hitbox.y.ROLLING
+}
+
+function u8 ECF_charHasSeparateSuperAnims()
+{
+	return false
+}
+
+// --- Long-cuts ---
+function bool ECF_isCharacterAttacking(u32 _cAddr, u32 _eAddr)
+{
+	u32 A0_o = A0
+	u32 A1_o = A1
+	A0 = _cAddr
+	A1 = _eAddr
+	bool returnValue = ECF_isCharacterAttacking()
+	A0 = A0_o
+	A1 = A1_o
+	return returnValue
+}
+
+function bool ECF_canCharacterOpenMonitor(u32 _cAddr, u32 _mAddr)
+{
+	u32 A0_o = A0
+	u32 A1_o = A1
+	A0 = _cAddr
+	A1 = _mAddr
+	bool returnValue = ECF_canCharacterOpenMonitor()
+	A0 = A0_o
+	A1 = A1_o
+	return returnValue
+}
+
+function u8 ECF_canCharBreakFloor(u32 _cAddr, u32 _fAddr)
+{
+	u32 A0_o = A0
+	u32 A1_o = A1
+	A0 = _cAddr
+	A1 = _fAddr
+	bool returnValue = ECF_canCharBreakFloor()
+	A0 = A0_o
+	A1 = A1_o
+	return returnValue
+}
+
+function u8 ECF_canCharBreakWall(u32 _cAddr, u32 _wAddr)
+{
+	u32 A0_o = A0
+	u32 A1_o = A1
+	A0 = _cAddr
+	A1 = _wAddr
+	bool returnValue = ECF_canCharBreakWall()
+	A0 = A0_o
+	A1 = A1_o
+	return returnValue
+}
+
+function u8 ECF_getCharRollWidth(u32 _cAddr)
+{
+	u32 A0_o = A0
+	A0 = _cAddr
+	u8 returnValue = ECF_getCharRollWidth()
+	A0 = A0_o
+	return returnValue
+}
+
+function u8 ECF_getCharRollHeight(u32 _cAddr)
+{
+	u32 A0_o = A0
+	A0 = _cAddr
+	u8 returnValue = ECF_getCharRollHeight()
+	A0 = A0_o
+	return returnValue
+}
+
+
+// --- Asset Helpers ---
+// Mostly ECF variants of existing functions. not much of note.
+
+function string getECFCharacterSpriteKey(string name)
+{
+	return getECFCharacterSpriteKey(name, false)
+}
+
+function string getECFCharacterSpriteKey(string name, bool isSuperActive)
+{
+	return stringformat("character_%s", name)
+}
+
+function string getECFCharacterFollowObjectSpriteKey(string name)
+{
+	return getECFCharacterFollowObjectSpriteKey(name, false)
+}
+
+function string getECFCharacterFollowObjectSpriteKey(string name, bool isSuperActive)
+{
+	return stringformat("%s_tails", getECFCharacterSpriteKey(name, isSuperActive))
+}
+
+function string getECFCharacterPaletteKey(string name)
+{
+	return stringformat("character_palette_%s", name)
+}
+
+function string getECFCharacterLivesIcon(string name)
+{
+	return stringformat("hud_lives_icon_%s", name)
+}
+
+function string getECFCharacterContinueIcon(string name)
+{
+	return stringformat("continue_icon_%s", name)
+}
+
+function string getECFCharacterContinueFollowObjectSpriteKey(string name)
+{
+	return stringformat("%s_tails", getECFCharacterContinueIcon(name))
+}
+
+function string getECFCharacterBonusTextIcon(string name)
+{
+	return stringformat("hud_bonus_icon_%s", name)
+}
+
+function string getECFCharacterResultsNameplate(string name)
+{
+	return stringformat("result_nameplate_%s", name)
+}
+
+function string getECFCharacterSignpostSpriteKey(string name)
+{
+	return stringformat("signpost_%s", name)
+}
+
+function string Monitor.getECFCharacterLifeIcon(string name)
+{
+	return stringformat("monitor_icon_%s", name)
+}
+
+function string getECFCharacterBluesphereSpriteKey(string name)
+{
+	return stringformat("bluesphere_%s", name)
+}
+
+function string getECFCharacterBluespherePaletteKey(string name)
+{
+	return stringformat("bluesphere_palette_%s", name)
+}
+
+function string getECFCharacterEndPoseSpriteKey(string name, bool isSuperActive)
+{
+	return (isSuperActive) ? stringformat("endpose_super_%s", name) : stringformat("endpose_%s", name)
+}
+
+function string getECFCharacterEndPosePaletteKey(string name)
+{
+	return stringformat("endpose_palette_%s", name)
+}
+
+function string getECFCharacterTornadoSpriteKey(string name)
+{
+	return stringformat("tornado_%s", name)
+}
+
+function u8 getECFCharacterTornadoPilot(string name)
+{
+	return CHARACTER_SONIC
+}
+
+function string getECFCharacterSpecialPilotKey(string name)
+{
+	return stringformat("tornado_%s_special", name)
+}
+
+function string getECFCharacterSpecialPilotPalette(string name)
+{
+	return 0
+}
+
+function string getECFCharacterSelectSpriteKey(string name)
+{
+	return stringformat("charselect_%s", name)
+}
+
+function string ECF_getRPCSprite(string name)
+{
+	return "character_unknown"
+}

@@ -1,0 +1,527 @@
+//# address-hook(0x06c4be) end(0x06c4f0)
+function void fn06c4be()
+{
+	if (!ECF_enableBossTop())
+	{
+		base.fn06c4be()
+		return
+	}
+	
+	// Spawn Top
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = addressof(ECF_BossTop)
+		objA1.position.x.u16 = u16[0xffffb010]
+		objA1.position.y.u16 = u16[0xffffb014]
+		
+		u16[A1 + 0x40] = A0.u16
+		
+		objA1.render_flags |= render_flag.WORLD
+		
+		objA1.sprite_priority = 0x300
+		objA1.box_size.x = 32
+		objA1.box_size.y = 18
+		
+		objA0.base_state = 0x0e
+		objA0.countdown_value = 0x3f
+		objA0.countdown_callback = 0x06c4f8
+		u8[0xffffeec4] = 0xff
+		global.passing_floor = 0xff
+		playSound(0x61)
+		
+		A2 = A1
+		for (u8 i; i < 4; ++i)
+		{
+			if (allocDynamicObjectStd())
+			{
+				objA1.update_address = addressof(ECF_BossTopRocket)
+				objA1.position.x.u16 = u16[0xffffb010]
+				objA1.position.y.u16 = u16[0xffffb014]
+				u16[A1 + 0x40] = A2.u16
+				objA1.subtype2c = i
+				
+				objA1.sprite_priority = 0x300
+				
+				objA1.render_flags |= render_flag.WORLD
+				objA1.animation.sprite = 2
+				
+				objA1.box_size.x = 8
+				objA1.box_size.y = 12
+			}
+		}
+	}
+}
+
+constant u8 bosstop_routine_grounded		= 5
+constant u8 bosstop_routine_air				= 6
+constant u8 bosstop_routine_rescue			= 7
+constant u8 bosstop_routine_wait			= 8
+
+constant u16 bosstop_bounceplane = 0x07c0
+constant u16 bosstop_rotationSize = 0
+
+//# address-hook(0x39A302) end(0x39A302)
+function void ECF_BossTop()
+{
+	A1 = 0xffffb000
+	A2 = 0xffff0000 + u32(u16[A0 + 0x40])
+	
+	// switch over to capsule
+	if (u32[A2] == 0x06c2ee)
+	{
+		for (A3 = 0xffffb128; A3 < 0xffffcb2c; A3 += 0x4a)
+		{
+			if (u32[A3] == 0x086540)
+			{
+				A2 = A3
+				u16[A0 + 0x40] = A2.u16
+			}
+		}
+	}
+	
+	s32[A0 + 0x34] += objA1.velocity.x
+	objA0.animation.frame = ((objA0.animation.frame + (objA1.velocity.x >> 8)) + 8) % 8
+	
+	if (objA0.base_state < bosstop_routine_grounded)
+		System.callFunctionByName(stringformat("ECF_BossTop_subroutine_intro%d", objA0.base_state))
+	else if (objA0.base_state == bosstop_routine_grounded)
+		ECF_BossTop_subroutine_g()
+	else if (objA0.base_state == bosstop_routine_air)
+		ECF_BossTop_subroutine_a()
+	else if (objA0.base_state == bosstop_routine_rescue)
+		ECF_BossTop_subroutine_r()
+	else if (objA0.base_state == bosstop_routine_wait)
+		ECF_BossTop_subroutine_w()
+		
+	objA0.animation.sprite = objA0.animation.frame / 4
+}
+
+//# address-hook(0x39A304) end(0x39A304)
+function void ECF_BossTopRocket()
+{
+	A1 = 0xffff0000 + u32(u16[A0 + 0x40])
+	float angle = (s32[A1 + 0x34] / 220.0) + objA0.subtype2c * 90.0
+	float rad = Math.degreesToRadians(angle)
+	float depth = Math.cos(rad)
+	
+	objA0.position.x.u16 = objA1.position.x.u16 + Math.roundToInt(Math.sin(rad) * (objA1.box_size.x + 2))
+	objA0.position.y.u16 = objA1.position.y.u16 - 5
+	
+	if (depth >= 0.5)
+		objA0.animation.sprite = 2
+	else if (depth >= 0)
+		objA0.animation.sprite = 1
+	else
+		objA0.animation.sprite = 0
+	
+	objA0.animation.frame = 0
+	if (objA1.velocity.y <= 0 && (level.framecounter % 2) == 0)
+		objA0.animation.frame = 1
+
+	if (objA1.render_flags & render_flag.VISIBLE)
+		DrawObject()
+}
+
+// INTRO
+
+function void ECF_BossTop_subroutine_intro0()
+{
+	D0 = camera.position.y.u16 + getScreenHeight() + objA1.box_size.y + 16
+	if (objA1.position.y.u16 >= D0)
+	{
+		objA1.position.y.u16 = D0
+		u8[A1 + 0x2e] = (control_flag.DISABLE_UPDATE | control_flag.DISABLE_WALLS | control_flag.DISABLE_INTERACTION)
+		objA1.flags2a |= char.flag.IN_AIR
+		objA1.base_state = base_state.NORMAL
+		
+		objA0.base_state = 1
+	}
+	
+	A1 = 0xffffb04a
+	if (objA1.position.y.u16 >= D0)
+	{
+		u8[A1 + 0x2e] = (control_flag.DISABLE_UPDATE | control_flag.DISABLE_WALLS | control_flag.DISABLE_INTERACTION)
+		objA1.state = char.state.DISAPPEARED
+		tails.ai_routine = 0x0a
+	}
+}
+
+function void ECF_BossTop_subroutine_intro1()
+{
+	D0 = camera.position.y.u16 + getScreenHeight() + objA1.box_size.y + 16
+	if (u8[A2 + 0x05] == 0x1a)
+		ECF_BossTop_playerJumpIn()
+		
+	A1 = 0xffffb04a
+	if (objA1.position.y.u16 >= D0)
+	{
+		u8[A1 + 0x2e] = (control_flag.DISABLE_UPDATE | control_flag.DISABLE_WALLS | control_flag.DISABLE_INTERACTION)
+		objA1.state = char.state.DISAPPEARED
+		tails.ai_routine = 0x0a
+	}
+}
+
+function void ECF_BossTop_playerJumpIn()
+{
+	objA0.position.x.u16 = objA1.position.x.u16
+	objA0.position.y.u16 = bosstop_bounceplane - ECF_getCharRollHeight(A1)
+	objA0.velocity.y = -0x600
+	objA0.base_state = 2
+	
+	objA1.position.y.u16 = objA0.position.y.u16
+	
+	objA1.velocity.x = 0
+	objA1.velocity.y = -0x900
+	u8[A1 + 0x2e] = 0	// char.control_flags
+	u8[A1 + 0x40] = 0	// char.jumping	
+	u8[A1 + 0x2f] = 0 	// char.double_jump_state
+	u8[A0 + 0x34] = max(u8[A0 + 0x34], 30)	// char.invuln.countdown
+	
+	objA1.state = char.state.ROLLING
+	objA1.flags2a |= char.flag.ROLLING | char.flag.IN_AIR
+	objA1.hitbox_extends.x = ECF_getCharRollWidth(A1)
+	objA1.hitbox_extends.y = ECF_getCharRollHeight(A1)
+	
+	playSound(SFX_JUMP)
+}
+
+function void ECF_BossTop_subroutine_intro2()
+{
+	objA0.position.x.u16 = objA1.position.x.u16
+	
+	UpdateMovementStraightSimple()
+	objA0.velocity.y = min(objA0.velocity.y + 0x20, 0x100)
+	
+	D4.u16 = objA0.position.x.u16
+	D1 = objA0.box_size.x
+	D3 = objA0.box_size.y + 1
+	ECF_BossTop_PlatformCheckClimbOn()
+	
+	A1 = 0xffffb000
+	if ((objA1.flags2a & char.flag.IN_AIR) == 0 && objA1.flags2a & char.flag.ON_OBJECT && u16[A1 + 0x42] == A0.u16)
+		objA0.base_state = bosstop_routine_grounded
+	else if (objA1.position.y.u16 > bosstop_bounceplane)
+		objA0.base_state = bosstop_routine_rescue
+		
+	DrawObject()
+}
+
+// FREE
+function void ECF_BossTop_subroutine_g()
+{
+	if (objA1.flags2a & char.flag.IN_AIR)
+	{
+		objA0.base_state = bosstop_routine_air
+		objA1.velocity.y += objA0.velocity.y
+	}
+		
+	objA0.position.x.u16 = objA1.position.x.u16
+	
+	UpdateMovementStraightSimple()
+	
+	if (debug_mode.state == 0)
+	{
+		u16 uCap = camera.position.y.u16 + 64 + u8[A1 + 0x44]
+		bool preventDeath = false
+		if (u32[A2] == 0x086540)
+		{
+			uCap = max(uCap, u16[A2 + 0x14] + 72 + u8[A1 + 0x44])
+			D0.s16 = u16[A2 + 0x10] - objA0.position.x.u16
+			if (D0.s16 >= -72 && D0.s16 < 72)
+				preventDeath = true
+		}
+		
+		u16 baseLine = camera.position.y.u16 + getScreenHeight() - 50
+		if (objA1.state == char.state.COWERING || control.pad1.state & CONTROL_DOWN && objA1.state == char.state.RUNNING)
+			baseLine += 15
+			
+		s16 pivot = (s32(lookupSin(level.framecounter * 2) * 8) >> 8)
+		u16 goal = baseLine + pivot
+		//debugDrawRect(objA0.position.x.u16 - 8, goal - 8, 16, 16, 0x80ff0000)	
+
+		s16 accel = 0x10 + abs(objA0.velocity.y >> 4)
+		// Capsule | try to prevent crush deaths
+		if (objA0.position.y.u16 <= uCap && preventDeath)
+		{
+			if (objA0.velocity.y < 0)
+				objA0.velocity.y >>= 1
+			objA0.velocity.y += 0x40
+		}
+		// move up
+		else if (objA1.state == char.state.LOOKING_UP || control.pad1.state & CONTROL_UP && objA1.state == char.state.RUNNING) && (objA0.position.y.u16 > uCap)
+			objA0.velocity.y = valueProgressToEnd(objA0.velocity.y, -0x280, accel)
+		// float
+		else if (objA0.position.y.u16 >= baseLine - 8)
+		{
+			s16 speed = (goal - objA0.position.y.u16) << 8 
+			accel = 0x20 + abs(objA0.velocity.y >> 5)
+			
+			if (abs(objA0.velocity.y) < abs(speed))
+				objA0.velocity.y = Math.roundToInt(objA0.velocity.y * 0.9)
+				
+			if (objA0.velocity.y < speed)
+				objA0.velocity.y = min(objA0.velocity.y + accel, speed)
+			else if (objA0.velocity.y > speed)
+				objA0.velocity.y = max(objA0.velocity.y - accel, speed)
+		}
+		// move down
+		else if (objA1.state == char.state.COWERING || control.pad1.state & CONTROL_DOWN && objA1.state == char.state.RUNNING)
+			objA0.velocity.y = valueProgressToEnd(objA0.velocity.y, 0x180, accel)
+		else
+			objA0.velocity.y = valueProgressToEnd(objA0.velocity.y, 0x200, accel)
+		
+		if (objA0.position.y.u16 > bosstop_bounceplane)
+		{
+			objA0.position.y.u16 = bosstop_bounceplane
+			objA0.velocity.y = -0x500
+		}
+	}
+	
+	D4.u16 = objA0.position.x.u16
+	D1 = objA0.box_size.x
+	D3 = objA0.box_size.y + 1
+	PlatformCheckClimbOn()
+	
+	DrawObject()
+}
+
+function void ECF_BossTop_subroutine_a()
+{
+	if (objA1.position.y.u16 >= bosstop_bounceplane)
+	{
+		objA1.position.y.u16 = bosstop_bounceplane
+		u8[A1 + 0x2e] = (control_flag.DISABLE_UPDATE | control_flag.DISABLE_WALLS | control_flag.DISABLE_INTERACTION)
+		objA1.base_state = base_state.NORMAL
+		
+		objA0.base_state = bosstop_routine_rescue
+		
+		DrawObject()
+		return
+	}
+	
+	if (objA1.base_state == base_state.NORMAL)
+		objA0.position.x.u16 = objA1.position.x.u16
+
+	if ((objA1.flags2a & char.flag.IN_AIR) == 0 && objA1.flags2a & char.flag.ON_OBJECT && u16[A1 + 0x42] == A0.u16)
+		objA0.base_state = bosstop_routine_grounded
+	else
+	{
+		UpdateMovementStraightSimple()
+		
+		u16 baseLine = camera.position.y.u16 + getScreenHeight() - 50
+		s16 pivot = (s32(lookupSin(level.framecounter * 2) * 8) >> 8)
+		u16 goal = baseLine + pivot
+		//debugDrawRect(objA0.position.x.u16 - 8, goal - 8, 16, 16, 0x80ff0000)	
+
+		s16 accel = 0x10 + abs(objA0.velocity.y >> 4)
+		// bounce
+		if (objA0.position.y.u16 > bosstop_bounceplane)
+		{
+			objA0.position.y.u16 = bosstop_bounceplane
+			objA0.base_state = bosstop_routine_wait
+			objA0.velocity.y = 0
+		}
+		// move down
+		else
+			objA0.velocity.y = valueProgressToEnd(objA0.velocity.y, 0x200, accel)
+	}
+	
+	u16 knockY = objA1.velocity.y 
+	
+	D4.u16 = objA0.position.x.u16
+	D1 = objA0.box_size.x
+	D3 = objA0.box_size.y + 1
+	ECF_BossTop_PlatformCheckClimbOn()
+
+	DrawObject()
+}
+
+// RESCUE
+function void ECF_BossTop_subroutine_r()
+{
+	UpdateMovementStraightSimple()
+	objA0.velocity.y += 0x40
+	
+	if (objA0.position.y.u16 >= bosstop_bounceplane)
+	{
+		objA0.position.y.u16 = bosstop_bounceplane
+		ECF_BossTop_playerJumpIn()
+	}
+		
+	DrawObject()
+}
+
+// WAIT OFFSCREEN
+function void ECF_BossTop_subroutine_w()
+{
+	if (objA0.position.y.u16 >= bosstop_bounceplane && objA1.position.y.u16 >= bosstop_bounceplane)
+	{
+		++objA0.velocity.y
+		if (objA0.velocity.y >= 25)
+		{
+			objA0.position.y.u16 = bosstop_bounceplane
+			ECF_BossTop_playerJumpIn()
+		}
+		else
+		{
+			u8[A1 + 0x2e] = (control_flag.DISABLE_UPDATE | control_flag.DISABLE_WALLS | control_flag.DISABLE_INTERACTION)
+			objA1.state = char.state.DISAPPEARED
+		}
+	}
+		
+	DrawObject()
+}
+
+function s64 valueProgressToEnd(s64 curr, s64 end, u32 speed)
+{
+	if (curr < end)
+		curr = min(curr + speed, end)
+	else if (curr > end)
+		curr = max(curr - speed, end)
+	return curr
+}
+
+// copy of collision code... not wonderful to do, but gets the job done.
+
+function void ECF_BossTop_PlatformCheckClimbOn()
+{
+	//debugLog(stringformat("PlatformCheckClimbOn(0x%04x, 0x%04x, 0x%04x, 0x%04x, 0x%02x)", D1.u16, D2.u16, D3.u16, D4.u16, D6.u8))
+	//debugDrawRect(D4.u16 - D1.u16, objA0.position.y.u16 - D3.u16, D1.u16 * 2, D3.u16 * 2, 0x80ff0000)
+
+	// Parameters:
+	//  - D1.u16 = Half width of the object
+	//  - D2.u16 = ?? (seems to be related to character's last known x-position, at least for horizontally moving platforms)
+	//  - D3.u16 = Half height of the object
+	//  - D4.u16 = Center x-position of the climbable area (in world space)
+	//  - D6.u8  = Bit index, usually depending on the character index to check
+
+	// Check player 1
+	A1 = 0xffffb000
+	D6 = 3		// object.flag.P1_ON_OBJECT
+#if STANDALONE
+	if (debug_mode.state == 0)
+#endif
+	{
+		u32 backupD1 = D1
+		u32 backupD2 = D2
+		u32 backupD3 = D3
+		u32 backupD4 = D4
+
+		ECF_BossTop_PlatformCheckClimbOnForCharacterA1()
+
+		D1 = backupD1
+		D2 = backupD2
+		D3 = backupD3
+		D4 = backupD4
+	}
+
+	// Check player 2
+	A1 = 0xffffb04a
+	++D6.u8		// object.flag.P2_ON_OBJECT
+	PlatformCheckClimbOnForCharacterA1()
+}
+
+function void ECF_BossTop_PlatformCheckClimbOnForCharacterA1()
+{
+	u8 bit = (1 << D6.u8)
+	if ((objA0.flags2a & bit) == 0)
+	{
+		ECF_BossTop_CheckCharacterClimbOnObject()
+		return
+	}
+
+	s16 halfWidth = D1.u16
+	s16 diffX = objA1.position.x.u16 - objA0.position.x.u16
+	if ((objA1.flags2a & char.flag.IN_AIR) == 0 && diffX >= -halfWidth && diffX < halfWidth)
+	{
+		// Still on the object, correct height
+		D2.u16 = D4.u16
+		UpdateSonicPositionOnMovingObject()
+	}
+	else
+	{
+		// Not on the object anymore (either in air, or outside the object's width)
+		objA1.flags2a &= ~char.flag.ON_OBJECT
+		objA1.flags2a |= char.flag.IN_AIR
+		objA0.flags2a &= ~bit
+	}
+	D4 = 0
+}
+
+function void ECF_BossTop_CheckCharacterClimbOnObject()
+{
+	if (objA1.velocity.y >= 0)
+	{
+		D0.s16 = objA1.position.x.u16 - objA0.position.x.u16 + D1.u16
+		if (D0.s16 >= 0 && D0.s16 < D1.s16 * 2)
+		{
+			ECF_BossTop_CheckCharacterClimbOnObjectInner()
+		}
+	}
+}
+
+function void ECF_BossTop_CheckCharacterClimbOnObjectInner()
+{
+	if (global.inv_gravity)
+	{
+		D0.u16 = objA0.position.y.u16 + D3.u16
+		D0.u16 = objA1.position.y.u16 - D0.u16 - s8[A1 + 0x1e] - 4
+		if (D0.s16 < -0x10 || D0.s16 >= 0)
+			return
+		if (s8[A1 + 0x2e] < 0 || u8[A1 + 0x05] >= base_state.DIED)
+			return
+
+		objA1.position.y.u16 = objA1.position.y.u16 - D0.u16 - 4
+		ECF_BossTop_LetSonicClimbOnObject()
+	}
+	else
+	{
+		D0.u16 = objA0.position.y.u16 - D3.u16
+		ECF_BossTop_fn01e45a()
+	}
+}
+
+function void ECF_BossTop_fn01e45a()
+{
+	D0.u16 = D0.u16 - objA1.position.y.u16 - s8[A1 + 0x1e] - 4		// s8[A1 + 0x1e] = Sonic's hitbox_extends.y
+	if (D0.s16 < -0x10 || D0.s16 >= 0)
+		return
+	if (s8[A1 + 0x2e] < 0 || u8[A1 + 0x05] >= base_state.DIED)
+		return
+
+	objA1.position.y.u16 = objA1.position.y.u16 + D0.u16 + 3
+	ECF_BossTop_LetSonicClimbOnObject()
+}
+
+function void ECF_BossTop_LetSonicClimbOnObject()
+{
+	u8 bit = (1 << D6.u8)
+
+	// Already on another object?
+	if (objA1.flags2a & char.flag.ON_OBJECT)
+	{
+		// Unregister there
+		A3 = 0xffff0000 + u16[A1 + 0x42]
+		u8[A3 + 0x2a] &= ~bit
+	}
+
+	// Standing on this object now
+	u16[A1 + 0x42] = A0.u16
+	u8[A1 + 0x26] = 0
+	
+	objA0.velocity.y += Math.roundToInt(objA1.velocity.y * .3)
+	
+	objA1.velocity.y = 0
+	objA1.groundspeed = objA1.velocity.x
+	objA1.flags2a |= char.flag.ON_OBJECT
+	
+	objA0.flags2a |= bit
+	if (objA1.flags2a & char.flag.IN_AIR)
+	{
+		objA1.flags2a &= ~char.flag.IN_AIR
+		u32 backupA0 = A0
+		A0 = A1
+		Character.LandingOnGroundNoSpindash()
+		A0 = backupA0
+	}
+}

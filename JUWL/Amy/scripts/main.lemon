@@ -1,0 +1,13 @@
+include characters/?
+include objects/?
+include levels/?
+include renderhooks
+
+global s16 p1_amy_bounceLoss
+global s16 p2_amy_bounceLoss
+global s16 p3_amy_bounceLoss
+global s16 p3_amy_bounceLoss
+
+global bool ecc_setting_amySuperstarsSounds
+global bool ecc_setting_amyAltPalette
+global bool ecc_setting_amyTwinSpin

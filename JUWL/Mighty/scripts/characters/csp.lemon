@@ -1,0 +1,13 @@
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+function void SwapMode_dataSwap_globals()
+{
+	base.SwapMode_dataSwap_globals()
+	
+	SwapMode_handleGlobalSwap("mighty_shockwave_t")
+	SwapMode_handleGlobalSwap("mighty_shockwave_x")
+	SwapMode_handleGlobalSwap("mighty_shockwave_y")
+	SwapMode_handleGlobalSwap("mighty_cam_vlock")
+	SwapMode_handleGlobalSwap("mighty_cling_timer")
+	SwapMode_handleGlobalSwap("mighty_cling_dustcountdown")
+}
+#endif

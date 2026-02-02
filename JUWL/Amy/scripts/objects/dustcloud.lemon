@@ -1,0 +1,10 @@
+#if !LEMONS_TWEAKS_ACTIVE
+//# address-hook(0x018b54) end(0x018ba4)
+function void fn018b54()
+{
+	base.fn018b54()
+	u32 slot = 0xffff0000 + u32(objA0.dustcloud.character_address)
+	if (isECFCharAt(slot, "ECC-Amy"))
+		objA0.flags38 = 1
+}
+#endif

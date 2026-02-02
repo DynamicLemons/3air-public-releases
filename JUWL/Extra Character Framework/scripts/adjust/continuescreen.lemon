@@ -1,0 +1,184 @@
+//# address-hook(0x05c2e0) end(0x05c4d4)
+function void fn05c2e0()
+{
+	// only changes character palette loading logic, rest is unmodified.
+	// this function can't really be base overriden to include small hooks
+	
+	FadeOutScreenBlocking()
+
+#if !STANDALONE
+	set_status_register(0x2700)
+#endif
+
+	VDP.Config.setActiveDisplay(false)
+	VDP.Config.enableHInt(false)
+	VDP.Config.setBackdropColor(0)
+	kosinski.queue_size = 0
+
+	zeroMemory(0xffffff10, 0x6c)
+
+	ClearPatternLoadingQueue()
+	fn0011ca()
+
+	Nemesis.loadDataToVRAM(0x05d788, ContinueScreen.Numbers.targetInVRAM)			// Countdown digits
+	Nemesis.loadDataToVRAM(0x0dde34, ContinueScreen.TextTiles.targetInVRAM)
+	Nemesis.loadDataToVRAM(0x05cd66, ContinueScreen.Characters.targetInVRAM)		// Unique character continue sprites + countdown stars
+	Nemesis.loadDataToVRAM(0x05d3c6, ContinueScreen.ContinueIcons.targetInVRAM)		// Continue icons
+
+	global.level_started = 0
+	u8[0xfffffaa9] = 0
+	u8[0xfffffa88] = 0
+
+	zeroMemory(0xffffb000, 0x2000)
+
+	u32[0xfffffe66] = 0
+	u32[0xfffffe6a] = 0
+	fn01aa6e()
+	global.demo_countdown = 659		// 11 seconds (minus one frame)
+
+	copyMemory(0xfffffc80, 0x05cbca, 0x80)
+
+	A1 = 0x05cb9e	// "CONTINUE"
+	D2.u16 = 0x0292
+	D6.u16 = (sprite_attribute.PRIORITY | (ContinueScreen.TextTiles.targetInVRAM >> 5))
+	fn05b318()
+
+	if (!isMainCharacter(CHARACTER_KNUCKLES))
+	{
+	#if STANDALONE
+		if (global.characters == CHARS_SONIC_ALONE)
+	#else
+		if (global.lock_on_state != 0)
+	#endif
+		{
+			u32[0xffffb000] = 0x05c660	// Sonic Alone in continue screen
+		}
+		else
+		{
+			u32[0xffffb000] = 0x05c52a	// Sonic in continue screen
+			u32[0xffffb04a] = 0x05c718	// Tails in continue screen
+		}
+	}
+	u32[0xffffb094] = 0x05c838	// Knuckles in continue screen
+
+	A1 = 0xffffb0de
+	objA1.update_address = 0x05c4d6	// Countdown
+
+	u16[0xfffffaa4] = A1.u16
+	u32[0xffffb128] = 0x05c9dc	// Stars next to the countdown
+	fn05cb1c()
+
+	UpdateGameObjects()
+	RenderSprites()
+	global.frame_state = 0x16
+
+	waitForNextFrame()
+
+	VDP.Config.setActiveDisplay(true)
+#if STANDALONE
+	// Load characters extended palettes
+	u32 dest = 0x802180
+	for (u16 i; i <= CHARACTER_KNUCKLES; ++i)
+	{
+		if (global_ExChar_P1 && getECFCharBase(global_ExChar_P1) == i)
+			loadECFCharacterPalette(global_ExChar_P1, dest + i * 0x40, 0)
+		else if (global_ExChar_P2 && getECFCharBase(global_ExChar_P2) == i)
+			loadECFCharacterPalette(global_ExChar_P2, dest + i * 0x40, 0)
+		else
+			loadCharacterPalette(i, dest + i * 0x40, 0)
+	}
+#endif
+	playMusic(MUSIC_CONTINUE)
+	Menu.FadeInAfterInit()
+
+	while (true)
+	{
+		global.frame_state = 0x16
+		Kosinski.ProcessDecompressionQueue()
+
+		waitForNextFrame()
+
+		UpdateGameObjects()
+		RenderSprites()
+		Kosinski.ProcessModules()
+
+		if (u8[0xfffffaa9] != 0)
+			break
+	}
+
+	if (u8[0xfffffaa9] != 1)
+	{
+		// Time up, go back to title screen
+		global.game_mode = 0
+		return
+	}
+
+	global.game_mode = 0x0c			// Main Game
+	lives_counter = 3
+	unused.lives_counter.player2 = 3
+	ring_counter = 0
+	timer.alldata = 0
+	player.score = 0
+	ring_counter.player2 = 0
+	timer.alldata.player2 = 0
+	player2.score = 0
+	player.next_life_score = 5000
+	unused.player2.next_life_score = 5000
+	--continues_counter
+
+	sram.block_interrupts.u8 = 0xff
+	UpdateLivesContinuesInSaveGame()
+}
+
+//# address-hook(0x05c6b6) end(0x05c6de)
+function void fn05c6b6()
+{
+	if (!global_ExChar_P1)
+	{
+		base.fn05c6b6()
+		return
+	}
+	
+	// ECF characters use distinct sprite ids for this scene rather than reusing a waiting animation.
+	A1 = 0xffff0000 + u16[0xfffffaa4]
+	if ((u8[A1 + 0x38] & 0x04) == 0)
+	{
+		--objA0.animation.timer
+		if (s8(objA0.animation.timer) < 0)
+		{
+			objA0.animation.timer = 0x10
+			if (objA0.animation.frame)
+				objA0.animation.sprite = !objA0.animation.sprite
+			objA0.animation.frame = 1
+		}
+		
+		objA0.subtype2c = 1
+		return
+	}
+
+	objA0.base_state = 0x04
+	objA0.animation.sprite = 0xba		// Sonic's standing sprite
+	objA0.countdown_value = 0x07
+	objA0.subtype2c = 0
+}
+
+//# address-hook(0x05cb6a) end(0x05cb86)
+function void fn05cb6a()
+{
+	D4.u16 = global.characters
+	// follow object logic
+	if (global_ExChar_P1)
+	{
+		u32 addr = ECF_getFollowContinueIconInitRoutine(global_ExChar_P1)
+		if (addr != 0)
+			spawnSimpleChildObjects(addr, 1)
+	}
+	else if (D4.u8 == CHARS_TAILS_ALONE)
+	{
+		// "spawnSimpleChildObjects(0x05cb88)" replaced by:
+		spawnSimpleChildObjects(0x05ca78, 1)		// Tails' Tails for continue icon
+	}
+
+	D4.u16 <<= 2
+	u32[A0 + 0x30] = u32[0x05cb8e + D4.s16]
+}

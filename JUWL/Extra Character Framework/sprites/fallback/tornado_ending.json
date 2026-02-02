@@ -1,0 +1,10 @@
+{
+	"tornado_ending_17":  { "File": "tornado_ending.bmp", "Rect": "192,64,8,8", "Center": "4,4" },
+	"tornado_tiny":  { "File": "tornado_tiny.bmp", "Rect": "0,0,16,8", "Center": "8,0" },
+	"tornado_sonic_tiny":  { "File": "tornado_tiny.bmp", "Rect": "0,9,3,5", "Center": "-1,4" },
+	"tornado_tails_tiny":  { "File": "tornado_tiny.bmp", "Rect": "4,9,3,5", "Center": "-1,4" },
+	"tornado_knuckles_tiny":  { "File": "tornado_tiny.bmp", "Rect": "8,9,3,5", "Center": "-1,4" },
+	"tornado_sonic_pilot_tiny":  { "File": "tornado_tiny.bmp", "Rect": "0,15,2,2", "Center": "2,-1" },
+	"tornado_tails_pilot_tiny":  { "File": "tornado_tiny.bmp", "Rect": "3,15,2,2", "Center": "2,-1" },
+	"tornado_knuckles_pilot_tiny":  { "File": "tornado_tiny.bmp", "Rect": "6,15,2,2", "Center": "2,-1" }
+}

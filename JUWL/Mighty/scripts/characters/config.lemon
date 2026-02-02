@@ -1,0 +1,130 @@
+function void ECF_buildCharList()
+{
+	ECF_allocChar("ECC-Mighty")
+	base.ECF_buildCharList()
+}
+
+function string ECF_getCharDisplayName(string name)
+{
+	if (name == "ECC-Mighty")
+		return "Mighty"
+	return base.ECF_getCharDisplayName(name)
+}
+
+function bool ECF_isCharacterAttacking()
+{
+	if (isECFCharA0("ECC-Mighty") && char.state == char.state.MIGHTY_HAMMERDROP)
+		return true
+	return base.ECF_isCharacterAttacking()
+}
+
+function bool ECF_canCharacterOpenMonitor()
+{
+	if (isECFCharA0("ECC-Mighty") && char.state == char.state.MIGHTY_HAMMERDROP)
+		return true
+	return base.ECF_canCharacterOpenMonitor()
+}
+
+function u8 ECF_canCharBreakFloor()
+{
+	if (isECFCharA0("ECC-Mighty"))
+		return (char.state == char.state.ROLLING || char.state == char.state.MIGHTY_HAMMERDROP)
+	else
+		return base.ECF_canCharBreakFloor()
+}
+
+function s16 ECF_getResultsNameTagWidth(string name)
+{
+	if (name == "ECC-Mighty")
+		return 88
+	return base.ECF_getResultsNameTagWidth(name)
+}
+
+function u8 ECF_AIZ_introBase(string name)
+{
+	if (name == "ECC-Mighty")
+		return CHARACTER_SONIC
+	return base.ECF_AIZ_introBase(name)
+}
+
+function string getECFCharacterPaletteKey(string name)
+{
+	if (name == "ECC-Mighty" && ecc_setting_mightyAltPalette)
+		return stringformat("%s_Mania", base.getECFCharacterPaletteKey(name))
+		
+	return base.getECFCharacterPaletteKey(name)
+}
+
+function string getECFCharacterLivesIcon(string name)
+{
+	if (name == "ECC-Mighty" && ecc_setting_mightyAltPalette)
+		return stringformat("%s_Mania", base.getECFCharacterLivesIcon(name))
+		
+	return base.getECFCharacterLivesIcon(name)
+}
+
+function string getECFCharacterContinueIcon(string name)
+{
+	if (name == "ECC-Mighty" && ecc_setting_mightyAltPalette && objA0.update_address != 0x05ca5c)
+		return stringformat("%s_Mania", base.getECFCharacterContinueIcon(name))
+		
+	return base.getECFCharacterContinueIcon(name)
+}
+
+function string getECFCharacterBonusTextIcon(string name)
+{
+	if (name == "ECC-Mighty" && ecc_setting_mightyAltPalette)
+		return stringformat("%s_Mania", base.getECFCharacterBonusTextIcon(name))
+		
+	return base.getECFCharacterBonusTextIcon(name)
+}
+
+function string Lemons_getSlotIcon(u8 i)
+{
+	if (global_ExChar_P1 == "ECC-Mighty")
+	{
+		string key
+		if (i == 2)
+			key = "sloticon_mighty"
+		else if (i == 3)
+			key = "sloticon_ray"
+		
+	#if LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+		if (yywtrrshygnds_setting_novemberslots)
+			key = stringformat("%s_alt", key)
+	#endif
+		if (Renderer.hasCustomSprite(key))
+			return key
+	}
+	return base.Lemons_getSlotIcon(i)
+}
+
+function string ECF_getRPCSprite(string name)
+{
+	return (name == "ECC-Mighty") ? "https://i.imgur.com/tj7T87m.png" : base.ECF_getRPCSprite(name)
+}
+
+function u32 ECF_getLedColor(string name)
+{
+	return (name == "ECC-Mighty") ? 0x2800ff : base.ECF_getLedColor(name)
+}
+
+function void ESS_getCharacterColors(string name)
+{
+	if (name == "ECC-Mighty")
+	{
+		D0.u32 = 0x00d890
+		D1.u32 = 0x246c48
+	}
+	else
+		base.ESS_getCharacterColors(name)
+}
+
+#if ROARING_KNIGHT_ACTIVE
+function float charrk_dmg_getCharDmgTakeMult()
+{
+	if (isECFCharA0("ECC-Mighty") && (char.state == char.state.COWERING || char.state == char.state.ROLLING || char.state == char.state.MIGHTY_HAMMERDROP || char.state == char.state.SPINDASH))
+		return 0.70
+	return base.charrk_dmg_getCharDmgTakeMult()
+}
+#endif

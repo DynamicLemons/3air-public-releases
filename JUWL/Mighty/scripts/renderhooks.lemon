@@ -1,0 +1,55 @@
+function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
+{
+	// This function gets called once when rendering an object, even if it consists of multiple VDP sprites
+	//  -> That is in contrast to e.g. "Standalone.onDrawVdpSprite" which gets called for each VDP sprite
+	//  -> So if an object's sprites should be replaced with a new loaded graphics, this here is the place to go
+
+	string key
+	u16 atex = (objA0.sprite_attributes >> 9) & 0x30
+	u8 flags = ((objA0.render_flags & render_flag.FLIP_X) ? SPRITE_FLAG_FLIP_X : 0) | ((objA0.render_flags & render_flag.FLIP_Y) ? SPRITE_FLAG_FLIP_Y : 0) | ((objA0.sprite_attributes & sprite_attribute.PRIORITY) ? SPRITE_FLAG_PRIO : 0)
+	u8 angle = 0
+	u8 alpha = 255
+	
+	if (objA0.update_address == 0x39A26a || objA0.update_address == 0x39A26c)
+	{
+		SpriteHandle spr = Renderer.addSpriteHandle(stringformat("mighty_dust_%d", objA0.animation.sprite), px, py, renderQueue)
+		spr.setFlags(flags)
+		return true
+	}
+	
+	if (isECFCharP1("ECC-Mighty"))
+	{
+		if (objA0.update_address == 0x067472)
+		{
+			key = stringformat("character_ECC-Mighty_intro_%d", objA0.animation.sprite)
+			atex = 0x40
+			if (Renderer.hasCustomSprite(key))
+				Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+			return true
+		}
+
+		if (objA0.update_address == 0x06777a)
+		{
+			atex = 0x40
+			if (Game.getSetting(SETTING_SMOOTH_ROTATION))
+				Renderer.drawSprite("character_ECC-Mighty_surfboard_0", px, py, atex, flags, renderQueue, objA0.value26, 255)
+			else
+			{
+				key = stringformat("character_ECC-Mighty_surfboard_%d", objA0.animation.sprite)
+				if (Renderer.hasCustomSprite(key))
+					Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+			}
+			return true
+		}
+		
+		if (objA0.update_address == 0x0677ce)
+		{
+			key = stringformat("character_ECC-Mighty_surfboard_wave_%d", objA0.animation.sprite)
+			if (Renderer.hasCustomSprite(key))
+				Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+			return true
+		}
+	}
+
+	return base.Standalone.onWriteToSpriteTable(px, py, renderQueue)
+}

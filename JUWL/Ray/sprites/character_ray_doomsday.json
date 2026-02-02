@@ -1,0 +1,18 @@
+{
+	"character_ECC-Ray_superfly_0":  { "File": "character_ray_doomsday.bmp", "Rect": "8,8,56,56", "Center": "28,36" },
+	"character_ECC-Ray_superfly_1":  { "File": "character_ray_doomsday.bmp", "Rect": "72,8,56,56", "Center": "28,36" },
+	"character_ECC-Ray_superfly_2":  { "File": "character_ray_doomsday.bmp", "Rect": "136,8,56,56", "Center": "28,36" },
+	"character_ECC-Ray_superfly_3":  { "File": "character_ray_doomsday.bmp", "Rect": "200,8,56,56", "Center": "28,36" },
+	"character_ECC-Ray_superfly_4":  { "File": "character_ray_doomsday.bmp", "Rect": "8,72,56,60", "Center": "28,36" },
+	"character_ECC-Ray_superfly_5":  { "File": "character_ray_doomsday.bmp", "Rect": "72,72,56,60", "Center": "28,36" },
+	"character_ECC-Ray_superfly_6":  { "File": "character_ray_doomsday.bmp", "Rect": "136,72,56,61", "Center": "28,36" },
+	"character_ECC-Ray_superfly_7":  { "File": "character_ray_doomsday.bmp", "Rect": "200,72,56,60", "Center": "28,36" },
+	"character_ECC-Ray_superfly_8":  { "File": "character_ray_doomsday.bmp", "Rect": "8,136,56,56", "Center": "28,36" },
+	"character_ECC-Ray_superfly_9":  { "File": "character_ray_doomsday.bmp", "Rect": "72,136,56,56", "Center": "28,36" },
+	"character_ECC-Ray_superfly_10":  { "File": "character_ray_doomsday.bmp", "Rect": "136,136,56,56", "Center": "28,36" },
+	"character_ECC-Ray_superfly_11":  { "File": "character_ray_doomsday.bmp", "Rect": "200,136,56,56", "Center": "28,36" },
+	"character_ECC-Ray_superfly_12":  { "File": "character_ray_doomsday.bmp", "Rect": "8,200,56,56", "Center": "28,36" },
+	"character_ECC-Ray_superfly_13":  { "File": "character_ray_doomsday.bmp", "Rect": "72,200,56,56", "Center": "28,36" },
+	"character_ECC-Ray_superfly_14":  { "File": "character_ray_doomsday.bmp", "Rect": "136,200,56,56", "Center": "28,36" },
+	"character_ECC-Ray_superfly_15":  { "File": "character_ray_doomsday.bmp", "Rect": "200,200,56,56", "Center": "28,36" }
+}

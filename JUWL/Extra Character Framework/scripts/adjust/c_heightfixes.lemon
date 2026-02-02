@@ -1,0 +1,784 @@
+// hcz_handlauncher
+function void fn030cf8()
+{
+	u8 bit = (1 << D6.u8)
+
+#if STANDALONE
+	// Bug fix: If character gets hurt, don't launch him
+	if (u8[A1 + 0x05] != base_state.NORMAL)
+	{
+		u8[A0 + 0x35] &= ~bit
+		if (u8[A0 + 0x35] == 0)
+		{
+			u8[A0 + 0x34] = 0
+		}
+	}
+#endif
+
+	if (u8[A0 + 0x35] & bit)
+	{
+		// Check if jump button pressed
+		if (D0.u8 & CONTROL_ABC)
+		{
+			u8[A0 + 0x35] &= ~bit
+			objA0.flags2a &= ~bit
+			objA1.velocity.x = (objA0.flags2a & 0x01) ? -0x800 : 0x800
+			objA1.velocity.y = -0x400
+			objA1.groundspeed = objA1.velocity.x
+			u8[A1 + 0x2e] = 0
+			u8[A1 + 0x2a] &= ~char.flag.ON_OBJECT
+			u8[A1 + 0x2a] |= char.flag.IN_AIR
+			if (u8[A0 + 0x35] == 0)
+			{
+				u8[A0 + 0x34] = 0
+			}
+		}
+		return
+	}
+
+	if (objA0.flags2a & bit)
+	{
+		if (u8[A0 + 0x34] == 0)
+		{
+			D0.u16 = objA1.position.x.u16 - objA0.position.x.u16 + 8
+			if (D0.u16 >= 0x10)
+				return
+		}
+
+		if (u8[A1 + 0x2e] == 0 && debug_mode.state == 0)
+		{
+			u8[A0 + 0x35] |= bit
+
+			playSound(SFX_ROLL)
+
+			u8[A1 + 0x20] = 0
+			// uses hardcoded values instead of reading character size in vanilla.
+			objA1.hitbox_extends.x = u8[A1 + 0x45]
+			objA1.hitbox_extends.y = u8[A1 + 0x44]
+			objA1.flags2a &= ~(char.flag.FACING_LEFT | char.flag.ROLLING | char.flag.PUSHING)
+		#if STANDALONE
+			objA1.flags2a &= ~char.flag.IN_AIR	// Fix for wrong placement of the character if bubble-bouncing onto the hand launcher, #contributed by iCloudius
+		#endif
+			u8[A1 + 0x2e] = 1
+			objA1.position.x.u16 = objA0.position.x.u16 - 2
+			u16[A1 + 0x1c] = 0x1000
+			if (objA0.flags2a & 0x01)
+			{
+				objA1.position.x.u16 += 4
+				objA1.groundspeed = -objA1.groundspeed
+				objA1.flags2a |= char.flag.FACING_LEFT
+			}
+			u8[A0 + 0x34] = 1
+		}
+	}
+}
+
+// mgz_spinningtop
+//# address-hook(0x034f6a) end(0x034fba)
+function void fn034f6a()
+{
+	if (getECFCharBufferName(A1) == 0)
+	{
+		base.fn034f6a()
+		return
+	}
+	
+	// Fix for possible soft-lock when using a bubble bounce to get on the spinning top, #contributed by GFX32
+	if (objA1.flags2a & char.flag.IN_AIR)
+		return
+
+	u8 bit = (1 << D6.u8)
+	if ((objA0.flags2a & bit) == 0)
+	{
+		u8[A4] = 0
+	}
+
+	// Check if character is close enough to the center of the spinning top
+	s16 dx = objA1.position.x.u16 - objA0.position.x.u16
+	if (u8[A4 + 1] != 0)
+	{
+		dx += 0x0f
+	}
+	if (dx >= 0 && dx < 0x10)
+	{
+	#if STANDALONE
+		// Also check y-position difference, to prevent a possible softlock here
+		s16 dy = objA1.position.y.u16 - objA0.position.y.u16
+		s16 overExtend = max(u8[A1 + 0x44] - char.hitbox.y.UPRIGHT, 0) // account for taller characters.
+		if (dy >= -0x24 - overExtend && dy <= -0x18)
+	#endif
+		{
+			objA1.position.x.u16 = objA0.position.x.u16
+			objA1.hitbox_extends.y = u8[A1 + 0x44] + 0x18
+			objA1.flags2a |= char.flag.IN_AIR
+			objA1.flags2a &= ~char.flag.ON_OBJECT
+			objA1.flags2e |= 0x01		// Enable control lock for normal movement
+			u8[A1 + 0x37] = 0x80		// char.protection_flag
+
+			objA0.flags2a &= ~bit
+			u8[A4] += 2
+		}
+	}
+}
+
+// cnz_magnetbarrier
+//# address-hook(0x032010) end(0x0320e0)
+function void fn032010()
+{
+	D0.u8 = u8[A2]
+	if (D0.u8 == 0)
+	{
+		D0.u16 = objA1.position.x.u16 - objA0.position.x.u16 + 0x18
+		if (D0.u16 < 0x30)
+		{
+			D1.u16 = objA1.position.y.u16 - objA0.position.y.u16 + 0x30
+			if (D1.u16 < 0x50)
+			{
+				if (u8[A1 + 0x05] < base_state.HURT && u8[A1 + 0x2e] == 0)
+				{
+					D1.u16 = 0x50 - D1.u16
+					if (D1.u16 >= 0x40)
+					{
+						u8[A2] = 1
+						u8[A2+2] = u8[A0 + 0x34]
+
+						u16 backupD0 = D0.u16
+						playSound(0x73)
+						D0.u16 = backupD0
+					}
+
+					D1.s16 >>= 2
+					if (u8[A1 + 0x44] >= char.hitbox.y.UPRIGHT) // originally a check for CHARACTER_TAILS
+						D1.s16 >>= 1
+
+					objA1.position.y.u16 -= D1.u16
+					D2 = 1
+					if (D0.u16 != 0x18)
+					{
+						if (D0.u16 >= 0x18)
+						{
+							D2.s16 = -D2.s16
+						}
+						objA1.position.x.u16 += D2.u16
+					}
+					objA1.flags2a |= char.flag.IN_AIR
+					objA1.state = char.state.LIFTED
+					u8[A1 + 0x40] = 0
+				}
+			}
+		}
+	}
+	else if (D0.u8 == 1)
+	{
+		--u8[A2 + 0x02]
+		if (u8[A2 + 0x02] != 0)
+		{
+			objA1.position.y.u16 -= 8
+			D2 = 1
+			D0.u16 = objA1.position.x.u16 - objA0.position.x.u16
+			if (D0.u16 != 0)
+			{
+				if (D0.s16 > 0)
+				{
+					D2.s16 = -D2.s16
+				}
+				objA1.position.x.u16 += D2.u16
+			}
+
+			objA1.velocity.x = 0
+			objA1.velocity.y = 0
+			objA1.groundspeed = 0
+		}
+		else
+		{
+			objA1.velocity.y = -0x800
+			u8[A2] = 0
+		}
+	}
+}
+
+// level_icz
+//# address-hook(0x01c9e0) end(0x01c9f8)
+function void fn01c9e0()
+{
+	// not an entirely necessary change for our shorter characters, but for characters a bit too tall, this area softlocks.
+	if (camera.position.x.u16 >= 0x3700 && camera.position.y.u16 >= 0x068c + s16(char.hitbox.y.UPRIGHT - u8[0xffffb000 + 0x44]))
+	{
+		u8[0xffffeec6] = 0xff
+		camera.update_routine += 2
+	}
+}
+
+// lbz_cupelevator
+//# address-hook(0x02694e) end(0x026aac)
+function void CupElevator.Init()
+{
+	objA0.mapping_offset = 0x22619a
+	objA0.sprite_attributes = (sprite_attribute.PALETTE.LINE2 | 0x040d)
+	objA0.render_flags = render_flag.WORLD
+	objA0.sprite_priority = 0x80
+	objA0.box_size.x = 0x20
+	objA0.box_size.y = 0x10
+
+	// This object type allows for filtering for Knuckles (used at the end of LBZ 1)
+	if ((objA0.subtype2c & 0x40) && isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		objA0.position.x.u16 = 0x7f00
+	}
+
+	u16[A0 + 0x30] = objA0.position.x.u16
+	objA0.value32 = objA0.position.y.u16
+
+	if (allocDynamicObjectAfterA0())
+	{
+		objA1.update_address = 0x02703e
+		objA1.render_flags = render_flag.WORLD
+		objA1.box_size.x = 0x20
+		objA1.box_size.y = 0x10
+		objA1.sprite_priority = 0x80
+		objA1.sprite_attributes = (sprite_attribute.PALETTE.LINE2 | 0x040d)
+		objA1.mapping_offset = 0x22619a
+		objA1.position.x.u16 = objA0.position.x.u16
+		u16[A1 + 0x30] = objA0.position.x.u16
+		objA1.position.y.u16 = objA0.position.y.u16
+		u8[A1 + 0x22] = 0x01
+		if ((objA0.flags2a & 0x01) == 0)
+			objA1.position.x.u16 -= 0x18
+		else
+			objA1.position.x.u16 += 0x18
+		u16[A1 + 0x40] = A0.u16
+		objA0.value42 = A1.u16
+
+		if (allocDynamicObjectAfterA0())
+		{
+			objA1.update_address = 0x02702e
+			objA1.render_flags = render_flag.WORLD
+			objA1.box_size.x = 0x20
+			objA1.box_size.y = 0x10
+			objA1.sprite_priority = 0x0100
+			objA1.sprite_attributes = (sprite_attribute.PALETTE.LINE2 | 0x040d)
+			objA1.mapping_offset = 0x22619a
+			objA1.position.x.u16 = objA0.position.x.u16
+			objA1.position.y.u16 = objA0.position.y.u16
+			u8[A1 + 0x22] = 0x02
+			u16[A1 + 0x40] = A0.u16
+			u16[A0 + 0x40] = A1.u16
+		}
+	}
+
+	u16 height = (objA0.subtype2c & 0x0f) * 0x60
+	u16[A0 + 0x38] = height
+	u16[A0 + 0x26] = 0
+	objA0.position.x.u16 += 0x40
+	if ((objA0.flags2a & 0x01) == 0)
+	{
+		objA0.position.x.u16 -= 0x80
+		u16[A0 + 0x26] = 0x8080
+	}
+
+	if (objA0.subtype2c & 0x30)
+	{
+		// This elevator type is starting at the top, moving down first (instead of the default, which is the other way around)
+		//  -> It seems like only flag 0x10 is meant for this, and 0x20 goes unused
+		u16[A0 + 0x3a] = height
+		objA0.value32 += height
+		u16[A0 + 0x36] = 0x06
+		if (objA0.subtype2c & 0x01)
+		{
+			u8[A0 + 0x27] += 0x80
+		}
+	}
+
+#if STANDALONE
+	// Make sure this aligns with heights like how it does with Tails in base game.
+	if (global.zone_act == 0x0601 && objA0.position.x.u16 == 0x2d20 && objA0.position.y.u16 == 0x06f8)
+		objA0.position.y.u16 -= s16(char.hitbox.y.UPRIGHT - u8[0xffffb000 + 0x44]) * 2
+#endif
+
+	objA0.update_address = addressof(CupElevator.Update)
+	CupElevator.Update()
+}
+
+// hpz_emeraldcave
+function void fn090eae()
+{
+	D0 = u8[A1 + 0x38]
+	objA1.position.y.u16 += s16(char.hitbox.y.UPRIGHT - objA1.hitbox_extends.y)
+
+	objA1.animation.sprite = u8[0x090f06 + D0.u16]		// Player characters' standing sprites
+	objA1.state = char.state.STANDING
+	fn085fc4()
+}
+
+// fbz_magneticpendulum
+//# address-hook(0x03d78c) end(0x03d902)
+function void fn03d78c()
+{
+	if (objA0.base_state != 0)
+	{
+		D0.u16 = u16[A0 + 0x44]
+		if (D0.u16 != 0)
+		{
+			A1 = 0xffff0000 + D0.u16
+			u8[A1 + 0x05] = 0xff
+		}
+		UnloadObject()
+		return
+	}
+
+	A1 = 0xffff0000 + u16[A0 + 0x46]
+	D0.u8 = u8[A1 + 0x26]
+	LookupSinCos()
+
+	D1 = (D1 << 16)
+	D1.s32 >>= 1
+	D3 = D1
+	D3.s32 >>= 3
+	D1 -= D3
+	D1 = (D1 << 16) + (D1 >> 16)
+	D1.u16 += u16[A0 + 0x12]
+	objA0.position.x.u16 = D1.u16
+
+	D0 = (D0 << 16)
+	D0.s32 >>= 1
+	D3 = D0
+	D3.s32 >>= 3
+	D0 -= D3
+	D0 = (D0 << 16) + (D0 >> 16)
+	D0.u16 += u16[A0 + 0x16]
+	objA0.position.y.u16 = D0.u16
+
+	if (u8[A1 + 0x2f] == 0)
+	{
+		A2 = 0xffffb000
+		if (u8[A2 + 0x2e] == 0 && u8[A2 + 0x05] < base_state.HURT && debug_mode.state == 0)
+		{
+			bool goto03d8e2 = false
+			if (s8[A1 + 0x2c] < 0)
+			{
+				if (s16[A2 + 0x18] >= 0)
+				{
+					D0.u16 = objA0.position.x.u16 - 8
+					if (D0.u16 <= u16[A2 + 0x10])
+					{
+						D0.u16 += 0x18
+						if (D0.u16 >= u16[A2 + 0x10])
+						{
+							s16 heightDiff = s16(u8[A2 + 0x1e] - ECF_getCharRollHeight(A1))
+							D0 = 0x1d + heightDiff
+							D1 = 0x21 + heightDiff
+							
+							if (u8[A1 + 0x2e] != 0)
+							{
+								--D0.u16
+								D0.s16 = -D0.s16
+								--D1.u16
+								D1.s16 = -D1.s16
+
+								u32 tmp = D0
+								D0 = D1
+								D1 = tmp
+							}
+
+							D2.u16 = objA0.position.y.u16 - D0.u16
+							if (D2.u16 >= u16[A2 + 0x14])
+							{
+								D2.u16 = objA0.position.y.u16 - D1.u16
+								if (D2.u16 <= u16[A2 + 0x14])
+								{
+									D0.u16 = u16[A2 + 0x18]
+									goto03d8e2 = true
+								}
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				if (s16[A2 + 0x1a] < 0)
+				{
+					D0.u16 = objA0.position.y.u16 + 8
+					if (D0.u16 >= u16[A2 + 0x14])
+					{
+						D0.u16 -= 0x18
+						if (D0.u16 <= u16[A2 + 0x14])
+						{
+							s16 heightDiff = s16(u8[A2 + 0x1e] - ECF_getCharRollHeight(A1))
+							D0 = 0x1d + heightDiff
+							D1 = 0x21 + heightDiff
+							
+							if (u8[A1 + 0x2e] != 0)
+							{
+								--D0.u16
+								D0.s16 = -D0.s16
+								--D1.u16
+								D1.s16 = -D1.s16
+
+								u32 tmp = D0
+								D0 = D1
+								D1 = tmp
+							}
+
+							D2.u16 = objA0.position.x.u16 - D0.u16
+							if (D2.u16 >= u16[A2 + 0x10])
+							{
+								D2.u16 = objA0.position.x.u16 - D1.u16
+								if (D2.u16 <= u16[A2 + 0x10])
+								{
+									D0.s16 = -s16[A2 + 0x1a]
+									goto03d8e2 = true
+								}
+							}
+						}
+					}
+				}
+			}
+
+			if (goto03d8e2)
+			{
+				D0 = u32(D0.u16) * 0x51
+				D0 >>= 8
+				if (u8[A1 + 0x2e] != 0)
+				{
+					D0.s16 = -D0.s16
+				}
+				u8[A1 + 0x2f] = 0xff
+				u16[A1 + 0x30] = D0.u16
+				u8[A1 + 0x32] = 0xff
+				u8[A2 + 0x2e] = 0x01
+			}
+		}
+	}
+
+	DrawObject()
+}
+
+// fbz_dualplane
+//# address-hook(0x0532b6) end(0x0532dc)
+function void fn0532b6()
+{
+	objA0.update_address = 0x0532e0
+	objA0.box_size.y = 0x11
+	objA0.flags2a |= 0x80
+	move_area.right = 0x32b8
+	level.vertical_wrap = 0x3c + s16(char.hitbox.y.UPRIGHT - u8[0xffffb000 + 0x44])
+
+	fn0532e0()
+}
+
+// dez_hangcarrier
+//# address-hook(0x04703e) end(0x04717c)
+function void fn04703e()
+{
+	if (u8[A2] != 0)
+	{
+		if ((objA1.render_flags & render_flag.VISIBLE) && u8[A1 + 0x05] < base_state.HURT)
+		{
+			if ((D0.u8 & CONTROL_ABC) == 0)
+			{
+				objA1.position.x.u16 = objA0.position.x.u16
+				objA1.position.y.u16 = objA0.position.y.u16 + 0x28
+				if ((level.framecounter.low & 0x0f) == 0)
+				{
+					playSound(0xd0)
+				}
+				return
+			}
+
+			u8[A2] = 0
+			u8[A2 + 0x02] = 0x12
+
+			if (D0.u16 & 0x0f00)	// Any direction held?
+			{
+				u8[A2 + 0x02] = 0x3c
+				if (D0 & 0x0800)		// CONTROL_RIGHT held
+				{
+					objA1.velocity.x = 0x200
+				}
+				else if (D0 & 0x0400)		// CONTROL_LEFT held
+				{
+					objA1.velocity.x = -0x200
+				}
+			}
+
+			objA1.velocity.y = -0x380
+			objA1.hitbox_extends.x = ECF_getCharRollWidth(A1)
+			objA1.hitbox_extends.y = ECF_getCharRollHeight(A1)
+			objA1.state = char.state.ROLLING
+			u8[A1 + 0x27] = 0
+			objA1.flags2a |= (char.flag.IN_AIR | char.flag.ROLLING)
+			objA1.flags2a &= ~char.flag.CONTROL_LOCK
+			u8[A1 + 0x2e] = 0
+			u8[A1 + 0x40] = 1
+		}
+		else
+		{
+			u8[A1 + 0x2e] = 0
+			u8[A2] = 0
+			u8[A2 + 0x02] = 0x3c
+		}
+		return
+	}
+
+	if (u8[A2 + 0x02] != 0)
+	{
+		--u8[A2 + 0x02]
+		return
+	}
+
+	D0.u16 = objA1.position.x.u16 - objA0.position.x.u16 + 0x10
+	D1.u16 = objA1.position.y.u16 - objA0.position.y.u16 - 0x28
+	
+	// height adjustment fix for shorter characters.
+	// this is unecessary for taller characters, as they will likely hit the original check.
+	// we could have this not effect base cast Tails, who doesn't acount for this- but I hope people don't mind that...
+	
+	if (u8[A1 + 0x44] < char.hitbox.y.UPRIGHT)
+		D1.u16 += char.hitbox.y.UPRIGHT - s16(u8[A1 + 0x44])
+	
+	if (D0.u16 < 0x20 && D1.u16 < 0x18)
+	{
+		if ((u8[A1 + 0x2e] & control_flag.DISABLE_INTERACTION) == 0 && u8[A1 + 0x05] < base_state.HURT && debug_mode.state == 0)
+		{
+			objA1.velocity.x = 0
+			objA1.velocity.y = 0
+			u16[A1 + 0x1c] = 0
+			objA1.position.x.u16 = objA0.position.x.u16
+			objA1.position.y.u16 = objA0.position.y.u16 + 0x28
+			objA1.state = char.state.HANGING
+		#if !STANDALONE
+			// This interferes with the drop dash and does not seem to be necessary (also see FBZ monkeybars -> "fn03a8b8")
+			objA1.flags2a &= ~char.flag.IN_AIR
+		#endif
+			u8[A1 + 0x2e] = 1
+
+			u8[A2] = 1
+			playSound(SFX_CLICK)
+		}
+	}
+}
+
+// dez_gravitytransporter
+//# address-hook(0x048c44) end(0x048d2a)
+function void fn048c44()
+{
+	if (debug_mode.state != 0)
+		return
+
+	D0.u16 = objA1.position.x.u16 - objA0.position.x.u16 + 3
+	if (objA0.flags2a & 0x01)
+	{
+		D0.u16 += 0x0a
+	}
+	D1.u16 = objA1.position.y.u16 - objA0.position.y.u16 + 0x20
+
+	if (D0.u16 < 0x10 && D1.u16 < 0x40)
+	{
+		if (u8[A1 + 0x2e] == 0 && (u8[A1 + 0x2a] & char.flag.IN_AIR) == 0 && (u8[0xfffffab8] & 0x01) == 0)
+		{
+			A3 = 0xffff0000 + u16[A1 + 0x42]
+			if (u32[A3] == 0x048c16)
+			{
+				D0.u16 = A4.u16 - A0.u16
+				if (u8[A3 + D0.s16] != 0)
+					return
+			}
+
+			u16[A1 + 0x42] = A0.u16
+			u8[A1 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_ANIMATION | control_flag.DISABLE_UPDATE)
+			objA1.state = char.state.RUNNING
+			objA1.velocity.x = 0
+			objA1.velocity.y = 0
+			objA1.groundspeed = 0
+			u8[A1 + 0x2a] &= ~char.flag.PUSHING
+			u8[A1 + 0x2a] |= char.flag.IN_AIR
+			objA1.position.x.u16 = objA0.position.x.u16
+			if (u8[A1 + 0x2a] & char.flag.ROLLING)
+			{
+				u8[A1 + 0x2a] &= ~char.flag.ROLLING
+				D0.u8 = u8[A1 + 0x1e] - u8[A1 + 0x44]
+				u8[A1 + 0x1e] = u8[A1 + 0x44]
+				u8[A1 + 0x1f] = u8[A1 + 0x45]
+				if (global.inv_gravity)
+					D0.s8 = -D0.s8
+				objA1.position.y.u16 += D0.s8
+			}
+
+			u8[A4] += 2
+			u8[A4 + 1] = 0
+			u16[A4 + 2] = (u8[A1 + 0x2a] & char.flag.FACING_LEFT) ? 0x600 : 0
+			u16[A4 + 4] = 0
+
+		#if STANDALONE
+			// Correctly align player
+			objA1.position.y.u16 = objA0.position.y.u16 + (s16(char.hitbox.y.UPRIGHT - objA1.hitbox_extends.y) * (global.inv_gravity ? -1 : 1))
+			objA1.state = char.state.STANDING
+		#endif
+		}
+	}
+}
+
+//# address-hook(0x048dca) end(0x048e92)
+function void fn048dca()
+{
+	// u16[A4 + 0x06] is the remaining time in frames until teleport stops
+
+	D1.u16 = u16[A4 + 0x06]
+	D2.u16 = u16[A4 + 0x08]
+	if (D1.u16 == D2.u16 && A1 == 0xffffb000)
+	{
+		D0.u8 = (objA0.subtype2c & 0x80) != 0
+		if (D0.u8 == global.inv_gravity)
+		{
+			u8[A4 + 0x01] = 1
+		}
+		global.inv_gravity = D0.u8
+	}
+
+	u8[A1 + 0x34] = 0
+	if (D1.u16 >= 5 && D1.u16 < (D2.u16 * 2 - 5))
+	{
+		u8[A1 + 0x34] = 1
+	}
+
+	--u16[A4 + 0x06]
+	if (s16[A4 + 0x06] >= 0)
+	{
+		objA1.position.y += s32(objA1.velocity.y) << 8
+		fn048d66()
+		return
+	}
+
+	u8[A4] += 2
+	u8[A1 + 0x2e] = 0
+	objA1.velocity.y = 0
+
+	s16 heightDiff = s16(char.hitbox.y.UPRIGHT - objA1.hitbox_extends.y)
+	
+	D0 = 9 + heightDiff * 2
+	
+	if (s8[A0 + 0x2c] < 0)
+	{
+		D0.s16 = -D0.s16
+		if ((objA0.flags2a & 0x02) != 0)
+		{
+			if (u8[A4 + 0x01] != 0)
+				D0 = 16
+			else
+				D0 = (7 - heightDiff * 2)
+			objA1.position.y.u16 += D0.u16
+			return
+		}
+	}
+	else
+	{
+		if ((objA0.flags2a & 0x02) == 0)
+		{
+			if (u8[A4 + 0x01] != 0)
+				D0 = -16
+			else
+				D0 = -(7 - heightDiff * 2)
+			objA1.position.y.u16 += D0.u16
+			return
+		}
+	}
+
+	if (u8[A4 + 0x01] == 0)
+	{
+		objA1.position.y.u16 += D0.u16
+	}
+}
+
+// boss_dez_final1
+//# address-hook(0x07fe06) end(0x07fe2a)
+function void fn07fe06()
+{
+	u8[A1 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_UPDATE)
+	objA1.state = char.state.RUNNING
+	objA1.velocity.x = 0x600
+	objA1.groundspeed = 0x600
+	objA1.position.y.u16 += s16(char.hitbox.y.UPRIGHT - objA1.hitbox_extends.y)
+}
+
+// outro_sonic_tails
+//# address-hook(0x05da74) end(0x05db28)
+function void fn05da74()
+{
+	A1 = 0xffff0000 + u16[A0 + 0x44]
+	D0.u16 = objA1.position.x.u16 + 0x20
+	if (D0.s16 <= s16(objA0.position.x.u16))
+	{
+		D0 = u32[0xffffee9c] + 0x8000
+		u32[0xffffee9c] = D0
+		return
+	}
+
+	objA0.base_state = 0x08
+	u8[0xfffffab8] |= 0x01
+	objA0.countdown_value = 0x20
+
+	D0 = -0x20
+	u8[A1 + 0x42] = D0.u8
+	objA0.position.x.u16 = objA1.position.x.u16 - D0.s16
+
+	D0 = 0x2b
+
+	D0.u8 -= s16(char.hitbox.y.UPRIGHT - u8[0xffffb000 + 0x44])
+	u8[0xffffcc0a + 0x04] &= ~0x04
+
+	u8[A1 + 0x43] = D0.u8
+	D1.u16 = objA1.position.y.u16 - D0.s16
+	objA0.position.y.u16 = D1.u16
+	u16[A0 + 0x3a] = D1.u16
+
+	A1 = 0xffffb000
+	if (outro.ending_type > 0)
+	{
+		super.active = 0
+		super.active.tails = 0
+		super.palettefx.state = 2
+		super.palettefx.frame = 30
+
+		objA1.mapping_offset = isMainCharacter(CHARACTER_TAILS) ? 0x148eb8 : 0x146620
+	}
+
+	objA1.state = char.state.STANDING
+	u8[A1 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_ANIMATION | control_flag.DISABLE_UPDATE)
+	fn05fd88()
+	fn05db2c()
+}
+
+// outro_shared
+//# address-hook(0x05ea74) end(0x05ead6)
+function void fn05ea74()
+{
+	setupObjectAttributesFull(0x0600ce)
+
+	if (objA0.flags38 & 0x04)
+	{
+		objA0.flags38 &= ~0x04
+		objA0.render_flags &= ~render_flag.WORLD
+	}
+
+	if (objA0.subtype2c != 0)
+	{
+		objA0.base_state = 0x04
+		objA0.position.x.u16 = 0x40
+		objA0.position.y.u16 = 0x010b
+		u16[A0 + 0x3a] = 0x010b
+		if (outro.ending_type >= 0)
+		{
+			// "spawnChildObjects(0x0601e8)" replaced by:
+			spawnChildObject(0x05df80, 0x00, -64, -4)		// Chain connecting the master emerald and the Tornado
+		}
+	}
+
+	u8[A0 + 0x43] -= s16(char.hitbox.y.UPRIGHT - u8[0xffffb000 + 0x44])
+
+	objA0.render_flags |= render_flag.COMPOUND
+	objA0.compound.count = 0x02
+
+	// "spawnChildObjects(0x0601c2)" replaced by:
+	spawnChildObject(0x05eb32, 0x00, 0, -16)
+}

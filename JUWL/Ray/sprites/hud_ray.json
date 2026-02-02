@@ -1,0 +1,14 @@
+{
+	"hud_lives_icon_ECC-Ray":  { "File": "hud_life_ray.png", "Rect": "0,0,72,16", "Center": "0,0" },
+	"hud_lives_icon_ECC-Ray_Mania":  { "File": "hud_life_ray.png", "Rect": "0,16,72,16", "Center": "0,0" },
+	"hud_bonus_icon_ECC-Ray":  { "File": "hud_bonus_ray.png", "Rect": "0,0,24,24", "Center": "0,5" },
+	"hud_bonus_icon_ECC-Ray_Mania":  { "File": "hud_bonus_ray.png", "Rect": "24,0,24,24", "Center": "0,5" },
+	"continue_icon_ECC-Ray":  { "File": "hud_bonus_ray.png", "Rect": "0,24,24,24", "Center": "12,24" },
+	"continue_icon_ECC-Ray_Mania":  { "File": "hud_bonus_ray.png", "Rect": "24,24,24,24", "Center": "12,24" },
+	"result_nameplate_ECC-Ray":  { "File": "result_ray.png", "Rect": "8,8,48,16", "Center": "-1,0" },
+	"result_nameplate_ECC-Ray_Mania":  { "File": "result_ray_alt.png", "Rect": "8,8,48,16", "Center": "-1,0" },
+	"result_nameplate_ECC-Ray_super":  { "File": "result_ray.png", "Rect": "8,32,80,16", "Center": "0,0" },
+	"result_nameplate_ECC-Ray_Mania_super":  { "File": "result_ray_alt.png", "Rect": "8,32,80,16", "Center": "0,0" },
+	"result_nameplate_ECC-Ray_hyper":  { "File": "result_ray.png", "Rect": "96,32,80,16", "Center": "0,0" },
+	"result_nameplate_ECC-Ray_Mania_hyper":  { "File": "result_ray_alt.png", "Rect": "96,32,80,16", "Center": "0,0" }
+}

@@ -1,0 +1,4 @@
+{
+	"charselect_ECC-Ray":  { "File": "charselect_ray.bmp", "Rect": "0,0,48,48", "Center": "24,28" },
+	"charselect_ECC-Ray_icons":  { "File": "charselect_ray.bmp", "Rect": "0,48,24,40", "Center": "0,0" }
+}

@@ -1,0 +1,86 @@
+// Remove intros by default.
+function bool isSonicIntro()
+{
+	if (global_ExChar_P1 && ECF_AIZ_introBase(global_ExChar_P1) != CHARACTER_SONIC && !ECF_disableBranchBase)
+		return false
+	return base.isSonicIntro()
+}
+
+//# address-hook(0x01c4d0) end(0x01c54e)
+function void fn01c4d0()
+{
+	if (!global_ExChar_P1 || ECF_disableBranchBase)
+	{
+		base.fn01c4d0()
+		return
+	}
+	
+	move_area.left = 0x1308
+#if STANDALONE
+	// Show a bit more to the left, that looks better in widescreen
+	move_area.left = max(0x12e0, move_area.left - getScreenExtend())
+#endif
+
+	if (camera.position.x.u16 >= 0x1400)
+	{
+		if (checkpoint.number == 0 && ECF_AIZ_introBase(global_ExChar_P1) == CHARACTER_SONIC)
+		{
+			Kosinski.addToDecompressionQueue(0x3a458a, 0xffff9268)
+			Kosinski.addToDMAQueue(0x3a944e, 0x17c0)
+
+			u8[0xffffeec6] = 0xff
+			u16[0xfffff7f0] = 0x500
+			u16[0xfffff7f2] = 0x500
+			u16[0xfffff7f4] = 0x500
+		}
+
+		// Switch to new checkpoint -- mainly for Sonic, so his intro gets skipped after death
+		checkpoint.number = 1
+		checkpoint.x = 0x13a0
+		checkpoint.y = 0x041a
+		Checkpoint.SaveCurrentState()
+
+		checkpoint.time = 0
+		requestLoadingPatterns(0x08)		// Monitor sprites
+		camera.update_routine += 2
+	}
+}
+
+//# address-hook(0x01c46e) end(0x01c4ce)
+function void fn01c46e()
+{
+	if (!global_ExChar_P1 || ECF_disableBranchBase)
+	{
+		base.fn01c46e()
+		return
+	}
+	
+	u8[0xfffff72e] = 1
+	if (camera.position.x.u16 >= 0x1000)
+	{
+		u8[0xfffff72e] = 0
+		move_area.left = camera.position.x.u16
+		if (camera.position.x.u16 >= 0x1308 - getScreenExtend())	// Not exact, but works for 416px
+		{
+			u8 _chr = ECF_AIZ_introBase(global_ExChar_P1)
+			if (checkpoint.number == 0 && _chr == CHARACTER_SONIC)
+				requestLoadingPatterns(0x0b)		// AIZ1 object sprites
+				
+			Level.loadPaletteData(0x2a)		// AIZ 1 level palette
+
+			if (_chr == CHARACTER_KNUCKLES)
+				copyMemory(0xfffffc70, 0x04fae4, 8)
+
+			// Make Tails fly in
+			{
+			#if STANDALONE
+				// This serves as a small delay before Tails actually spawns
+				tails.respawn_counter = 60
+			#endif
+				tails.ai_routine = 0x02
+			}
+
+			camera.update_routine += 2
+		}
+	}
+}

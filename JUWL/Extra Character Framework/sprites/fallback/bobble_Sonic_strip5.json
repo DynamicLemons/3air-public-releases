@@ -1,0 +1,7 @@
+{
+	"bobble_unknown_0":  { "File": "bobble_unknown_strip5.bmp", "Rect": "0,0,32,32", "Center": "16,16" },
+	"bobble_unknown_1":  { "File": "bobble_unknown_strip5.bmp", "Rect": "32,0,32,32", "Center": "16,16" },
+	"bobble_unknown_2":  { "File": "bobble_unknown_strip5.bmp", "Rect": "64,0,32,32", "Center": "16,16" },
+	"bobble_unknown_3":  { "File": "bobble_unknown_strip5.bmp", "Rect": "96,0,32,32", "Center": "16,16" },
+	"bobble_unknown_4":  { "File": "bobble_unknown_strip5.bmp", "Rect": "128,0,32,32", "Center": "16,16" }
+}

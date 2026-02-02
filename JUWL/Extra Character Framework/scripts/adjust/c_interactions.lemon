@@ -1,0 +1,1227 @@
+// signpost
+function void fn083a70()
+{
+	A1 = 0xffff0000 + D0.u16
+	if (getECFCharBufferName(A1) == 0)
+	{
+		base.fn083a70()
+		return
+	}
+	
+	if (!ECF_isCharacterAttacking(A1, A0))
+		return
+	if (objA1.velocity.y >= 0)
+		return
+
+	// Touched by character
+	objA0.state = 0x20
+	D0.u16 = objA0.position.x.u16 - objA1.position.x.u16
+	if (D0.u16 == 0)
+		D0 = 8
+
+	D0.u16 <<= 4
+	objA0.velocity.x = D0.u16
+	objA0.velocity.y = -0x200
+
+	playSound(0xb8)
+
+	// "spawnSimpleChildObjects(0x083b3c)" replaced by:
+	spawnSimpleChildObjects(addressof(FloatingPoints.Init), 1)
+
+	A3 = A1
+	addScore(10)
+}
+
+// capsule
+//# address-hook(0x086984) end(0x0869c4)
+function void fn086984()
+{
+	if (!ECF_enableBossTop() || global.zone_act != 0x0201)
+	{
+		base.fn086984()
+		return
+	}
+	
+	// Capsule fly away to the left
+	// (used in after MGZ 2 (S/T) boss only?)
+
+	--objA0.countdown_value
+	if (objA0.countdown_value >= 0)
+		return
+
+	A1 = 0xffffb000
+	if (u8[A1 + 0x05] < base_state.DIED && (objA1.render_flags & render_flag.VISIBLE))
+	{
+		// removed a check that requires you to be carried by Tails when this check happens
+		
+		objA0.velocity.x = -0x100
+		objA0.base_state = D0.u8
+
+		// Show level results
+		if (allocDynamicObjectStd())
+		{
+			objA1.update_address = addressof(LevelResults.Update)
+		}
+
+		#if STANDALONE
+			Game.onZoneActCompleted(global.zone_act.apparent)
+		#endif
+
+		D0 = 1
+	}
+}
+
+//# address-hook(0x086770) end(0x0867be)
+function void fn086770()
+{
+	MoveWithParent()
+	fn086a54()
+
+	A1 = 0x0867c2
+	fn0858f8()
+	if (D0 != 0)
+	{
+		// Button got pressed
+		bool active = false
+		if (D0.u16 != 0)
+		{
+			A1 = 0xffff0000 + D0.u16
+			active = Capsule_openable()
+		}
+
+		if (!active)
+		{
+			D0 = (D0 << 16) + (D0 >> 16)
+			A1 = 0xffff0000 + D0.u16
+			active = Capsule_openable()
+		}
+
+		if (active)
+		{
+			objA0.update_address = 0x0867ca
+			u8[A0 + 0x43] -= 0x08
+			A1 = 0xffff0000 + u16[A0 + 0x46]
+			u8[A1 + 0x38] |= 0x02
+		}
+	}
+	Child.DrawSprite()
+}
+
+function bool Capsule_openable()
+{
+	if (ECF_enableBossTop() && global.zone_act == 0x0201)
+		return true
+		
+	if (objA1.velocity.y < 0)
+	{
+		if (getECFCharBufferName(A1) == 0)
+			return (u8[A1 + 0x20] == char.state.ROLLING || u8[A1 + 0x38] == CHARACTER_TAILS)
+		return ECF_isCharacterAttacking(A1, A0)
+	}
+	return false
+}
+
+// breakables
+// a lot of this is just modified to account for new surface break functions, otherwise everything is mostly untouched.
+// and removing Knuckles glide logic for ECF characters.
+
+// wall
+//# address-hook(0x021568) end(0x021690)
+function void fn021568()
+{
+	if (ECF_disableBranchBase)
+	{
+		base.fn021568()
+		return
+	}
+	
+	u16[A0 + 0x30] = u16[0xffffb000 + 0x18]
+	objA0.value32 = u16[0xffffb04a + 0x18]
+
+	D1 = objA0.box_size.x + 11
+	D2 = objA0.box_size.y
+	D3.u16 = D2.u16 + 1
+	D4.u16 = objA0.position.x.u16
+	fn01dc56()
+
+	if (u8[A0 + 0x2c] & 0x80)
+	{
+		if (level.trigger00 == 0)
+		{
+			DrawOrUnloadObject()
+		}
+		else
+		{
+			UnloadObject()
+		}
+		return
+	}
+
+	D6 = (D6 << 16) + (D6 >> 16)
+	D6.u16 &= 0x03
+	if (D6.u16 == 0)
+	{
+		DrawOrUnloadObject()
+		return
+	}
+
+	A1 = 0xffffb000
+	D1.u16 = u16[A0 + 0x30]
+	if (D6.u16 & 0x01)
+	{
+		bool canBreakWall = false
+		if (getECFCharBufferName(A1) == 0)
+		{
+			if (super.active || u8[A1 + 0x38] == CHARACTER_KNUCKLES)
+			{
+				// Super/Hyper forms can break walls, and Knuckles can
+				canBreakWall = true
+			}
+			else
+			{
+				// Does this wall allow for rolling into the wall? Otherwise the fire shield will do
+				if ((objA0.flags2a & object.flag.P1_PUSHING) || (u8[A1 + 0x2b] & char.bonus.SHIELD_FIRE))
+				{
+					canBreakWall = (objA1.state == char.state.ROLLING && abs(D1.s16) >= 0x0480)
+				}
+			}
+		}
+		else
+			canBreakWall = (ECF_canCharBreakWall(A1, A0) != 0)
+
+		if (canBreakWall)
+		{
+			objA0.flags2a &= ~object.flag.P1_PUSHING
+			fn02165a()
+
+			A1 = 0xffffb04a
+			if ((objA0.flags2a & object.flag.P2_PUSHING) && objA1.state == char.state.ROLLING)
+			{
+				objA0.flags2a &= ~object.flag.P2_PUSHING
+				objA1.velocity.x = objA0.value32
+				objA1.groundspeed = objA1.velocity.x
+				objA1.flags2a &= ~char.flag.PUSHING
+			}
+
+			DrawOrUnloadObject()
+			return
+		}
+	}
+
+	A1 = 0xffffb04a
+	D1.u16 = objA0.value32
+	
+	bool p2break = false
+	if (getECFCharBufferName(A1) == 0)
+		p2break = ((objA0.flags2a & object.flag.P2_PUSHING) && objA1.state == char.state.ROLLING && abs(D1.s16) >= 0x0480)
+	else
+		p2break = (ECF_canCharBreakWall(A1, A0) != 0)
+	
+	if (p2break)
+	{
+		objA0.flags2a &= ~object.flag.P2_PUSHING
+		fn02165a()
+
+	#if STANDALONE
+		if (Game.getSetting(SETTING_FIX_GLITCHES) >= 2)
+		{
+			// Prevent slope glitch here for player 1
+			if ((u8[0xffffb000 + 0x2a] & char.flag.ON_OBJECT) && u16[0xffffb000 + 0x42] == A0.u16)
+			{
+				u8[0xffffb000 + 0x2a] &= ~char.flag.ON_OBJECT
+				u8[0xffffb000 + 0x2a] |= char.flag.IN_AIR
+			}
+		}
+	#endif
+	}
+#if STANDALONE
+	else if (global.zone == 0x02)
+	{
+		// In MGZ, make all normal breakable walls also breakable by spinning top
+		D6 = (D6 << 16) + (D6 >> 16)
+		fn021758()
+	}
+#endif
+	else
+	{
+		DrawOrUnloadObject()
+	}
+}
+
+function void fn02165a()
+{
+	if (getECFCharBufferName(A1) == 0 || ECF_disableBranchBase)
+	{
+		base.fn02165a()
+		return
+	}
+	
+	// removed Knuckles glide logic
+	
+	objA1.velocity.x = D1.u16
+	if (objA0.position.x.u16 >= objA1.position.x.u16)
+	{
+		objA1.position.x.u16 -= 4
+		A4 = u32[A0 + 0x38]
+	}
+	else
+	{
+		objA1.position.x.u16 += 4
+		A4 = objA0.countdown_callback
+	}
+
+	objA1.groundspeed = objA1.velocity.x
+
+	objA1.flags2a &= ~char.flag.PUSHING
+	objA0.update_address = 0x021692
+	++objA0.animation.sprite
+
+	Wall.Destroy()
+	fn021692()
+
+#if STANDALONE
+	if (global.zone == 0x02)
+	{
+		// Needed in MGZ to prevent Knuckles from a complete stop, when he uses a spinning top to break the wall
+		u8[0xffffb000 + 0x37] &= ~0x40
+	}
+#endif
+}
+
+function void fn0218ce()
+{
+	if (getECFCharBufferName(A1) == 0 || ECF_disableBranchBase)
+	{
+		base.fn0218ce()
+		return
+	}
+	
+	// removed Knuckles glide logic
+	
+	objA1.velocity.x = D1.u16
+	if (objA0.position.x.u16 >= objA1.position.x.u16)
+	{
+		objA1.position.x.u16 -= 4
+		A4 = u32[A0 + 0x38]
+	}
+	else
+	{
+		objA1.position.x.u16 += 4
+		A4 = objA0.countdown_callback
+	}
+
+	objA1.groundspeed = objA1.velocity.x
+	objA1.flags2a &= ~char.flag.PUSHING
+
+	objA0.update_address = 0x021692
+	++objA0.animation.sprite
+
+	Wall.Destroy()
+	fn021692()
+}
+
+// corkfloor
+//# address-hook(0x02a502) end(0x02a586)
+function void fn02a502()
+{
+	if (ECF_disableBranchBase)
+	{
+		base.fn02a502()
+		return
+	}
+	
+	u16[A0 + 0x38] = score.bonus_counter
+	u8[A0 + 0x34] = u8[0xffffb000 + 0x20]
+	u8[A0 + 0x36] = u8[0xffffb04a + 0x20]
+	
+	u8 breakp1 = ECF_canCharBreakFloor(0xffffb000, A0)
+	u8 breakp2 = ECF_canCharBreakFloor(0xffffb04a, A0)
+	
+	D1 = objA0.box_size.x + 11
+	D2 = objA0.box_size.y
+	D3.u16 = D2.u16 + 1
+	D4.u16 = objA0.position.x.u16
+	fn01dc56()
+
+	D0.u16 = objA0.flags2a & (object.flag.P1_ON_OBJECT | object.flag.P2_ON_OBJECT)
+	if (D0.u16 == 0)
+	{
+		DrawOrUnloadObject()
+		return
+	}
+
+	if (D0.u8 == (object.flag.P1_ON_OBJECT | object.flag.P2_ON_OBJECT))
+	{
+		if (!breakp1 && !breakp2)
+		{
+			DrawOrUnloadObject()
+			return
+		}
+
+		A1 = 0xffffb000
+		D0.u8 = u8[A0 + 0x34]
+		fn02a588()
+
+		A1 = 0xffffb04a
+		D0.u8 = u8[A0 + 0x36]
+		fn02a588()
+
+		fn02a5d8()
+	}
+	else
+	{
+		D1.u8 = D0.u8 & object.flag.P1_ON_OBJECT
+		if (D1.u8 == 0)
+		{
+			D1 = breakp2
+			fn02a5c0()
+			return
+		}
+
+		if (!breakp1)
+		{
+			DrawOrUnloadObject()
+			return
+		}
+
+		A1 = 0xffffb000
+		D0.u8 = u8[A0 + 0x34]
+		fn02a588() // Usually fn02a58e() is called directly, but we're doing an indirect reference for characters who have irregular floor break behavior
+		fn02a5d8()
+	}
+}
+
+//# address-hook(0x02a5c0) end(0x02a5d6)
+function void fn02a5c0()
+{
+	if (ECF_disableBranchBase)
+	{
+		base.fn02a5c0()
+		return
+	}
+	
+	D0.u8 &= 0x10
+	if (D0.u8 == 0 || !D1) // reference break flag rather than doing a state check
+	{
+		DrawOrUnloadObject()
+	}
+	else
+	{
+		A1 = 0xffffb04a
+		fn02a58e()
+		fn02a5d8()
+	}
+}
+
+// rocks
+//# address-hook(0x01faf2) end(0x01fb4a)
+function void Rocks.Update()
+{
+	if (ECF_disableBranchBase)
+	{
+		base.Rocks.Update()
+		return
+	}
+	
+	u16[A0 + 0x38] = score.bonus_counter
+	u8[A0 + 0x32] = u8[0xffffb000 + 0x20]
+	u8[A0 + 0x33] = u8[0xffffb04a + 0x20]
+	objA0.value3a = u8[0xffffb000 + 0x2a]
+	objA0.value3b = u8[0xffffb04a + 0x2a]
+
+	u8 breakp1 = ECF_canCharBreakFloor(0xffffb000, A0)
+	u8 breakp2 = ECF_canCharBreakFloor(0xffffb04a, A0)
+	
+	D1 = objA0.box_size.x + 11
+	D2 = objA0.box_size.y
+	D3.u16 = D2.u16 + 1
+	D4.u16 = objA0.position.x.u16
+	fn01dc56()
+
+	if (objA0.subtype2c & 0x02)
+	{
+		fn0200a2()
+	}
+
+	if (objA0.subtype2c & 0x01)
+	{
+		D0.u8 = objA0.flags2a & (object.flag.P1_ON_OBJECT | object.flag.P2_ON_OBJECT)
+		if (D0.u8 != 0)
+		{
+			if (D0.u8 == (object.flag.P1_ON_OBJECT | object.flag.P2_ON_OBJECT))
+			{
+				if (breakp1 || breakp2)
+				{
+					A1 = 0xffffb000
+					D0.u8 = u8[A0 + 0x32]
+					fn01fba8()
+
+					A1 = 0xffffb04a
+					D0.u8 = u8[A0 + 0x33]
+					fn01fba8()
+
+					fn01fbf8()
+					return
+				}
+			}
+			else
+			{
+				D1.u8 = D0.u8 & object.flag.P1_ON_OBJECT
+				if (D1.u8 == 0)
+				{
+					D1 = breakp2
+					fn01fbe0()
+					return
+				}
+
+				if (breakp1)
+				{
+					A1 = 0xffffb000
+					fn01fbae()
+					fn01fbf8()
+					return
+				}
+			}
+		}
+	}
+
+	fn01fb4c()
+}
+
+//# address-hook(0x01fbe0) end(0x01fbf6)
+function void fn01fbe0()
+{
+	if (ECF_disableBranchBase)
+	{
+		base.fn01fbe0()
+		return
+	}
+	
+	// also account for break statuses, as the original code only does a rolling state check
+	D0.u8 &= object.flag.P2_ON_OBJECT
+	if (D0.u8 == 0 || !D1)
+	{
+		fn01fb4c()
+	}
+	else
+	{
+		A1 = 0xffffb04a
+		fn01fbae()
+		fn01fbf8()
+	}
+}
+
+//# address-hook(0x01fd08) end(0x01ff1a)
+function void fn01fd08()
+{
+	if (ECF_disableBranchBase)
+	{
+		base.fn01fd08()
+		return
+	}
+
+	u16[A0 + 0x30] = u16[0xffffb000 + 0x18]
+	u16[A0 + 0x36] = u16[0xffffb04a + 0x18]
+
+	D1 = objA0.box_size.x + 11
+	D2 = objA0.box_size.y
+	D3.u16 = D2.u16 + 1
+	D4.u16 = objA0.position.x.u16
+	fn01dc56()
+
+	D6 = (D6 << 16) + (D6 >> 16)
+	if (D6.u16 & 0x03)
+	{
+		bool canBreakWall = false
+
+		A1 = 0xffffb000
+		D1.u16 = u16[A0 + 0x30]
+		if (D6.u16 & 0x01)
+		{
+			if (getECFCharBufferName(A1) == 0)
+			{
+				if (u8[A1 + 0x38] == CHARACTER_KNUCKLES)
+				{
+					// Knuckles can break all walls
+					canBreakWall = true
+				}
+				else
+				{
+					if ((objA0.subtype2c & 0x80) == 0)	// Special Knuckles-only wall?
+					{
+						if (super.active)
+						{
+							// Super form breaks walls even when going slow
+							canBreakWall = true
+						}
+						else if ((objA0.flags2a & object.flag.P1_PUSHING) || (u8[A1 + 0x2b] & char.bonus.SHIELD_FIRE))
+						{
+							// Normal Sonic and Tails need to quickly roll into a wall to break it (this includes the fire shield attack)
+							canBreakWall = (objA1.state == char.state.ROLLING && abs(D1.s16) >= 0x480)
+						}
+					}
+				}
+			}
+			else
+			{
+				u8 breakValue = ECF_canCharBreakWall(A1, A0)
+				if (objA0.subtype2c & 0x80)
+					canBreakWall = (breakValue >= 2)
+				else
+					canBreakWall = (breakValue > 0)
+			}
+
+			if (canBreakWall)
+			{
+				objA0.flags2a &= ~object.flag.P1_PUSHING
+				Rocks.BreakWall()
+
+				// Check for second character
+				A1 = 0xffffb04a
+				if (ECF_canCharBreakWall(A1, A0))
+				{
+					objA1.velocity.x = u16[A0 + 0x36]
+					objA1.groundspeed = objA1.velocity.x
+					objA0.flags2a &= ~object.flag.P2_PUSHING
+					objA1.flags2a &= ~char.flag.PUSHING
+				}
+			}
+		}
+
+		if (!canBreakWall && D6.u16 & 0x02)
+		{
+			// Give second character a try
+			A1 = 0xffffb04a
+			D1.u16 = u16[A0 + 0x36]
+			
+			if (getECFCharBufferName(A1) == 0)
+			{
+				if (objA0.flags2a & object.flag.P2_PUSHING)
+				{
+					if (u8[A1 + 0x38] == CHARACTER_KNUCKLES)
+					{
+						// Knuckles can break all walls
+						canBreakWall = true
+					}
+					else
+					{
+						if ((objA0.subtype2c & 0x80) == 0)	// Special Knuckles-only wall?
+						{
+							// Normal Sonic and Tails need to quickly roll into a wall to break it (this includes the fire shield attack)
+							canBreakWall = (objA1.state == char.state.ROLLING && abs(D1.s16) >= 0x480)
+						}
+					}
+				}
+			}
+			else
+			{
+				u8 breakValue = ECF_canCharBreakWall(A1, A0)
+				if (objA0.subtype2c & 0x80)
+					canBreakWall = (breakValue >= 2)
+				else
+					canBreakWall = (breakValue > 0)
+			}
+
+			if (canBreakWall)
+			{
+				objA0.flags2a &= ~object.flag.P2_PUSHING
+				Rocks.BreakWall()
+				return
+			}
+		}
+	}
+
+	if (competition_mode.active == 0)
+	{
+		if (checkForUnloadObjectAtPosition(objA0.countdown_value))
+			return
+	}
+	DrawObject()
+}
+
+function void Rocks.BreakWall()
+{
+	if (getECFCharBufferName(A1) == 0 || ECF_disableBranchBase)
+	{
+		base.Rocks.BreakWall()
+		return
+	}
+	
+	// removed Knuckles glide logic
+	
+	fn01ff1e()
+	if (competition_mode.active == 0)
+	{
+		objA1.velocity.x = D1.u16
+		D0.u16 = objA0.position.x.u16
+		if (D0.u16 >= objA1.position.x.u16)
+		{
+			objA1.position.x.u16 -= 4
+			A4 = 0x020314
+		}
+		else
+		{
+			objA1.position.x.u16 += 4
+			A4 = 0x0202f4
+		}
+
+		objA1.groundspeed = objA1.velocity.x
+		u8[A1 + 0x2a] &= ~char.flag.PUSHING
+
+		D0 = objA0.animation.sprite
+		if (global.zone == 0x09)		// Lava Reef Zone
+		{
+			D0 = (D0 - 4) * 2
+			objA0.update_address = 0x01fc66
+			fn0201de()
+		}
+		else
+		{
+			D0 *= 2
+			objA0.update_address = 0x01fc16
+			fn02013a()
+		}
+		fn01fc16()
+
+	#if STANDALONE
+		// Prevent this object from respawning
+		//  -> Otherwise the rocks next to the first AIZ 1 giant ring may respawn after the special stage
+		objA0.respawn_entry = 0
+	#endif
+	}
+	else
+	{
+		// Competition mode code
+		objA1.velocity.x = D1.u16
+		D0.u16 = objA0.position.x.u16
+		if (D0.u16 >= objA1.position.x.u16)
+		{
+			objA1.position.x.u16 -= 4
+			A4 = 0x020388
+		}
+		else
+		{
+			objA1.position.x.u16 += 4
+			A4 = 0x020370
+		}
+
+		objA1.groundspeed = objA1.velocity.x
+		u8[A1 + 0x2a] &= ~char.flag.PUSHING
+		fn01fcc8()
+		objA0.update_address = 0x01fcae
+		objA0.animation.sprite = 3
+		D0 = objA0.animation.sprite * 2
+		fn02013a()
+		fn01fcae()
+	}
+}
+
+// mgz_spinwheeltrigger
+//# address-hook(0x025d9c) end(0x025ea0)
+function void fn025d9c()
+{
+	D1.u16 = 0x1b
+	D2.u16 = 0x10
+	D4.u16 = objA0.position.x.u16
+	A2 = 0x025f0e
+	fn01dd0e()
+
+	D6 = (D6 << 16) + (D6 >> 16)
+	D6.u16 &= 0x33
+	if (D6.u16 != 0)
+	{
+		D0.u8 = D6.u8 & 0x11
+		if (D0.u8 != 0)
+		{
+			A1 = 0xffffb000
+			MGZ_spinwheelTriggerHandleChar()
+		}
+
+		D6.u8 &= 0x22
+		if (D6.u8 != 0)
+		{
+			A1 = 0xffffb04a
+			MGZ_spinwheelTriggerHandleChar()
+		}
+	}
+
+	if (u16[A0 + 0x30] != 0)
+	{
+		D0.u16 = objA0.subtype2c & 0x0f
+		A3 = 0xfffff7e0 + D0.u16
+
+		--u16[A0 + 0x30]
+		if (u16[A0 + 0x30] == 0)
+		{
+			u8[A3] = 0
+			objA0.animation.sprite = 0
+		}
+		else
+		{
+			u8[A3] = 1
+			if (objA0.flags2a & object.flag.P1_ON_OBJECT)
+			{
+				A1 = 0xffffb000
+				fn025ea6()
+			}
+			if (objA0.flags2a & object.flag.P2_ON_OBJECT)
+			{
+				A1 = 0xffffb04a
+				fn025ea6()
+			}
+
+			--objA0.animation.timer
+			if (s8(objA0.animation.timer) < 0)
+			{
+				objA0.animation.timer = 1
+				objA0.compound.sprite1.animation.sprite = (objA0.compound.sprite1.animation.sprite + u8[A0 + 0x32]) & 0x03
+			}
+			objA0.animation.sprite = (objA0.animation.sprite != 0) ? 0 : 4
+		}
+	}
+
+	DrawOrUnloadObject()
+}
+
+function void MGZ_spinwheelTriggerHandleChar()
+{
+#if STANDALONE
+	// Also allow for drop-dashing on the spin wheel, #contributed by iCloudius
+	if (objA1.state == char.state.SPINDASH || u8[A1 + 0x38] == CHARACTER_SONIC && objA1.state.former == char.state.SONIC_DROPDASH && getECFCharBufferName(A1) == 0)
+#else
+	if (objA1.state == char.state.SPINDASH)
+#endif
+	{
+		u16[A0 + 0x30] = 0x3c
+		u8[A0 + 0x32] = 1
+		D0.u8 = (u8[A1 + 0x2a] + objA0.flags2a) & 0x01
+		if (D0.u8 == 0)
+		{
+			u8[A0 + 0x32] = 0xff
+		}
+
+	#if STANDALONE
+		if (objA1.state.former == char.state.SONIC_DROPDASH && getECFCharBufferName(A1) == 0)
+			objA1.state = char.state.SONIC_DROPDASH
+	#endif
+	}
+}
+
+//# address-hook(0x025ea6) end(0x025f0c)
+function void fn025ea6()
+{
+	if (getECFCharBufferName(A0) == 0)
+	{
+		base.fn025ea6()
+		return
+	}
+	
+	// don't account for dropdash.
+	
+	D1.u16 = objA0.position.x.u16 - 0x10
+	if (objA0.flags2a & 0x01)
+	{
+		D1.u16 += 0x20
+	}
+	D2.u16 = objA0.position.y.u16 + 0x10
+	D1.u16 -= objA1.position.x.u16
+	D2.u16 -= objA1.position.y.u16
+	LookupAngleByVector()
+	LookupSinCos()
+	D1.s32 = (s32(D1.s16) * -0x0700) >> 8
+	objA1.velocity.x = D1.u16
+	D0.s32 = (s32(D0.s16) * -0x0700) >> 8
+	objA1.velocity.y = D0.u16
+	u8[A1 + 0x2a] |= char.flag.IN_AIR
+	objA1.flags2a &= ~(char.flag.CONTROL_LOCK | char.flag.ON_OBJECT)
+
+	u8[A1 + 0x3d] = 0
+	playSound(0x7b)
+}
+
+// cnz_balloon
+//# address-hook(0x0317ae) end(0x03181c)
+function void fn0317ae()
+{
+	if (getECFCharBufferName(A0) == 0 || ECF_disableBranchBase)
+	{
+		base.fn0317ae()
+		return
+	}
+	
+	objA1.velocity.y = -0x700
+	objA1.flags2a |= char.flag.IN_AIR
+	objA1.flags2a &= ~(char.flag.CONTROL_LOCK | char.flag.PUSHING)
+	u8[A1 + 0x2e] = 0
+
+	// Reset the "char.jumping" to make the character bounce off ignoring the velocity-y limit
+	// originally a dropdash check here, but obviously ecf characters will not need to dropdash.
+	u8[A1 + 0x40] = 0
+
+	objA0.state |= 0x01
+	if (s8[A0 + 0x2c] < 0)
+	{
+		objA1.velocity.y = -0x380
+		if (level.water_present != 0 && u8[A0 + 0x34] == 0)
+		{
+			A2 = 0x03185a
+			fn03181e()
+			fn03181e()
+			fn03181e()
+			fn03181e()
+			objA1.position.x.u16 = objA0.position.x.u16
+			objA1.position.y.u16 = objA0.position.y.u16
+		}
+	}
+
+	if (u8[A0 + 0x34] == 0)
+	{
+		playSound(0x77)
+		u8[A0 + 0x34] = 0x01
+	}
+}
+
+// icz_iceblock
+// accounted for ECF break functions and cleaned up for easier base replacing.
+//# address-hook(0x08b384) end(0x08b3a4)
+function void fn08b384()
+{
+	if (ECF_disableBranchBase)
+	{
+		base.fn08b384()
+		return
+	}
+	
+	objA0.value3a = u8[0xffffb000 + 0x20]
+	objA0.value3b = u8[0xffffb04a + 0x20]
+	u8 breakp1 = ECF_canCharBreakFloor(0xffffb000, A0)
+	u8 breakp2 = ECF_canCharBreakFloor(0xffffb04a, A0)
+	
+	D1 = 0x23
+	D2 = 0x10
+	D3 = 0x10
+	D4.u16 = objA0.position.x.u16
+	fn01dc56()
+	
+	D1.u8 = breakp1
+	D2.u8 = breakp2
+	fn08b3aa()
+	DrawOrUnloadObject()
+}
+
+//# address-hook(0x08b3aa) end(0x08b430)
+function void fn08b3aa()
+{
+	if (ECF_disableBranchBase)
+	{
+		base.fn08b3aa()
+		return
+	}
+	
+	// behavior is mostly the same, but we've moved things into their own functions.
+	u8 breakp1 = D1.u8
+	u8 breakp2 = D2.u8
+	
+	A2 = 0
+	if ((objA0.flags2a & object.flag.P1_ON_OBJECT) && breakp1)
+	{
+		A1 = 0xffffb000
+		if (objA0.flags2a & object.flag.P2_ON_OBJECT)
+			A2 = 0xffffb04a
+			
+		D0.u8 = objA0.value3a
+		fn08b3aa_bounce()
+		fn08b3aa_objbreak()
+	}
+	else if ((objA0.flags2a & object.flag.P2_ON_OBJECT) && breakp2)
+	{
+		A1 = 0xffffb04a
+		if (objA0.flags2a & object.flag.P1_ON_OBJECT)
+			A2 = 0xffffb000
+			
+		D0.u8 = objA0.value3b
+		fn08b3aa_bounce()
+		fn08b3aa_objbreak()
+	}
+}
+
+function void fn08b3aa_bounce()
+{
+	u8[A1 + 0x05] = base_state.NORMAL
+	objA1.velocity.y = -0x300
+	objA1.hitbox_extends.x = ECF_getCharRollWidth(A1)
+	objA1.hitbox_extends.y = ECF_getCharRollHeight(A1)
+	objA1.state = char.state.ROLLING
+	objA1.flags2a |= (char.flag.IN_AIR | char.flag.ROLLING)
+	objA1.flags2a &= ~char.flag.ON_OBJECT
+
+	if (A2 != 0)
+	{
+		u8[A2 + 0x2a] |= char.flag.IN_AIR
+		u8[A2 + 0x2a] &= ~char.flag.ON_OBJECT
+	}
+}
+
+function void fn08b3aa_objbreak()
+{
+	// Spawn broken ice block chunks
+	// "spawnChildObjects(0x08b480)" replaced by:
+	spawnChildObject(0x08b432, 0x00, 0, -8)
+	spawnChildObject(0x08b432, 0x02, 0, 8)
+	spawnChildObject(0x08b432, 0x04, -16, -8)
+	spawnChildObject(0x08b432, 0x06, 16, -8)
+	spawnChildObject(0x08b432, 0x08, -16, 8)
+	spawnChildObject(0x08b432, 0x0a, 16, 8)
+	spawnChildObject(0x08b432, 0x0c, 0, 0)
+	spawnChildObject(0x08b432, 0x0e, 0, 0)
+	spawnChildObject(0x08b432, 0x10, 0, 0)
+	spawnChildObject(0x08b432, 0x12, 0, 0)
+	spawnChildObject(0x08b432, 0x14, 0, 0)
+	spawnChildObject(0x08b432, 0x16, 0, 0)
+
+	playSound(0x6e)
+	Object.TriggerUnloading()
+}
+
+// lbz_walltrigger
+//# address-hook(0x025d2c) end(0x025d52)
+function void fn025d2c()
+{
+	if (getECFCharBufferName(A1) == 0)
+	{
+		base.fn025d2c()
+		return
+	}
+
+	if (ECF_isCharacterAttacking(A1, A0))
+	{
+		objA1.velocity.x = -objA1.velocity.x
+		objA1.velocity.y = -objA1.velocity.y
+		u8[A3] ^= (1 << D3.u8)
+		objA0.update_address = addressof(SmallExplosion.BaseUpdate)
+		objA0.base_state = 0x02
+		u8[A0 + 0x28] = 0
+		u8[A0 + 0x29] = 0
+	}
+}
+
+// lrz_shootingtrigger
+//# address-hook(0x042ec0) end(0x042ee6)
+function void fn042ec0()
+{
+	if (getECFCharBufferName(A1) == 0)
+	{
+		base.fn042ec0()
+		return
+	}
+	
+	if (ECF_isCharacterAttacking(A1, A0))
+	{
+		objA1.velocity.x = -objA1.velocity.x
+		objA1.velocity.y = -objA1.velocity.y
+		u8[A3] |= (1 << D3.u8)
+		objA0.update_address = addressof(SmallExplosion.BaseUpdate)
+		objA0.base_state = 0x02
+		u8[A0 + 0x28] = 0
+		u8[A0 + 0x29] = 0
+	}
+}
+
+// mhz_stickyvine
+//# address-hook(0x03eb26) end(0x03eb4c)
+function void fn03eb26()
+{
+	if (getECFCharBufferName(u32[A0 + 0x2e]) == 0 || ECF_disableBranchBase)
+	{
+		base.fn03eb26()
+		return
+	}
+	
+	// Edited to prevent a rouge dropdash check from softlocking characters
+	
+	A1 = u32[A0 + 0x2e]
+	if (u8[A1 + 0x3d] != 0)		// Check spindash charge of the character
+	{
+		u8[A0 + 0x3d] = 0x01
+		u8[A0 + 0x3e] = 0x10
+	}
+	
+	D0 = objA1.position.x
+	D1 = objA1.position.y
+
+	fn03ec2a()
+	fn03ec66()
+	fn03ebf8()
+}
+
+// soz_rock
+// accounted for ECF break functions.
+//# address-hook(0x04172e) end(0x0417a4)
+function void fn04172e()
+{
+	if (ECF_disableBranchBase)
+	{
+		base.fn04172e()
+		return
+	}
+	
+	u8[A0 + 0x30] = u8[0xffffb000 + 0x20]
+	u8[A0 + 0x31] = u8[0xffffb04a + 0x20]
+
+	u8 breakp1 = ECF_canCharBreakFloor(0xffffb000, A0)
+	u8 breakp2 = ECF_canCharBreakFloor(0xffffb04a, A0)
+	
+	D1.u16 = 0x23
+	D2.u16 = 0x10
+	D3.u16 = 0x11
+	D4.u16 = objA0.position.x.u16
+	fn01dc56()
+
+	D0.u8 = objA0.flags2a & (object.flag.P1_ON_OBJECT | object.flag.P2_ON_OBJECT)
+	if (D0.u8 == 0)
+	{
+		DrawOrUnloadObject()
+	}
+	else if (D0.u8 == (object.flag.P1_ON_OBJECT | object.flag.P2_ON_OBJECT))
+	{
+		if (!breakp1 && !breakp2)
+		{
+			DrawOrUnloadObject()
+			return
+		}
+
+		A1 = 0xffffb000
+		D0.u8 = u8[A0 + 0x30]
+		fn0417a6()
+
+		A1 = 0xffffb04a
+		D0.u8 = u8[A0 + 0x31]
+		fn0417a6()
+
+		fn0417f6()
+	}
+	else
+	{
+		D1.u8 = D0.u8 & 0x08
+		if (D1.u8 == 0)
+		{
+			fn0417de()
+			return
+		}
+
+		if (!breakp1)
+		{
+			DrawOrUnloadObject()
+			return
+		}
+
+		A1 = 0xffffb000
+		D0.u8 = u8[A0 + 0x30] // set to char.state.ROLLING, but we should preserve actual state data here
+		fn0417a6()
+
+		fn0417f6()
+	}
+}
+
+// soz_sandwall
+//# address-hook(0x040c2a) end(0x040ce6)
+function void fn040c2a()
+{
+	D1.u16 = 0x17
+	D2.u16 = 0x34
+	D3.u16 = 0x35
+	D4.u16 = objA0.position.x.u16
+	fn01dc56()
+
+	D6 = (D6 << 16) + (D6 >> 16)
+	bool crumble = false
+
+	if (D6 & 0x01)
+	{
+		A1 = 0xffffb000
+		if (getECFCharBufferName(A1) == 0)
+			crumble = (u8[A1 + 0x20] == char.state.ROLLING)
+		else
+			crumble = ECF_isCharacterAttacking(A1, A0)
+	}
+
+	if (D6 & 0x02 && !crumble)
+	{
+		A1 = 0xffffb04a
+		if (getECFCharBufferName(A1) == 0)
+			crumble = (u8[A1 + 0x20] == char.state.ROLLING)
+		else
+			crumble = ECF_isCharacterAttacking(A1, A0)
+	}
+
+	if (crumble)
+	{
+		objA1.velocity.x >>= 1
+		objA1.groundspeed >>= 1
+
+		playSound(0x82)
+
+		objA0.update_address = 0x040cec
+		objA0.animation.timer = 5
+		objA0.animation.sprite = 1
+
+		A1 = 0xffffb000
+		if (objA0.flags2a & object.flag.P1_ON_OBJECT)
+		{
+			objA0.flags2a &= ~object.flag.P1_ON_OBJECT
+			u8[A1 + 0x2a] &= ~char.flag.ON_OBJECT
+			u8[A1 + 0x2a] |= char.flag.IN_AIR
+		}
+
+		if (objA0.flags2a & object.flag.P1_PUSHING)
+		{
+			objA0.flags2a &= ~object.flag.P1_PUSHING
+			u8[A1 + 0x2a] &= ~char.flag.PUSHING
+		}
+
+		A1 = 0xffffb04a
+		if (objA0.flags2a & object.flag.P2_ON_OBJECT)
+		{
+			objA0.flags2a &= ~object.flag.P2_ON_OBJECT
+			u8[A1 + 0x2a] &= ~char.flag.ON_OBJECT
+			u8[A1 + 0x2a] |= char.flag.IN_AIR
+		}
+
+		if (objA0.flags2a & object.flag.P2_PUSHING)
+		{
+			objA0.flags2a &= ~object.flag.P2_PUSHING
+			u8[A1 + 0x2a] &= ~char.flag.PUSHING
+		}
+	}
+
+	DrawOrUnloadObject()
+}
+
+// boss_hpz_knuckles
+//# address-hook(0x063eda) end(0x063f0c)
+function void fn063eda()
+{
+	Object.AnimationProgressByLocalA1.CheckEnd()
+	CheckDistanceToPlayers()
+	fn066094()
+
+	bool attack = (getECFCharBufferName(A1) != 0) ? ECF_isCharacterAttacking(A1, A0) : (objA1.state == char.state.ROLLING)
+	// this is a call to Knuckles punching your face in- not entirely necessary of a change, but done for consistency.
+	// vanilla excludes rolling, so we will also exclude attack states
+	if (D3.u16 < 0x10 && D2.u16 < 0x20 && !attack)
+	{
+		fn063ff8()
+		return
+	}
+
+	--objA0.countdown_value
+	if (objA0.countdown_value < 0)
+	{
+		fn064066()
+	}
+	else
+	{
+		A3 = 0x063f10
+		fn0660be()
+	}
+}

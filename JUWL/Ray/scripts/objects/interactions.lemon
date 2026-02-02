@@ -1,0 +1,42 @@
+// roundbumper
+//# address-hook(0x032f56) end(0x032fee)
+function void fn032f56()
+{
+	if (isECFCharA1("ECC-Ray") && (objA1.state >= char.state.RAY_GLIDE_U && objA1.state <= char.state.RAY_HEADBUTT))
+	{
+		objA1.state = char.state.ROLLING
+		u8[A1 + 0x2f] = 2
+		objA1.hitbox_extends.x = char.hitbox.x.ROLLING
+		objA1.hitbox_extends.y = char.hitbox.y.ROLLING
+		objA1.flags2a |= char.flag.ROLLING
+	}
+	base.fn032f56()
+}
+
+// cnz_clamer
+//# address-hook(0x0890d8) end(0x089122)
+function void fn0890d8()
+{
+	if (isECFCharA1("ECC-Ray") && (objA1.state >= char.state.RAY_GLIDE_U && objA1.state <= char.state.RAY_HEADBUTT))
+	{
+		u8 state = objA1.state
+		base.fn0890d8()
+		objA1.state = state
+	}
+	else
+		base.fn0890d8()
+}
+
+// cnz_bouncepad
+//# address-hook(0x0329b8) end(0x032a72)
+function void fn0329b8()
+{
+	if (isECFCharA1("ECC-Ray") && (objA1.state >= char.state.RAY_GLIDE_U && objA1.state <= char.state.RAY_HEADBUTT))
+	{
+		u8 state = objA1.state
+		base.fn0329b8()
+		objA1.state = state
+	}
+	else
+		base.fn0329b8()
+}

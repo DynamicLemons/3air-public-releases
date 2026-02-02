@@ -1,0 +1,163 @@
+function void SaveGameSlot()
+{
+	base.SaveGameSlot()
+	
+	ECF_saveIdValues(dataselect.slot_selected)
+}
+
+function void ECF_loadIdValues()
+{
+	for (u32 slotIndex = 1; slotIndex <= 8; ++slotIndex)
+	{
+		A0 = 0xffffb0de + (slotIndex*0x4a)
+			
+	#if GAMEAPP >= 0x26012400
+		ECF_Save_str[slotIndex - 1] = 0
+		ECF_Save_num[slotIndex - 1] = 0
+	#else
+		System.setGlobalVariableValueByName(stringformat("ECF_Save%d_P1", slotIndex), 0)
+		System.setGlobalVariableValueByName(stringformat("ECF_Save%d_P1_id", slotIndex), 0)
+	#endif
+	
+	#if GAMEAPP >= 0x24120500
+		if (loadAndMigratePersistentData(0x800000, 4, "s3air_saveslots", stringformat("ECF_save%dChar_bytes", slotIndex), false))
+	#else
+		if (System.loadPersistentData(0x800000, stringformat("ECF_save%dChar_bytes", slotIndex), 4))
+	#endif
+		{
+			if (u32[0x800000])
+			{
+			#if GAMEAPP >= 0x24120500
+				if (loadAndMigratePersistentData(0x800004, 16, "s3air_saveslots", stringformat("ECF_save%dChar_string", slotIndex), false))
+			#else
+				if (System.loadPersistentData(0x800004, stringformat("ECF_save%dChar_string", slotIndex), 16))
+			#endif
+				{
+					
+					string name = ""
+					for (u32 offset = 0; offset < u32[0x800000]; ++offset)
+						name = stringformat("%s%s", name, getStringFromCharacter(u8[0x800004 + offset]))
+					
+					u16 id = getCharId(name)
+			
+				#if GAMEAPP >= 0x26012400
+					ECF_Save_str[slotIndex - 1] = name
+					ECF_Save_num[slotIndex - 1] = id
+				#else
+					System.setGlobalVariableValueByName(stringformat("ECF_Save%d_P1", slotIndex), name)
+					System.setGlobalVariableValueByName(stringformat("ECF_Save%d_P1_id", slotIndex), id)
+				#endif
+				}
+			}
+		}
+	}
+}
+
+// save our char strs individually.
+	
+function void ECF_saveIdValues(u8 slotIndex)
+{
+	if (slotIndex)
+	{
+		string name = getECFCharNameAtId(levelselect_ExChar_P1_id)
+		if (name)
+		{
+			// manually build an ASCII table and then save that in temporary memory
+			u32[0x800000] = strlen(name)
+			for (u32 offset = 0; offset < u32[0x800000]; ++offset)
+				u8[0x800004 + offset] = getchar(name, offset)
+			
+		#if GAMEAPP >= 0x24120500
+			System.savePersistentData(0x800000, 4, "s3air_saveslots", stringformat("ECF_save%dChar_bytes", slotIndex), false)
+			System.savePersistentData(0x800004, u32[0x800000], "s3air_saveslots", stringformat("ECF_save%dChar_string", slotIndex), false)
+		#else
+			System.savePersistentData(0x800000, stringformat("ECF_save%dChar_bytes", slotIndex), 1)
+			System.savePersistentData(0x800004, stringformat("ECF_save%dChar_string", slotIndex), u32[0x800000])
+		#endif
+		}
+		else
+		{
+			u32[0x800000] = 0
+			// this leaves behind the previous character string, but it doesn't really need to be saved over here...
+		#if GAMEAPP >= 0x24120500
+			System.savePersistentData(0x800000, 4, "s3air_saveslots", stringformat("ECF_save%dChar_bytes", slotIndex), false)
+		#else
+			System.savePersistentData(0x800000, stringformat("ECF_save%dChar_bytes", slotIndex), 1)
+		#endif
+		}
+	}
+}
+
+function void ECF_saveIdValuesAll()
+{
+	if (ECF_charList_length)
+	{
+		for (u8 i = 1; i <= 8; ++i)
+		{
+			A2 = 0xffffe6ac + ((i-1)*0x0a)
+			ECF_saveIdValues(i)
+		}
+	}
+}
+
+
+//# address-hook(0x00c434) end(0x00c4d0)
+function void SaveGameOnLevelFinished()
+{
+	// updated to account for Sonic-Based ECF characters who end at DEZ.
+
+	// Save game slot
+	if (global.lock_on_state == 0 && global.active_saveslot != 0)
+	{
+		A1 = global.active_saveslot
+
+		// Get the number of the next zone (using the usual internal zone numbering, see definition of global.zone.apparent)
+		u8 offset = global.zone * 2 + global.act
+		u8 nextZone = u8[0x00c404 + offset]
+
+		bool gameCompleted = false
+		if (u8[A1] & 0x03)
+		{
+			// This gets entered only for already completed games
+			if (nextZone < u8[A1 + 0x03])
+			{
+				gameCompleted = true
+			}
+			else
+			{
+				// This is a weird case, supposedly needed for unlocking DDZ after collecting all Super Emeralds in an formerly complete game?
+				u8[A1] &= 0xfc
+			}
+		}
+
+		if (!gameCompleted)
+		{
+			u8[A1 + 0x03] = nextZone
+			if (isMainCharacter(CHARACTER_KNUCKLES))
+				gameCompleted = (nextZone >= 0x0c)
+			else if (isMainCharacter(CHARACTER_TAILS) || global_ExChar_P1 && !ECF_visitsDoomsday(global_ExChar_P1))
+				gameCompleted = (nextZone >= 0x0d)
+			else
+				gameCompleted = (nextZone >= 0x0e) || (nextZone == 0x0d && global.chaos_emeralds < 7)
+
+			if (gameCompleted)
+				u8[A1] = (global.chaos_emeralds < 7) ? 1 : (global.super_emeralds < 7) ? 2 : 3
+
+			u16[A1 + 0x04] = 0
+		}
+
+		lives_counter = min(lives_counter, 99)
+		u8[A1 + 0x08] = lives_counter
+
+	#if STANDALONE
+		// Store additional data
+		u32 slotIndex = (A1 - 0xffffe6ac) / 0x0a
+		u32 address = 0x801100 + slotIndex * 0x20
+		u32[address] = player.score
+	#endif
+
+		SaveGameSlot()
+	}
+
+	level.giantrings_clear = 0
+}

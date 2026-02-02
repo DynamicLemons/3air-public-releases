@@ -1,0 +1,13 @@
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+function void SwapMode_dataSwap_globals()
+{
+	base.SwapMode_dataSwap_globals()
+	
+	SwapMode_handleGlobalSwap("amy_bounceLoss")
+}
+
+function bool SwapMode_abilityFreeSwap()
+{
+	return (isECFCharA1("ECC-Amy")) ? true : base.SwapMode_abilityFreeSwap()
+}
+#endif

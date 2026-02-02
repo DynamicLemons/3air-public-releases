@@ -1,0 +1,17 @@
+{
+	"bobble_Sonic_0":  { "File": "bobble_sonic.bmp", "Rect": "0,0,32,32", "Center": "16,16" },
+	"bobble_Sonic_1":  { "File": "bobble_sonic.bmp", "Rect": "32,0,32,32", "Center": "16,16" },
+	"bobble_Sonic_2":  { "File": "bobble_sonic.bmp", "Rect": "64,0,32,32", "Center": "16,16" },
+	"bobble_Sonic_3":  { "File": "bobble_sonic.bmp", "Rect": "96,0,32,32", "Center": "16,16" },
+	"bobble_Sonic_4":  { "File": "bobble_sonic.bmp", "Rect": "128,0,32,32", "Center": "16,16" },
+	"bobble_Tails_0":  { "File": "bobble_tails.bmp", "Rect": "0,0,32,32", "Center": "16,16" },
+	"bobble_Tails_1":  { "File": "bobble_tails.bmp", "Rect": "32,0,32,32", "Center": "16,16" },
+	"bobble_Tails_2":  { "File": "bobble_tails.bmp", "Rect": "64,0,32,32", "Center": "16,16" },
+	"bobble_Tails_3":  { "File": "bobble_tails.bmp", "Rect": "96,0,32,32", "Center": "16,16" },
+	"bobble_Tails_4":  { "File": "bobble_tails.bmp", "Rect": "128,0,32,32", "Center": "16,16" },
+	"bobble_Knuckles_0":  { "File": "bobble_knuckles.bmp", "Rect": "0,0,32,32", "Center": "16,16" },
+	"bobble_Knuckles_1":  { "File": "bobble_knuckles.bmp", "Rect": "32,0,32,32", "Center": "16,16" },
+	"bobble_Knuckles_2":  { "File": "bobble_knuckles.bmp", "Rect": "64,0,32,32", "Center": "16,16" },
+	"bobble_Knuckles_3":  { "File": "bobble_knuckles.bmp", "Rect": "96,0,32,32", "Center": "16,16" },
+	"bobble_Knuckles_4":  { "File": "bobble_knuckles.bmp", "Rect": "128,0,32,32", "Center": "16,16" }
+}

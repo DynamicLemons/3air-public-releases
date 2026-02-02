@@ -1,0 +1,7 @@
+function bool DEZFinalBoss3.canPlayerEnterDoomsday()
+{
+	if (global_ExChar_P1)
+		return (ECF_visitsDoomsday(global_ExChar_P1) && global.chaos_emeralds == 7)
+	
+	return base.DEZFinalBoss3.canPlayerEnterDoomsday()
+}

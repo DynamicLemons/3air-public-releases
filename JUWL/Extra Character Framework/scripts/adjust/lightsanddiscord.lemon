@@ -1,0 +1,79 @@
+function void Standalone.onLevelStart()
+{
+	if (ECF_disableBranchBase)
+	{
+		base.Standalone.onLevelStart()
+		return
+	}
+	
+	// don't really like replacing this function, but I would also like the LED colors not to be wrong for 1/4th a second...
+	
+	if (Game.getSetting(SETTING_FIX_GLITCHES) >= 2)
+	{
+		// If in the parts of AIZ 1 and ICZ 1 that are internally Act 2 with no checkpoints, fully return to Act 1 -- fix #contributed by Thorn
+		if (checkpoint.number == 0 && ((global.zone_act == 0x0001 && global.zone_act.apparent == 0x0000) || (global.zone_act == 0x0501 && global.zone_act.apparent == 0x0500)))
+		{
+			global.zone_act = global.zone_act.apparent
+		}
+	}
+
+	// Handle achievements
+	Game.setAchievementValue(ACHIEVEMENT_MGZ_GIANTRINGS, 0)
+	Game.setAchievementValue(ACHIEVEMENT_LBZ_STAY_DRY, (global.zone_act == 0x0601) ? 1 : 0)
+	Game.setAchievementValue(ACHIEVEMENT_MHZ_OPEN_MONITORS, 0)
+	Game.setAchievementValue(ACHIEVEMENT_FBZ_FREE_ANIMALS, 0)
+	Game.setAchievementValue(ACHIEVEMENT_ELECTROCUTE, 0)
+
+	if (!Game.isTimeAttack())
+	{
+		// Intentionally not using the (more deterministic) "getRandomNumber" here
+		global.level_random_base = 1 + (System.rand() % 0xff)		// Avoid the 0 value
+	}
+
+	ECF_setControllerColors()
+	Game.onLevelStart()
+	ECF_setRPC()
+}
+
+function void ECF_setRPC()
+{
+	string name = getECFCharNameAtId(levelselect_ExChar_P1_id)
+	if (levelselect_ExChar_P1_id)
+	{
+		string emeralds = ECF_getCharDisplayName(name)
+		if (global.super_emeralds >= 7)
+			emeralds = stringformat("%s (All Super Emeralds)", emeralds)
+		else if (global.super_emeralds >= 2)
+			emeralds = stringformat("%s (%d Super Emeralds)", emeralds, global.super_emeralds)
+		else if (global.super_emeralds == 1)
+			emeralds = stringformat("%s (1 Super Emerald)", emeralds)
+		else if (global.chaos_emeralds >= 7)
+			emeralds = stringformat("%s (All Chaos Emeralds)", emeralds)
+		else if (global.chaos_emeralds >= 2)
+			emeralds = stringformat("%s (%d Chaos Emeralds)", emeralds, global.chaos_emeralds)
+		else if (global.chaos_emeralds == 1)
+			emeralds = stringformat("%s (1 Chaos Emerald)", emeralds)
+			
+		Game.setDiscordDetails(emeralds)
+		Game.setDiscordSmallImage(ECF_getRPCSprite(name))
+	}
+}
+
+// Also handles vanilla cast, for the sake of consistency
+function void ECF_setControllerColors()
+{
+	Input.setControllerLEDs(0, ECF_getIndivControllerColor(1))
+	if (levelselect.characters == CHARS_SONIC_AND_TAILS || levelselect.characters == CHARS_KNUCKLES_AND_TAILS)
+		Input.setControllerLEDs(1, ECF_getIndivControllerColor(2))
+}
+
+function u32 ECF_getIndivControllerColor(u8 num)
+{
+	string name = getECFCharNameAtId(levelselect_ExChar_P1_id)
+	if (name)
+		return ECF_getLedColor(name)
+		
+	if (num == 1)
+		return getCharacterColorsForControllerLEDs(clamp(levelselect.characters, 1, 3) - 1)
+	return getCharacterColorsForControllerLEDs(CHARACTER_TAILS)
+}

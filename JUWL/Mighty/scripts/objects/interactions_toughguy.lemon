@@ -1,0 +1,1093 @@
+// player code, but fits here, and makes sense to be here.
+//# address-hook(0x01021e) end(0x010288)
+function void Character.OnThreatCollision()
+{
+	if (!isECFCharA0("ECC-Mighty"))
+	{
+		base.Character.OnThreatCollision()
+		return
+	}
+
+#if ROARING_KNIGHT_ACTIVE
+	if (isRoaringKnightMode)
+	{
+		base.Character.OnThreatCollision()
+		return
+	}
+#endif
+
+	// Check for shield or invincibility
+	D0.u8 = (char.bonus_effect & (char.bonus.ALL_SHIELDS | char.bonus.INVINCIBLE))
+	if (D0.u8 != 0)
+	{
+		D0.u8 &= u8[A1 + 0x2b]
+		if (D0.u8 != 0)
+		{
+			D0 = 0xffffffff
+			return
+		}
+
+		if ((char.bonus_effect & char.bonus.ANY_SHIELD) == 0)
+		{
+			if ((char.bonus_effect & char.bonus.INVINCIBLE) == 0)
+			{
+				Character.OnThreatCollisionInner()
+			}
+			D0 = 0xffffffff
+			return
+		}
+	}
+	else
+	{
+		// Mighty projectile block
+		bool canDeflect = (char.state == char.state.ROLLING || char.state == char.state.MIGHTY_HAMMERDROP || char.state == char.state.COWERING || char.state == char.state.SPINDASH)
+		if (!canDeflect)
+		{
+			Character.OnThreatCollisionInner()
+			return
+		}
+	}
+
+	if ((u8[A1 + 0x2b] & char.bonus.DEFLECTABLE) == 0)
+	{
+		if ((char.bonus_effect & char.bonus.INVINCIBLE) == 0)
+		{
+			Character.OnThreatCollisionInner()
+		}
+	}
+	else
+	{
+		deflectProjectile()
+		// this deflect sound should only play if mighty's tough guy is what causes the deflect
+		if (ecc_setting_mightyManiaSounds)
+			Audio.playAudio("mighty_deflect")
+		else
+			Audio.playAudio("mighty_c_deflect")
+	}
+	D0 = 0xffffffff
+}
+
+//# address-hook(0x01028a) end(0x010392)
+function void Character.OnThreatCollisionInner()
+{
+	if (!isECFCharA0("ECC-Mighty") || char.invuln.countdown != 0)
+	{
+		base.Character.OnThreatCollisionInner()
+	}
+	else
+	{
+		A2 = A1
+		u8 type = MightyInteraction_getType()
+		bool crouchable = MightyInteraction_canCrouchBlock()
+		
+		if (type)
+		{
+			u8 dir = MightyInteraction_getReboundDir()
+			bool nohurt
+			if (char.state == char.state.MIGHTY_UNSPIN)
+			{
+				A2 = 0x00ff62 + (objA1.collision_attributes & collision_attributes.size) * 2
+				s16 hitbox.x = u8[A2]
+				s16 hitbox.y = u8[A2+1]
+			
+				// try to prevent awkward situations where Mighty would get bounced out and instantly damaged because his hurtbox got bigger.
+				if (dir == 0)
+					nohurt = (char.velocity.y < 0 && objA0.position.y.u16 < objA1.position.y.u16 - hitbox.y)
+				else if (dir == 1)
+					nohurt = (char.velocity.x > 0 && objA0.position.x.u16 > objA1.position.x.u16 + hitbox.x)
+				else if (dir == 2)
+					nohurt = (char.velocity.y > 0 && objA0.position.y.u16 > objA1.position.y.u16 + hitbox.y)
+				else if (dir == 3)
+					nohurt = (char.velocity.x < 0 && objA0.position.x.u16 < objA1.position.x.u16 - hitbox.x)
+				else
+				{
+					s16 dx = char.position.x.u16 - u16[A1 + 0x10]
+					s16 dy = char.position.y.u16 - u16[A1 + 0x14]
+					u8 enemAngle = lookupAngleByVector(dx, dy)
+					u8 velAngle = lookupAngleByVector(char.velocity.x, char.velocity.y)
+					
+					s16 angleDiff_A = enemAngle - velAngle
+					s16 angleDiff_B = velAngle - enemAngle
+					
+					// normalize angles
+					while (angleDiff_A < 0) 
+						angleDiff_A += 256
+					while (angleDiff_A >= 256) 
+						angleDiff_A -= 256
+					while (angleDiff_B < 0) 
+						angleDiff_B += 256
+					while (angleDiff_B >= 256) 
+						angleDiff_B -= 256
+						
+					s16 angleDiff = (angleDiff_A < angleDiff_B) ? angleDiff_A : angleDiff_B
+					
+					nohurt = (angleDiff <= 0x40)
+				}
+			}
+			
+			if (char.state == char.state.ROLLING || char.state == char.state.SPINDASH || char.state == char.state.MIGHTY_HAMMERDROP)
+			{
+				if (type == 1)
+					MightyInteraction_uncurl(dir)
+				else if (type == 3 && char.state == char.state.MIGHTY_HAMMERDROP)
+				{
+					if (u8[A1 + 0x29] != 0)
+					{
+						u8[A1 + 0x1c] = A0.u8
+						u8[A1 + 0x25] = u8[A1 + 0x28]
+						u8[A1 + 0x28] = 0
+						--u8[A1 + 0x29]
+						if (u8[A1 + 0x29] == 0)
+						{
+							u8[A1 + 0x2a] |= 0x80
+						}
+						
+						Character.OnHitBoss()
+					}
+					else
+					{
+						if (u8[A1 + 0x2a] & 0x04)
+						{
+							A2 = 0xffff0000 + u16[A1 + 0x3c]
+							u8[A2] &= ~(1 << u8[A1 + 0x3b])
+						}
+
+						u8[A1 + 0x2a] |= 0x80
+
+						// Grant bonus points
+						Enemy.addScore(A1, 0x010216)
+
+						objA1.update_address = addressof(SmallExplosion.BaseUpdate)
+						u8[A1 + 0x05] = 0
+						
+						Character.OnHitBadnik()
+					}
+				}
+				else if (type == 2 || type == 3)
+					MightyInteraction_rebound(dir)
+				else if (type == 4)
+				{
+					deflectProjectile()
+					if (ecc_setting_mightyManiaSounds)
+						Audio.playAudio("mighty_deflect")
+					else
+						Audio.playAudio("mighty_c_deflect")
+				}
+				
+				MightyInteraction_itemCauseBlockEffect()
+			}
+			else if (char.state == char.state.COWERING)
+			{
+				if (type == 1)
+					MightyInteraction_uncurl(dir)
+				else if (type == 4)
+				{
+					deflectProjectile()
+					if (ecc_setting_mightyManiaSounds)
+						Audio.playAudio("mighty_deflect")
+					else
+						Audio.playAudio("mighty_c_deflect")
+				}
+				else
+					MightyInteraction_rebound(dir)
+					
+				MightyInteraction_itemCauseBlockEffect()
+			}
+			else if (!nohurt)
+				Character.GettingHurt()
+		}
+		else if (char.state == char.state.COWERING && crouchable)
+		{
+			MightyInteraction_crouchBlock()
+			MightyInteraction_itemCauseBlockEffect()
+		}
+		else 
+			Character.GettingHurt()
+	}
+}
+
+//# address-hook(0x024280) end(0x0242b4)
+function void DamageCharacter()
+{
+	// spikes and hurt floors (if not elemental floor)
+	if (isECFCharA1("ECC-Mighty"))
+	{
+		u8 type = MightyInteraction_getType(A1, A0)
+		if (type)
+		{
+			bool dir = MightyInteraction_getReboundDir(A1, A0)
+			
+			bool nohurt
+			// try to prevent awkward situations where Mighty would get bounced out and instantly damaged because his hurtbox got bigger.
+			if (objA1.state == char.state.MIGHTY_UNSPIN)
+			{
+				if (dir == 0)
+					nohurt = (objA1.velocity.y < 0)
+				else if (dir == 1)
+					nohurt = (objA1.velocity.x > 0)
+				else if (dir == 2)
+					nohurt = (objA1.velocity.y > 0)
+				else if (dir == 3)
+					nohurt = (objA1.velocity.x < 0)
+			}
+			
+			if (objA1.state == char.state.MIGHTY_HAMMERDROP || objA1.state.former == char.state.MIGHTY_HAMMERDROP || objA1.state == char.state.COWERING) && (u8[A1 + 0x34] == 0 && (u8[A1 + 0x2b] & char.bonus.INVINCIBLE) == 0)
+			{
+				u32 p = A1
+				u8[p + 0x37] = 0x80
+				base.DamageCharacter()
+				u8[p + 0x37] = 0
+			}
+			else if (objA1.state == char.state.ROLLING || objA1.state.former == char.state.ROLLING || objA1.state == char.state.SPINDASH || objA1.state.former == char.state.SPINDASH) && (u8[A1 + 0x34] == 0 && (u8[A1 + 0x2b] & char.bonus.INVINCIBLE) == 0)
+			{
+				D0 = s32(objA1.velocity.y) << 8
+				D3 = objA1.position.y - D0
+				objA1.position.y = D3
+				
+				u32 A0_o = A0
+				u32 A1_o = A1
+				A0 = A1_o
+				A1 = A0_o
+				if (type == 1)
+					MightyInteraction_uncurl(dir)
+				else
+					MightyInteraction_rebound(dir)
+				if (char.state != char.state.former)
+					UpdateSonicAnimation()
+				A0 = A0_o
+				A1 = A1_o
+			}
+			else if (dir == 2 && objA1.state == char.state.MIGHTY_UNSPIN)
+				objA1.velocity.y += (objA1.flags2a & char.flag.UNDERWATER) ? 0x80 : 0x100
+			else if (!nohurt)
+				base.DamageCharacter()
+		}
+		else
+			base.DamageCharacter()
+	}
+	else
+		base.DamageCharacter()
+}
+
+//# address-hook(0x0857b4) end(0x0857c0)
+function void Enemy.DamageCharacter()
+{
+	if (isECFCharA1("ECC-Mighty"))
+	{
+		u8 type = MightyInteraction_getType(A1, A0)
+		if (type)
+		{
+			bool dir = MightyInteraction_getReboundDir(A1, A0)
+			
+			bool nohurt
+			if (objA1.state == char.state.MIGHTY_UNSPIN)
+			{
+				if (dir == 0)
+					nohurt = (objA1.velocity.y < 0)
+				else if (dir == 1)
+					nohurt = (objA1.velocity.x > 0)
+				else if (dir == 2)
+					nohurt = (objA1.velocity.y > 0)
+				else if (dir == 3)
+					nohurt = (objA1.velocity.x < 0)
+			}
+			
+			if (objA1.state == char.state.MIGHTY_HAMMERDROP || objA1.state.former == char.state.MIGHTY_HAMMERDROP) && (u8[A1 + 0x34] == 0 && (u8[A1 + 0x2b] & char.bonus.INVINCIBLE) == 0)
+			{
+				u32 p = A1
+				u8[p + 0x37] = 0x80
+				base.Enemy.DamageCharacter()
+				u8[p + 0x37] = 0
+			}
+			else if (objA1.state == char.state.ROLLING || objA1.state.former == char.state.ROLLING || objA1.state == char.state.SPINDASH || objA1.state.former == char.state.SPINDASH) && (u8[A1 + 0x34] == 0 && (u8[A1 + 0x2b] & char.bonus.INVINCIBLE) == 0)
+			{
+				D0 = s32(objA1.velocity.y) << 8
+				D3 = objA1.position.y - D0
+				objA1.position.y = D3
+				
+				u32 A0_o = A0
+				u32 A1_o = A1
+				A0 = A1_o
+				A1 = A0_o
+				if (type == 1)
+					MightyInteraction_uncurl(dir)
+				else
+					MightyInteraction_rebound(dir)
+				if (char.state != char.state.former)
+					UpdateSonicAnimation()
+				A0 = A0_o
+				A1 = A1_o
+			}
+			else if (dir == 2 && objA1.state == char.state.MIGHTY_UNSPIN)
+				objA1.velocity.y += (objA1.flags2a & char.flag.UNDERWATER) ? 0x80 : 0x100
+			else if (!nohurt)
+				base.Enemy.DamageCharacter()
+		}
+		else
+			base.Enemy.DamageCharacter()
+	}
+	else
+		base.Enemy.DamageCharacter()
+}
+
+function void MightyInteraction_uncurl(u8 dir)
+{
+	MightyInteraction_genericVelocityHandlerer(true, dir)
+	
+	u8 prevani = char.state
+	if (char.flags & char.flag.IN_AIR)
+	{
+		char.state = char.state.MIGHTY_UNSPIN
+		char.flags &= ~char.flag.CONTROL_LOCK
+	}
+	else
+	{
+		if (char.velocity.y < 0)
+			char.state = char.state.MIGHTY_UNSPIN
+		else
+		{
+			char.state = char.state.RUNNING
+			char.invuln.countdown = max(char.invuln.countdown, 30)
+		}
+	}
+	char.flags &= ~char.flag.ROLLING
+	char.base_state = base_state.NORMAL
+	char.double_jump_state = 0
+	char.jumping = 0
+	char.hlock_countdown = 0
+	char.spindash = 0
+	
+	if (ecc_setting_mightyManiaSounds)
+		Audio.playAudio("mighty_unspin")
+	else
+		Audio.playAudio("mighty_c_unspin")
+		
+	UpdateSonicAnimation()
+}
+
+function void MightyInteraction_vertUnstuck()
+{
+	pushAll()
+	
+	u32[0xfffff796] = (char.layer_flags1 == 0x0c) ? u32[0xfffff7b4] : u32[0xfffff7b8]
+	D5.u8 = char.layer_flags2
+	D0.u16 = lookupAngleByVector(char.velocity.x, char.velocity.y)
+	D0.u8 = (D0.u8 - 0x20) & 0xc0
+	
+	Character.CheckFloorCollision()
+	if (D1.s16 < 0)
+	{
+		char.position.y.u16 += global.inv_gravity ? -D1.s16 : D1.s16
+		char.velocity.y = 0
+		char.invuln.countdown = max(char.invuln.countdown, 30)
+	}
+	else
+	{
+		Character.CheckCeilingCollision()
+		if (D1.s16 < 0)
+		{
+			char.position.y.u16 -= D1.s16
+			char.velocity.y = 0
+		}
+	}
+	
+	popAll()	
+}
+
+function void MightyInteraction_rebound(u8 dir)
+{
+	char.state = char.state.ROLLING
+	char.flags |= char.flag.ROLLING
+	char.hitbox_extends.x = 7
+	char.hitbox_extends.y = 14
+	
+	MightyInteraction_genericVelocityHandlerer(false, dir)
+	
+	if (char.velocity.y < 0)
+	{
+		char.flags |= char.flag.IN_AIR
+		char.flags &= ~(char.flag.ON_OBJECT | char.flag.CONTROL_LOCK)
+	}
+	else
+		char.groundspeed = char.velocity.x
+	char.base_state = 2
+	char.double_jump_state = 0
+	char.jumping = 0
+	char.hlock_countdown = 0
+	char.spindash = 0
+	//char.invuln.countdown = max(char.invuln.countdown, 10) 
+	playSound(0x6b)
+}
+
+function void MightyInteraction_crouchBlock()
+{
+	s16 spd = 0xff
+	if ((char.flags & char.flag.FACING_LEFT) == 0 && objA0.position.x.u16 == objA1.position.x.u16 || objA0.position.x.u16 < objA1.position.x.u16)
+		char.groundspeed = -spd
+	else 
+		char.groundspeed = spd
+	
+	char.invuln.countdown = max(char.invuln.countdown, 30)
+	
+	playSound(0x6b)
+}
+
+
+function void MightyInteraction_genericVelocityHandlerer(bool unCurl, u8 dir)
+{
+	u8 input_state     = Character.getControlVariable(false)
+	s16 newHeight = (unCurl) ? char.hitbox.default.y : char.hitbox.y.ROLLING
+	
+	// up / down
+	if (dir == 0 || dir == 2)
+	{
+		s16 spdH = (char.flags & char.flag.UNDERWATER) ? 0x1C0 : 0x380
+		
+		if (unCurl)
+		{
+			if (input_state & CONTROL_LEFT && char.velocity.x > -spdH)
+				char.velocity.x = -spdH
+			else if (input_state & CONTROL_RIGHT && char.velocity.x < spdH)
+				char.velocity.x = spdH
+			else
+			{
+				if (char.flags & char.flag.FACING_LEFT)
+					char.velocity.x = min(char.velocity.x, -spdH)
+				else 
+					char.velocity.x = max(char.velocity.x, spdH)
+			}
+		}
+		else
+		{
+			s16 deaccel = u16[ Character.getLocationOfSpeedCap() + 4]
+			if (char.velocity.x > 0)
+				char.velocity.x = max(char.velocity.x - deaccel, 0)
+			else if (char.velocity.x < 0)
+				char.velocity.x = min(char.velocity.x + deaccel, 0)
+		}
+		
+		if (dir == 2)
+		{
+			char.velocity.y = MightyInteraction_getBounceSpeedY(unCurl, dir)
+			char.position.y.u16 -= (s16(char.hitbox_extends.y) - newHeight) * ((global.inv_gravity != (char.rotation + 0x40 >= 0x80)) ? -1 : 1)
+		}
+		else
+		{
+			char.velocity.y = -MightyInteraction_getBounceSpeedY(unCurl, dir)
+			char.position.y.u16 += (s16(char.hitbox_extends.y) - newHeight) * ((global.inv_gravity != (char.rotation + 0x40 >= 0x80)) ? -1 : 1)
+			
+			char.flags |= char.flag.IN_AIR
+			char.flags &= ~char.flag.ON_OBJECT
+		}
+		
+		if (newHeight != char.hitbox_extends.y)
+		{
+			if (unCurl)
+			{
+				char.hitbox_extends.x = char.hitbox.default.x
+				char.hitbox_extends.y = char.hitbox.default.y
+			}
+			else
+			{
+				char.hitbox_extends.x = char.hitbox.x.ROLLING
+				char.hitbox_extends.y = char.hitbox.y.ROLLING
+			}
+			MightyInteraction_vertUnstuck()
+		}
+	}
+	// left and right
+	else if (dir == 1 || dir == 3)
+	{
+		s16 spd = MightyInteraction_getBounceSpeedX(unCurl, dir)
+		char.velocity.x = (dir == 3) ? -spd : spd
+		char.groundspeed = char.velocity.x
+		char.velocity.y = (char.flags & char.flag.UNDERWATER) ? -0x100 : -0x200
+
+		if (newHeight != char.hitbox_extends.y)
+		{
+			if (unCurl)
+			{
+				char.hitbox_extends.x = char.hitbox.default.x
+				char.hitbox_extends.y = char.hitbox.default.y
+			}
+			else
+			{
+				char.hitbox_extends.x = char.hitbox.x.ROLLING
+				char.hitbox_extends.y = char.hitbox.y.ROLLING
+			}
+			
+			MightyInteraction_vertUnstuck()
+		}
+	}
+	// backwards
+	else if (dir == 5)
+	{
+		s16 vx = -MightyInteraction_getBounceSpeedX(unCurl, dir)
+		s16 vy = -MightyInteraction_getBounceSpeedY(unCurl, dir)
+		if (char.flags & char.flag.FACING_LEFT)
+			vx *= -1
+
+		char.velocity.x = vx
+		char.velocity.y = vy
+		char.flags |= char.flag.IN_AIR
+		char.flags &= ~char.flag.ON_OBJECT
+			
+		if (unCurl)
+			char.invuln.countdown = max(char.invuln.countdown, 120)
+	}
+	// omnidirectional
+	else
+	{
+		s16 dx = char.position.x.u16 - u16[A1 + 0x10]
+		s16 dy = char.position.y.u16 - u16[A1 + 0x14]
+
+		u8 angle = lookupAngleByVector(dx, dy)
+
+		s16 speedX = MightyInteraction_getBounceSpeedX(unCurl, dir)
+		s16 speedY = MightyInteraction_getBounceSpeedY(unCurl, dir)
+		
+		s16 vx = (s32(lookupCos(angle)) * speedX) >> 8
+		s16 vy = (s32(lookupSin(angle)) * speedY) >> 8
+		s16 maxSpdX = vx * 3
+		s16 maxSpdY = vy * 3
+	
+		if (char.velocity.x > vx && vx < 0 || char.velocity.x < vx && vx > 0)
+			char.velocity.x = vx
+		else
+		{
+			if (vx > 0)
+				char.velocity.x = min(char.velocity.x + (vx >> 1), maxSpdX)
+			else if (vx < 0)
+				char.velocity.x = max(char.velocity.x + (vx >> 1), -maxSpdX)
+		}
+			
+		if (char.velocity.y > vy && vy < 0 || char.velocity.y < vy && vy > 0)
+			char.velocity.y = vy
+		else
+		{
+			if (vy > 0)
+				char.velocity.y = min(char.velocity.y + (vy >> 1), maxSpdY)
+			else if (vy < 0)
+				char.velocity.y = max(char.velocity.y + (vy >> 1), -maxSpdY)
+		}
+		
+		if (char.velocity.y < 0 && (char.flags & char.flag.IN_AIR) == 0)
+			char.flags |= char.flag.IN_AIR
+		
+		if (char.hitbox_extends.y != newHeight)
+		{
+			if (char.flags & char.flag.IN_AIR)
+			{
+				if (char.velocity.y > 0)
+					char.position.y.u16 -= (s16(char.hitbox_extends.y) - newHeight)
+				else if (char.velocity.y < 0)
+					char.position.y.u16 += (s16(char.hitbox_extends.y) - newHeight)
+			}
+			else
+			{
+				char.position.y.u16 += (s16(char.hitbox_extends.y) - newHeight)
+				char.groundspeed = char.velocity.x
+			}
+			
+			if (unCurl)
+			{
+				char.hitbox_extends.x = char.hitbox.default.x
+				char.hitbox_extends.y = char.hitbox.default.y
+			}
+			else
+			{
+				char.hitbox_extends.x = char.hitbox.x.ROLLING
+				char.hitbox_extends.y = char.hitbox.y.ROLLING
+			}
+			
+			MightyInteraction_vertUnstuck()
+		}
+	}
+}
+
+function u8 MightyInteraction_getType(u32 a, u32 b)
+{
+	u32 A0_o = A0
+	u32 A1_o = A1
+	A0 = a
+	A1 = b
+	u8 awesome = MightyInteraction_getType()
+	A0 = A0_o
+	A1 = A1_o
+	return awesome
+}
+
+function u8 MightyInteraction_getType()
+{
+	// 1 - unspin
+	// 2 - rebound 
+	// 3 - rebound, enemy
+	// 4 - deflect
+	
+	u32 upd = objA1.update_address
+	u32 map = objA1.mapping_offset
+
+	// Global
+	// Spikes (and non-elemental hurtfloors)
+	if (upd == 0x024090 || upd == 0x01f45e && u8[A1 + 0x2b] == 0)
+		return (abs(objA0.velocity.x) >= 0x580) ? 2 : 1
+	else if (upd == 0x0240e2 || upd == 0x02413e || u8[A1 + 0x2b] == 0 && (upd == 0x01f528 || upd == 0x01f4c4))
+		return 1
+	
+	// AIZ
+	
+	// Floating Log
+	else if (upd == 0x02b8ee)
+		return 1
+	
+	// Conveyor spike
+	else if (map == 0x23035e)
+		return 2
+	
+	// HCZ
+	
+	// Turbo Spiker projectile
+	else if (upd == 0x087da4)
+		return 2
+
+	// Pointdexter
+	else if (upd == 0x088282 && u8[A1 + 0x28] & collision.flag.THREAT)
+		return 2
+	
+	// Big Shaker rockets
+	else if (upd == 0x06a2ba)
+		return 2
+	
+	// Screw Mobile 
+	else if (upd == 0x06b1a8)
+		return 1
+
+	// MGZ
+	
+	// Bubbles
+	else if (upd == 0x08833c && u8[A1 + 0x28] & collision.flag.THREAT)
+		return 3
+
+	// Relief, arrow
+	else if (upd == 0x034518)
+		return 4
+	
+	// Crusher
+	else if (upd == 0x02927c)
+		return 1
+	
+	// Swinging Mace
+	else if (upd == 0x0341bc || upd == 0x0341fa)
+		return 1
+	
+	// Burrito Platform
+	else if (upd == 0x034728)
+		return 2
+	
+	// Driller
+	else if (upd == 0x088804)
+		return 1
+	
+	// Egg Mobile Driller
+	else if (upd == 0x06c9e8)
+		return 1
+		
+	// Egg Mobile Driller (Knuckles ver, chains)
+	else if (upd == 0x06cd80 || upd == 0x06cdb0)
+		return 2
+	
+	// CNZ
+	
+	// Bowling Spin, top
+	else if (upd == 0x06dbca)
+		return 2
+	
+	// Gravity Mobile Ball
+	else if (upd == 0x06e82c)
+		return 2
+	
+	// Gravity Mobile Extensions
+	else if (upd == 0x06e95a)
+		return 2
+		
+	// ICZ
+	
+	// Ice Crystal
+	else if (map == 0x363c44)
+		return 1
+	
+	// Icicle, small
+	else if (upd == 0x08b330 || upd == 0x0856de)
+		return 1
+		
+	// Icicle, big
+	else if (upd == 0x08b1fa)
+		return 1
+	
+	// Big Icedus
+	else if (upd == 0x0714b8)
+		return 1
+		
+	// LBZ
+	
+	// Orbinaut
+	else if (upd == 0x08c6b0)
+		return 2
+	
+	// Ribot
+	else if (upd == 0x08c370)
+		return 2
+	
+	// Twin Hammer
+	else if (upd == 0x0725f4 || upd == 0x0725ee)
+		return 2
+
+	// Egg Rocket Orb
+	else if (upd == 0x0733ca)
+		return 2
+	
+	// Big Arms
+	else if (upd == 0x074c0c)
+		return 1
+	
+	// MHZ
+	
+	// Dragonfly
+	else if (upd == 0x08de26)
+		return 2
+	
+	// Boss Chains
+	else if (upd == 0x0557c8)
+		return 2
+	
+	// FBZ
+	
+	// Hovering platform
+	else if (upd == 0x03a5da)
+		return 1
+	
+	// Spikeball (Snake)
+	else if (upd == 0x03b8c2)
+		return 2
+		
+	// Spikeball (Magnetized)
+	else if (map == 0x03b25c)
+		return 2
+	
+	// Chained Platform
+	else if (map == 0x03b4de)
+		return 2
+	
+	// Gapsule
+	else if (upd == 0x06f3de)
+		return 1
+		
+	// Swing Mobile hands
+	else if (upd == 0x070948)
+		return 2
+	
+	// Floor Destruction rockets
+	else if (upd == 0x03c6cc)
+		return 2
+
+	// Random Rocket
+	else if (upd == 0x03c8d4)
+		return 2
+		
+	// SOZ
+	
+	// Skorp tail
+	else if (upd == 0x08e744)
+		return 2
+	
+	// Sandworm
+	else if (upd == 0x08eb8e)
+		return 2
+	
+	// Moving platform
+	else if (upd == 0x0411d8)
+		return 1
+	
+	// Egg Golem
+	else if (upd == 0x77d2c || upd == 0x77c32)
+		return 1
+	
+	// LRZ
+	
+	// Stalagtite
+	else if (upd == 0x042898 || upd == 0x0428d6)
+		return 1
+		
+	// Wyrm
+	else if (upd == 0x08f8f0)
+		return 2
+
+	// Rolling Spikeball
+	else if (map == 0x043a8e)
+		return 1
+		
+	// Swinging Spikeball
+	else if (map == 0x0449bc || map == 0x043d24 || upd == 0x0435e0)
+		return 2
+
+	// Crusher
+	else if (upd == 0x04a74a)
+		return 1
+	
+	// Turbine
+	else if (upd == 0x044592)
+		return 2
+		
+	// Hot Mobile bombs
+	else if (upd == 0x079ac4 || upd == 0x079b22 || upd == 0x079b54)
+		return 2
+	
+	// SSZ
+	
+	// Conch
+	else if (upd == 0x0462b6)
+		return 2
+	
+	// DEZ
+	
+	// Bonker
+	else if (upd == 0x091ba8)
+		return 2
+	
+	// Chainspike
+	else if (upd == 0x091e72)
+		return 2
+	
+	// Rockets
+	else if (upd == 0x04728a)
+		return 2
+		
+	// Red Eye
+	else if (upd == 0x7e820 || upd == 0x7e8e2)
+		return 2
+
+	// Red Eye (spikes)
+	else if (upd == 0x7e972)
+		return 4
+	
+	// Red Eye Plat Hitbox
+	else if (upd == 0x7e758)
+		return 2
+		
+	// Death Ball roombas
+	else if (upd == 0x7f4fa)
+		return 2
+
+	// Death Ball spikes
+	else if (upd == 0x7f62e)
+		return 4
+		
+	//debugLog(upd)
+	//debugLog(map)
+	
+	return 0
+}
+
+function u8 MightyInteraction_getReboundDir(u32 a, u32 b)
+{
+	u32 A0_o = A0
+	u32 A1_o = A1
+	A0 = a
+	A1 = b
+	u8 awesome = MightyInteraction_getReboundDir()
+	A0 = A0_o
+	A1 = A1_o
+	return awesome
+}
+
+function u8 MightyInteraction_getReboundDir()
+{
+	// 0 - up 
+	// 1 - right
+	// 2 - down
+	// 3 - left
+	// 4 - omni-directional
+	// 5 - backward
+	
+	// spikes!
+	if (objA1.update_address == 0x024090 || objA1.update_address == 0x0240e2 || objA1.update_address == 0x02413e || objA1.update_address == 0x01f4c4 || objA1.update_address == 0x01f528 || objA1.update_address == 0x01f45e)
+		return (objA1.update_address == 0x0240e2 || objA1.update_address == 0x01f4c4) ? (objA1.render_flags & render_flag.FLIP_X ? 1 : 3) : (objA1.update_address == 0x02413e || objA1.update_address == 0x01f528) ? 2 : 0
+	
+	// aiz spike log
+	else if (objA1.update_address == 0x02b8ee)
+		return (objA0.position.y.u16 < objA1.position.y.u16) ? 0 : 2
+
+	// mgz crusher
+	else if (objA1.update_address == 0x02927c)
+		return 2
+	
+	// mgz maces
+	else if (objA1.update_address == 0x0341bc || objA1.update_address == 0x0341fa)
+		return 5
+		
+	// mgz big bean burrito
+	else if (objA1.update_address == 0x034728)
+		return (char.position.x.u16 < objA1.position.x.u16) ? 3 : (char.position.x.u16 > objA1.position.x.u16) ? 1 : 2
+	
+	// soz evil pillar of doom
+	else if (objA1.update_address == 0x0411d8)
+		return (objA0.position.y.u16 < objA1.position.y.u16) ? 0 : 2
+	
+	// lrz evil plat 
+	else if (objA1.update_address == 0x04a74a)
+		return 2
+		
+	// lrz big spike ball that does donuts
+	else if (objA1.update_address == 0x04397e)
+		return 5
+		
+	return 4
+}
+
+function s16 MightyInteraction_getBounceSpeed(bool unCurl, u8 dir)
+{
+	s16 speed = (unCurl) ? 0x380 : 0x300
+	if (dir == 5)
+		speed = (unCurl) ? 0x400 : 0x600
+	
+	// moving spike 
+	if (objA1.update_address == 0x024090 || objA1.update_address == 0x0240e2 || objA1.update_address == 0x02413e) && (u8[A1 + 0x2c] == 0x02 && u8[A1 + 0x34] > 0 && u8[A1 + 0x34] < 32)
+		speed += 0x200
+	else if (!unCurl && (objA1.update_address == 0x024090 || objA1.update_address == 0x01f45e))
+		speed = 0x100
+	// mgz spike log
+	else if (objA1.update_address == 0x034728)
+		speed = 0x480
+	// gapsule
+	else if (objA1.mapping_offset == 0x06f3de) 
+		speed = 0x500
+	// lrz big spike ball
+	else if (objA1.mapping_offset == 0x043a8e)
+		speed = 0x500
+		
+	return speed
+}
+
+function s16 MightyInteraction_getBounceSpeedX(bool unCurl, u8 dir)
+{
+	s16 speed = MightyInteraction_getBounceSpeed(unCurl, dir)
+	return speed
+}
+
+function s16 MightyInteraction_getBounceSpeedY(bool unCurl, u8 dir)
+{
+	s16 speed = MightyInteraction_getBounceSpeed(unCurl, dir)
+	// mgz mace
+	if (objA1.update_address == 0x0341fa)
+		speed += 0x200
+		
+	if (char.flags & char.flag.UNDERWATER) 
+		speed = speed * 8 / 15
+		
+	return speed
+}
+
+function u8 MightyInteraction_canCrouchBlock()
+{
+	// this is only used when crouch interacts with an object that's not considered spiky
+	u8 attrib = (objA1.collision_attributes & collision_attributes.flags)
+	// badniks
+	if (attrib == collision.flag.DESTRUCTIBLE)
+		return true
+
+	return false
+}
+
+function void MightyInteraction_itemCauseBlockEffect()
+{
+	// FBZ Parachute Rockets and DEZ rockets
+	// this applies to the former in Mania
+	if (objA1.update_address == 0x03c6cc || objA1.update_address == 0x03c8d4 || objA1.update_address == 0x04728a)
+		objA1.update_address = 0x03c768
+}
+
+// icz_icecrystal
+//# address-hook(0x08b4ec) end(0x08b526)
+function void fn08b4ec()
+{
+	// bit of a weird base return, but the vanilla call should reset both of these anyway...
+	D0 = u8[A0 + 0x29]
+	
+	// A1 is assigned 0xffffb000 for D0.u16 == 1,
+	//            and 0xffffb04a for D0.u16 == 2 or D0.u16 == 3
+	D0.u16 *= 2
+	A1 = 0xffff0000 + u16[0x08b52a + D0.u16]
+
+	if (!isECFCharA1("ECC-Mighty"))
+	{
+		base.fn08b4ec()
+		return
+	}
+	
+	if (D0.u8 == 0)
+	{
+		Enemy.DrawOrUnload()
+		return
+	}
+	
+#if STANDALONE
+	// Also check for:
+	//  - Invulnerability frames
+	//  - And for the fire shield
+	if (u8[A1 + 0x34] == 0 && (u8[A1 + 0x2b] & char.bonus.INVINCIBLE) == 0 && (u8[A1 + 0x2b] & char.bonus.SHIELD_FIRE) == 0)
+#else
+	if ((u8[A1 + 0x2b] & char.bonus.INVINCIBLE) == 0)
+#endif
+	{
+		u32 A0_o = A0
+		u32 A1_o = A1
+		A0 = A1_o
+		A1 = A0_o
+		MightyInteraction_rebound(MightyInteraction_getReboundDir())
+		A0 = A0_o
+		A1 = A1_o
+	}
+
+	// "spawnSimpleChildObjects(0x08b54a)" replaced by:
+	spawnSimpleChildObjects(0x08b230, 12)			// Broken ice
+
+	Object.TriggerUnloading()
+	playSound(0x80)
+	DrawObject()
+}
+
+// lbz_walltrigger
+//# address-hook(0x025d2c) end(0x025d52)
+function void fn025d2c()
+{
+	if (!isECFCharA1("ECC-Mighty") || objA1.state != char.state.MIGHTY_HAMMERDROP)
+	{
+		base.fn025d2c()
+		return
+	}
+
+	objA1.velocity.x = -objA1.velocity.x
+	u8[A3] ^= (1 << D3.u8)
+	objA0.update_address = addressof(SmallExplosion.BaseUpdate)
+	objA0.base_state = 0x02
+	u8[A0 + 0x28] = 0
+	u8[A0 + 0x29] = 0
+}
+
+// lbz_shootingtrigger
+//# address-hook(0x042ec0) end(0x042ee6)
+function void fn042ec0()
+{
+	if (!isECFCharA1("ECC-Mighty") || objA1.state != char.state.MIGHTY_HAMMERDROP)
+	{
+		base.fn042ec0()
+		return
+	}
+	
+	objA1.velocity.x = -objA1.velocity.x
+	u8[A3] |= (1 << D3.u8)
+	objA0.update_address = addressof(SmallExplosion.BaseUpdate)
+	objA0.base_state = 0x02
+	u8[A0 + 0x28] = 0
+	u8[A0 + 0x29] = 0
+}

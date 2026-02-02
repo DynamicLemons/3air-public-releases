@@ -1,0 +1,31 @@
+{
+
+	"angel_ECC-Amy_text":  { "File": "result_amy.png", "Rect": "8,8,50,16", "Center": "27,8" },
+	"angel_ECC-Amy_Alt_text":  { "File": "result_amy_alt.png", "Rect": "8,8,50,16", "Center": "27,8" },
+
+	"flicky_ECC-Amy_text":  { "File": "dage_hud_amy.png", "Rect": "72,112,48,16", "Center": "9,0" },
+	"flicky_super_text_ECC-Amy":  { "File": "dage_hud_amy.png", "Rect": "72,128,80,16", "Center": "9,0" },
+	"flicky_hyper_text_ECC-Amy":  { "File": "dage_hud_amy.png", "Rect": "72,144,80,16", "Center": "9,0" },
+	"flicky_ECC-Amy_Alt_text":  { "File": "dage_hud_amy.png", "Rect": "72,112,48,16", "Center": "9,0" },
+	"flicky_super_text_ECC-Amy_Alt":  { "File": "dage_hud_amy.png", "Rect": "72,128,80,16", "Center": "9,0" },
+	"flicky_hyper_text_ECC-Amy_Alt":  { "File": "dage_hud_amy.png", "Rect": "72,144,80,16", "Center": "9,0" },
+
+	"saturn_ECC-Amy_text":  { "File": "dage_hud_amy.png", "Rect": "72,160,48,16", "Center": "9,0" },
+	"saturn_super_text_ECC-Amy":  { "File": "dage_hud_amy.png", "Rect": "72,176,80,16", "Center": "9,0" },
+	"saturn_hyper_text_ECC-Amy":  { "File": "dage_hud_amy.png", "Rect": "72,192,80,16", "Center": "9,0" },
+	"saturn_ECC-Amy_Alt_text":  { "File": "dage_hud_amy.png", "Rect": "72,160,48,16", "Center": "9,0" },
+	"saturn_super_text_ECC-Amy_Alt":  { "File": "dage_hud_amy.png", "Rect": "72,176,80,16", "Center": "9,0" },
+	"saturn_hyper_text_ECC-Amy_Alt":  { "File": "dage_hud_amy.png", "Rect": "72,192,80,16", "Center": "9,0" },
+
+	"south_ECC-Amy_text":  { "File": "dage_hud_amy.png", "Rect": "72,0,48,16", "Center": "9,0" },
+	"south_super_text_ECC-Amy":  { "File": "dage_hud_amy.png", "Rect": "72,16,80,16", "Center": "9,0" },
+	"south_hyper_text_ECC-Amy":  { "File": "dage_hud_amy.png", "Rect": "72,32,80,16", "Center": "9,0" },
+	"south_ECC-Amy_Alt_text":  { "File": "dage_hud_amy.png", "Rect": "72,0,48,16", "Center": "9,0" },
+	"south_super_text_ECC-Amy_Alt":  { "File": "dage_hud_amy.png", "Rect": "72,16,80,16", "Center": "9,0" },
+	"south_hyper_text_ECC-Amy_Alt":  { "File": "dage_hud_amy.png", "Rect": "72,32,80,16", "Center": "9,0" },
+
+	"westside_ECC-Amy_text":  { "File": "dage_hud_amy.png", "Rect": "72,48,56,16", "Center": "9,0" },
+	"westside_super_text_ECC-Amy":  { "File": "dage_hud_amy.png", "Rect": "72,80,80,16", "Center": "9,0" },
+	"westside_hyper_text_ECC-Amy":  { "File": "dage_hud_amy.png", "Rect": "72,96,80,16", "Center": "9,0" },
+	"westside_ECC-Amy_text_special":  { "File": "dage_hud_amy.png", "Rect": "72,64,56,16", "Center": "9,0" },
+}

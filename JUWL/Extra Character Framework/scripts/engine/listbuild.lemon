@@ -1,0 +1,50 @@
+function void Init()
+{
+	base.Init()
+	if (!ECF_charList_inited)
+		ECF_buildCharList()
+}
+
+function void ECF_buildCharList()
+{
+	// empty function. this actually doesn't do anything by default
+	ECF_charList_inited = 1
+	//System.writeDisplayLine(stringformat("charlist built with %d/%d", ECF_charList_length, ECF_charList_size))
+}
+
+function void ECF_allocChar(string name)
+{
+	if (ECF_charList_inited)
+		return
+		
+	// if we have reached max character size, don't do anything
+	if (ECF_charList_length >= ECF_charList_size)
+	{
+		assert(false, stringformat("ECF list passed max size allowed (%d)", ECF_charList_size))
+		return
+	}
+	
+	// name cannot be present on char list more than once, as this would create issues
+	for (u8 i = 1; i < ECF_charList_length; ++i)
+	{
+		if (System.getGlobalVariableValueByName(stringformat("ECF_charList_%d", ECF_charList_length)) == name)
+		{
+			assert(false, stringformat("'%s' already present in ECF char list", name))
+			return
+		}
+	}
+
+	++ECF_charList_length
+#if GAMEAPP >= 0x26012400
+	ECF_charList[ECF_charList_length] = name
+#else
+	System.setGlobalVariableValueByName(stringformat("ECF_charList_%d", ECF_charList_length), name)
+#endif
+	
+	if (!ECF_isSelectionHidden(name))
+	{
+		if (ECF_firstSelectableId == 0)
+			ECF_firstSelectableId = ECF_charList_length
+		ECF_lastSelectableId = ECF_charList_length
+	}
+}

@@ -1,0 +1,13 @@
+{
+	"bluesphere_ECC-Ray_0x01":  { "File": "bluesphere_ray.bmp", "Rect": "32,24,32,40", "Center": "14,32" },
+	"bluesphere_ECC-Ray_0x02":  { "File": "bluesphere_ray.bmp", "Rect": "72,24,32,48", "Center": "15,39" },
+	"bluesphere_ECC-Ray_0x03":  { "File": "bluesphere_ray.bmp", "Rect": "112,24,32,56", "Center": "18,38" },
+	"bluesphere_ECC-Ray_0x04":  { "File": "bluesphere_ray.bmp", "Rect": "152,24,32,56", "Center": "14,38" },
+	"bluesphere_ECC-Ray_0x05":  { "File": "bluesphere_ray.bmp", "Rect": "192,24,32,56", "Center": "13,38" },
+	"bluesphere_ECC-Ray_0x06":  { "File": "bluesphere_ray.bmp", "Rect": "232,24,32,56", "Center": "15,38" },
+	"bluesphere_ECC-Ray_0x07":  { "File": "bluesphere_ray.bmp", "Rect": "272,24,32,56", "Center": "19,38" },
+	"bluesphere_ECC-Ray_0x08":  { "File": "bluesphere_ray.bmp", "Rect": "312,24,32,56", "Center": "20,38" },
+	"bluesphere_ECC-Ray_0x09":  { "File": "bluesphere_ray.bmp", "Rect": "352,24,24,35", "Center": "12,35" },
+	"bluesphere_ECC-Ray_0x0a":  { "File": "bluesphere_ray.bmp", "Rect": "384,24,24,35", "Center": "12,35" },
+	"bluesphere_ECC-Ray_0x0b":  { "File": "bluesphere_ray.bmp", "Rect": "416,24,24,35", "Center": "12,35" }
+}

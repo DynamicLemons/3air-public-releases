@@ -1,0 +1,37 @@
+include characters/?
+include objects/?
+include levels/?
+include renderhooks
+
+global s8 p1_mighty_shockwave_t
+global u16 p1_mighty_shockwave_x
+global u16 p1_mighty_shockwave_y
+global u8 p1_mighty_cam_vlock
+global u8 p1_mighty_cling_timer
+global s8 p1_mighty_cling_dustcountdown
+
+global s8 p2_mighty_shockwave_t
+global u16 p2_mighty_shockwave_x
+global u16 p2_mighty_shockwave_y
+global u8 p2_mighty_cam_vlock
+global u8 p2_mighty_cling_timer
+global s8 p2_mighty_cling_dustcountdown
+
+global s8 p3_mighty_shockwave_t
+global u16 p3_mighty_shockwave_x
+global u16 p3_mighty_shockwave_y
+global u8 p3_mighty_cam_vlock
+global u8 p3_mighty_cling_timer
+global s8 p3_mighty_cling_dustcountdown
+
+global s8 p4_mighty_shockwave_t
+global u16 p4_mighty_shockwave_x
+global u16 p4_mighty_shockwave_y
+global u8 p4_mighty_cam_vlock
+global u8 p4_mighty_cling_timer
+global s8 p4_mighty_cling_dustcountdown
+
+global bool ecc_setting_mightyManiaSounds
+global bool ecc_setting_mightyAltPalette
+global bool ecc_setting_mightyWallJump
+global bool ecc_setting_mightyWallJumpControls

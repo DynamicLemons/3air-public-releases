@@ -1,0 +1,31 @@
+{
+	"flicky_hud_bonus_icon_ECC-Ray":  { "File": "dage_hud_ray.png", "Rect": "0,144,16,16", "Center": "0,-2" },
+	"flicky_hud_bonus_icon_ECC-Ray_Mania":  { "File": "dage_hud_ray.png", "Rect": "0,144,16,16", "Center": "0,-2" },
+	"flicky_continue_icon_ECC-Ray":  { "File": "hud_bonus_ray.png", "Rect": "0,24,24,24", "Center": "12,24" },
+	"flicky_continue_icon_ECC-Ray_Mania":  { "File": "hud_bonus_ray.png", "Rect": "24,24,24,24", "Center": "12,24" },
+	"flicky_hud_lives_icon_ECC-Ray":  { "File": "dage_hud_ray.png", "Rect": "0,112,23,16", "Center": "0,0" },
+	"flicky_hud_lives_icon_ECC-Ray_Mania":  { "File": "dage_hud_ray.png", "Rect": "0,128,23,16", "Center": "0,0" },
+
+	"saturn_hud_bonus_icon_ECC-Ray":  { "File": "hud_bonus_ray.png", "Rect": "0,0,24,24", "Center": "0,3" },
+	"saturn_hud_bonus_icon_ECC-Ray_Mania":  { "File": "hud_bonus_ray.png", "Rect": "24,0,24,24", "Center": "0,3" },
+	"saturn_continue_icon_ECC-Ray":  { "File": "hud_bonus_ray.png", "Rect": "0,24,24,24", "Center": "12,24" },
+	"saturn_continue_icon_ECC-Ray_Mania":  { "File": "hud_bonus_ray.png", "Rect": "24,24,24,24", "Center": "12,24" },
+	"saturn_hud_lives_icon_ECC-Ray":  { "File": "dage_hud_ray.png", "Rect": "0,160,23,16", "Center": "0,0" },
+	"saturn_hud_lives_icon_ECC-Ray_Mania":  { "File": "dage_hud_ray.png", "Rect": "0,176,23,16", "Center": "0,0" },
+
+	"south_hud_bonus_icon_ECC-Ray":  { "File": "dage_hud_ray.png", "Rect": "0,32,16,16", "Center": "7,-4" },
+	"south_hud_bonus_icon_ECC-Ray_Mania":  { "File": "dage_hud_ray.png", "Rect": "0,32,16,16", "Center": "7,-4" },
+	"south_continue_icon_ECC-Ray":  { "File": "hud_bonus_ray.png", "Rect": "0,24,24,24", "Center": "12,24" },
+	"south_continue_icon_ECC-Ray_Mania":  { "File": "hud_bonus_ray.png", "Rect": "24,24,24,24", "Center": "12,24" },
+	"south_hud_lives_icon_ECC-Ray":  { "File": "dage_hud_ray.png", "Rect": "0,0,40,16", "Center": "0,0" },
+	"south_hud_lives_icon_ECC-Ray_Mania":  { "File": "dage_hud_ray.png", "Rect": "0,16,40,16", "Center": "0,0" },
+
+	"westside_hud_bonus_icon_ECC-Ray":  { "File": "dage_hud_ray.png", "Rect": "0,80,16,16", "Center": "7,-4" },
+	"westside_hud_bonus_icon_ECC-Ray_Mania":  { "File": "dage_hud_ray.png", "Rect": "0,80,16,16", "Center": "7,-4" },
+	"westside_hud_bonus_icon_special_ECC-Ray":  { "File": "dage_hud_ray.png", "Rect": "16,80,16,16", "Center": "7,-4" },
+	"westside_hud_bonus_icon_special_ECC-Ray_Mania":  { "File": "dage_hud_ray.png", "Rect": "16,80,16,16", "Center": "7,-4" },
+	"westside_continue_icon_ECC-Ray":  { "File": "hud_bonus_ray.png", "Rect": "0,24,24,24", "Center": "12,24" },
+	"westside_continue_icon_ECC-Ray_Mania":  { "File": "hud_bonus_ray.png", "Rect": "24,24,24,24", "Center": "12,24" },
+	"westside_hud_lives_icon_ECC-Ray":  { "File": "dage_hud_ray.png", "Rect": "0,48,40,16", "Center": "0,0" },
+	"westside_hud_lives_icon_ECC-Ray_Mania":  { "File": "dage_hud_ray.png", "Rect": "0,64,40,16", "Center": "0,0" },
+}

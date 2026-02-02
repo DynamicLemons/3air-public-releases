@@ -1,0 +1,47 @@
+//# address-hook(0x009488) end(0x0094d2)
+function void fn009488()
+{
+	A1 = 0xffff0000 + objA0.value3e
+	bool parentIsP1 = (objA1.update_address == 0x00903e)
+	string name = (parentIsP1) ? global_ExChar_P1 : global_ExChar_P2
+	
+	if (name != "ECC-Ray")
+	{
+		base.fn009488()
+		return
+	}
+	
+	objA0.position.x.u16 = objA1.position.x.u16
+	objA0.position.y.u16 = objA1.position.y.u16
+
+	D0.u16 = 0x2aaa
+	D1.s16 = bluespheres.movement_speed
+	if (D1.s16 >= 0)
+	{
+		D0.u16 += D1.s16
+	}
+	
+	u32 result = u32(u16[A0 + 0x24]) + u32(D0.u16)
+	u16[A0 + 0x24] = u16(result)
+	
+	if (objA1.animation.sprite >= 9)
+	{
+		objA0.animation.sprite = 0
+	}
+	else
+	{
+		if (result & 0x10000)	// Carry flag check
+		{
+			++objA0.animation.sprite
+			if (objA0.animation.sprite >= 9)
+				objA0.animation.sprite = 1
+		}
+		
+		DrawObject()
+	}
+
+	A2 = 0x291106
+	D6 = 0x2909e8
+	D4.u16 = SpecialStage.Tails_Tails.targetInVRAM
+	fn0091a2()
+}

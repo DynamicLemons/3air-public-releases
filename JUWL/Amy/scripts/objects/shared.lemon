@@ -1,0 +1,68 @@
+//# address-hook(0x01e042)
+function void fn01e042()
+{
+	if (!isECFCharA1("ECC-Amy") || !ecc_setting_amyTwinSpin || u8[A1 + 0x2f] != 2 && u8[A1 + 0x2f] != 4 || Amy_wallJumpObjectFilter())
+	{
+		base.fn01e042()
+		return
+	}
+	
+	if (D0.u16 != 0)
+	{
+		if ((objA1.velocity.x >= 0) == (D0.s16 > 0))
+		{
+			objA1.groundspeed = 0
+			objA1.velocity.x = 0
+			if (u8[A1 + 0x37] & 0x80)
+				u8[A1 + 0x37] |= 0x40
+		}
+	}
+	
+	s16 diff = objA1.position.x.u16 - objA0.position.x.u16
+	if (diff <= 0 && (objA1.flags2a & char.flag.FACING_LEFT) == 0 || diff >= 0 && objA1.flags2a & char.flag.FACING_LEFT)
+	{
+		pushAll()
+		u32 A0_o = A0
+		u32 A1_o = A1
+		A0 = A1_o
+		A1 = A0_o
+		Amy_wallJump()
+		A0 = A0_o
+		A1 = A1_o
+		popAll()
+	}
+	
+	objA1.position.x.u16 -= D0.u16
+	u8 bit = 1 << (D6.u16 + 2)
+	if (objA1.flags2a & char.flag.IN_AIR)
+	{
+		objA0.flags2a &= ~bit
+		objA1.flags2a &= ~char.flag.PUSHING
+	}
+	else
+	{
+		objA0.flags2a |= bit
+		objA1.flags2a |= char.flag.PUSHING
+	}
+
+	D6 |= (u32(1) << (D6.u16 + 13))
+	D4 = 1
+}
+
+function bool Amy_wallJumpObjectFilter()
+{
+	// invisible solid collision
+	if (objA0.update_address == 0x01ec6c || objA0.update_address == 0x01f4c4 || objA0.update_address == 0x01f528 || objA0.update_address == 0x01f45e)
+		return true
+	// cnz 2 invisible wall during knuckles event
+	else if (objA0.update_address == 0x062458)
+		return true
+	// lbz 1 falling building
+	else if (objA0.update_address == 0x054164)
+		return true
+	// ballshooter invisible wall
+	else if (objA0.update_address == 0x073eb4)
+		return true
+	
+	return false
+}

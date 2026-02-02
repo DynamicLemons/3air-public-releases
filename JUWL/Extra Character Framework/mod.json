@@ -1,0 +1,29 @@
+{
+	"Metadata":
+	{
+		"Name":	"Extra Character Framework",
+		"UniqueID": "extra-character-framework",
+		"Author": "Dynamic Lemons",
+		"Description": "Allows more characters to be added.",
+		"ModVersion": "2/2/2026",
+		"GameVersion": "25.12.31.0"
+	},
+	
+	"OtherMods":
+	{
+		"dynamic-lemons-extrasaveslots":
+		{
+			"Priority": "Higher"
+		},
+		
+		"dynamic-lemons-renderhooks":
+		{
+			"Priority": "Lower"
+		},
+
+		"dynamic-lemons-tweaks":
+		{
+			"Priority": "Higher"
+		}
+	}
+}

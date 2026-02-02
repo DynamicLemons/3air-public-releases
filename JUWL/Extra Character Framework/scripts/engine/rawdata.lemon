@@ -1,0 +1,111 @@
+// ... in case you needed to disable your zone variant- or have more, I suppose.
+function string ECF_getZoneRawdataVariant()
+{
+	return global_ExChar_P1
+}
+
+function u32 Standalone.loadRawLevelData(string format, u16 zoneAndAct, u32 targetAddress)
+{
+	string ver = ECF_getZoneRawdataVariant()
+	if (ver == 0 || ECF_disableBranchBase)
+		return base.Standalone.loadRawLevelData(format, zoneAndAct, targetAddress)
+	
+	string stage = getZoneActInitials(zoneAndAct)
+	
+	u32 bytes = System.loadExternalRawData(stringformat(format, stringformat("%s_%s", stage, ver)), targetAddress, 0, 0, false, true)
+	if (bytes != 0)
+		return bytes
+
+	return System.loadExternalRawData(stringformat(format, stage), targetAddress, 0, 0, (Game.getSetting(SETTING_LEVELLAYOUTS) == 2), true)
+}
+
+//# address-hook(0x01c2b0) end(0x01c360)
+function void fn01c2b0()
+{
+	string ver = ECF_getZoneRawdataVariant()
+	if (ver == 0 || ECF_disableBranchBase)
+	{
+		base.fn01c2b0()
+		return
+	}
+	
+	// Allow for loading custom blocks and chunks if files for them exist.
+	string key 
+	u32 abitraryMem = 0x840000
+	
+	// Primary Blocks
+	
+	A2 = MainGame.getLevelDataPointer()
+
+	D0 = u32[A2+8] & 0x00ffffff
+	D7 = D0
+	
+	string initials = stringformat("%s_%s", getZoneActInitials(global.zone_act), ver)
+	key = stringformat("%s_blocks_p", initials)
+	if (System.hasExternalRawData(key))
+	{
+		System.loadExternalRawData(key, abitraryMem)
+		D0 = abitraryMem
+	}
+	
+	Kosinski.decompress(D0, 0xffff9000)
+	
+	// Secondary Blocks
+	
+	D0 = u32[A2+12] & 0x00ffffff
+	
+	key = stringformat("%s_blocks_s", initials)
+	if (System.hasExternalRawData(key))
+	{
+		System.loadExternalRawData(key, abitraryMem)
+		D0 = abitraryMem
+	}
+	
+	if (D7 != D0)
+	{
+		Kosinski.decompress(D0, A1)
+	}
+	
+	// Primary Chunks
+
+	D0 = u32[A2+16] & 0x00ffffff
+	D7 = D0
+
+	key = stringformat("%s_chunks_p", initials)
+	if (System.hasExternalRawData(key))
+	{
+		System.loadExternalRawData(key, abitraryMem)
+		D0 = abitraryMem
+	}
+	
+	Kosinski.decompress(D0, 0xffff0000)
+	
+	// Secondary Chunks
+	
+	D0 = u32[A2+20] & 0x00ffffff
+
+	key = stringformat("%s_chunks_s", initials)
+	if (System.hasExternalRawData(key))
+	{
+		System.loadExternalRawData(key, abitraryMem)
+		D0 = abitraryMem
+	}
+	
+	if (D7 != D0)
+	{
+		Kosinski.decompress(D0, A1)
+	}
+	fn01c362()
+
+	// Stage Art
+	
+	D1.u8 = u8[A2]
+	D0 = u8[A2+4]
+	if (D0.u8 != 0 && D1.u8 != D0.u8)
+	{
+		requestLoadingPatterns(D0.u8)
+	}
+
+	// Load level palette
+	Level.loadNonfadingPaletteData(u8[A2+8])
+}

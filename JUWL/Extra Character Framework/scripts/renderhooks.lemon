@@ -1,0 +1,1021 @@
+function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
+{
+	// This function gets called once when rendering an object, even if it consists of multiple VDP sprites
+	//  -> That is in contrast to e.g. "Standalone.onDrawVdpSprite" which gets called for each VDP sprite
+	//  -> So if an object's sprites should be replaced with a new loaded graphics, this here is the place to go
+
+	string key
+	u16 atex = (objA0.sprite_attributes >> 9) & 0x30
+	u8 flags = ((objA0.render_flags & render_flag.FLIP_X) ? SPRITE_FLAG_FLIP_X : 0) | ((objA0.render_flags & render_flag.FLIP_Y) ? SPRITE_FLAG_FLIP_Y : 0) | ((objA0.sprite_attributes & sprite_attribute.PRIORITY) ? SPRITE_FLAG_PRIO : 0)
+	u8 angle = 0
+	u8 alpha = 255
+	
+	if (ECF_disableBranchBase)
+		return base.Standalone.onWriteToSpriteTable(px, py, renderQueue)
+		
+	// Monitor icons use character palette line, instead of baking it into the sprite file.
+	// Monitor
+	if (objA0.update_address >= 0x01d566 && objA0.update_address <= 0x01d61e) && (objA0.animation.sprite > 1 && objA0.animation.sprite != 11) && (objA0.subtype2c == 0x01) && (global_ExChar_P1)
+	{
+		key = Monitor.getECFCharacterLifeIcon(global_ExChar_P1)
+		if (!Renderer.hasCustomSprite(key))
+			key = "monitor_unknown"
+			
+		flags &= ~SPRITE_FLAG_FLIP_X
+		if (Game.getSetting(SETTING_MONITOR_STYLE))
+		{
+			Renderer.drawSprite("monitor_s2_intact", px, py, 0x00, flags, renderQueue)
+			py += (objA0.render_flags & render_flag.FLIP_Y) ? 2 : -2
+		}
+		else
+		{
+			Renderer.drawSprite("monitor_s3_intact", px, py, 0x00, flags, renderQueue)
+			py += (objA0.render_flags & render_flag.FLIP_Y) ? 5 : -5
+		}
+		
+		atex = 0x40 + 0x20 * getECFCharBase(global_ExChar_P1)
+		Renderer.drawSprite(key, px, py, atex, flags, renderQueue + 1)
+		return true
+	}
+
+	// Monitor item effect
+	else if (objA0.update_address == 0x01d7ba) && (objA0.state == 0x01) && (global_ExChar_P1)
+	{
+		key = Monitor.getECFCharacterLifeIcon(global_ExChar_P1)
+		if (!Renderer.hasCustomSprite(key))
+			key = "monitor_unknown"
+			
+	#if LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+		if (objA0.base_state == 0x04 && yywtrrshygnds_setting_monitorIconFade)
+	#else
+		if (objA0.base_state == 0x04)
+	#endif
+			alpha = (s16[A0 + 0x24] > 0) ? min(255, s16[A0 + 0x24] * 32) : 0
+			
+		atex = 0x40 + 0x20 * getECFCharBase(global_ExChar_P1)
+		Renderer.drawSprite(key, px, py, atex, flags, renderQueue, 0, alpha)
+		return true
+	}
+
+	// Signpost
+	else if (objA0.update_address == 0x0837b2) && (global_ExChar_P1)
+	{
+		key = getECFCharacterSignpostSpriteKey(global_ExChar_P1)
+		atex = 0x40 + getMainCharacter() * 0x20
+		
+		if (objA0.animation.sprite == getECFCharBase(global_ExChar_P1))
+		{
+			if (!Renderer.hasCustomSprite(key))
+				key = "signpost_unknown"
+			
+			Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+			return true
+		}
+		else if (objA0.animation.sprite == 4 || objA0.animation.sprite == 6)
+		{
+			string side = (objA0.animation.sprite == 4) ? "spin_1" : "spin_2"
+			key = stringformat("%s_%s", key, side)
+			if (!Renderer.hasCustomSprite(key))
+				key = stringformat("signpost_unknown_%s", side)
+			
+			Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+			return true
+		}
+	}
+	
+	// Results
+	// Level results
+	else if (objA0.update_address == 0x02dd98) && (global_ExChar_P1)
+	{
+		key = getECFCharacterBonusTextIcon(global_ExChar_P1)
+		if (!Renderer.hasCustomSprite(key))
+			key = getCharacterBonusTextIcon(getMainCharacter())
+			
+		if (objA0.animation.sprite == 0x0b)
+		{
+			HUD.drawSprite(key, px+36, py-5, renderQueue-1)
+			HUD.drawSprite("hud_text_total", px, py, renderQueue)
+			return true
+		}
+		else if (objA0.animation.sprite == 0x0c)
+		{
+			HUD.drawSprite(key, px+37, py-5, renderQueue-1)
+			HUD.drawSprite("hud_text_bonus", px, py, renderQueue)
+			return true
+		}
+		else if (objA0.animation.sprite >= 0x13 && objA0.animation.sprite <= 0x16)
+		{
+			u8 character = getMainCharacter()
+			key = getECFCharacterResultsNameplate(global_ExChar_P1)
+			atex = 0x40 + character * 0x20
+			if (Renderer.hasCustomSprite(key))
+			{
+				Renderer.drawSprite(key, px, py, atex, SPRITE_FLAG_PRIO, renderQueue)
+				return true
+			}
+		}
+	}
+	
+	// Blue Spheres
+	else if (objA0.update_address == 0x02ea50 || objA0.update_address == 0x02ec1e) && (global_ExChar_P1)
+	{
+		bool isSKStage = (global.lock_on_state == 0 && global.sk_bluespheres)
+		key = getECFCharacterBonusTextIcon(global_ExChar_P1)
+		if (!Renderer.hasCustomSprite(key))
+			key = getCharacterBonusTextIcon(getMainCharacter())
+			
+		if (objA0.animation.sprite == 0x17 || objA0.animation.sprite == 0x31 || objA0.animation.sprite == 0x36)
+		{
+			HUD.drawSprite(key, px-60, py-5, renderQueue-1)
+			HUD.drawSprite(isSKStage ? "hud_text_score_superstage" : "hud_text_score_chaosstage", px - 96, py, renderQueue)
+			HUD.drawNumber(isSKStage ? "hud_digit_%d" : "hud_digit_%d_chaosstage", player.score * 10, px + 88, py, renderQueue)
+			return true
+		}
+		else if (objA0.animation.sprite == 0x18 || objA0.animation.sprite == 0x32 || objA0.animation.sprite == 0x37)
+		{
+			HUD.drawSprite(key, px+77, py-5, renderQueue-1)
+			HUD.drawSprite(isSKStage ? "hud_text_ring_superstage" : "hud_text_ring_chaosstage", px, py, renderQueue)
+			HUD.drawSprite(isSKStage ? "hud_text_bonus_superstage" : "hud_text_bonus_chaosstage", px + 40, py, renderQueue)
+			HUD.drawNumber(isSKStage ? "hud_digit_%d" : "hud_digit_%d_chaosstage", results.ring_bonus * 10, px + 184, py, renderQueue)
+			return true
+		}
+		else if (objA0.animation.sprite == 0x19 || objA0.animation.sprite == 0x33 || objA0.animation.sprite == 0x38)
+		{
+			HUD.drawSprite(key, px+52, py-5, renderQueue-1)
+			HUD.drawSprite(isSKStage ? "hud_text_perfect_superstage" : "hud_text_perfect_chaosstage", px, py, renderQueue)
+			HUD.drawNumber(isSKStage ? "hud_digit_%d" : "hud_digit_%d_chaosstage", results.time_bonus * 10, px + 184, py, renderQueue)
+			return true
+		}
+		else if (objA0.animation.sprite == 0x1a || objA0.animation.sprite == 0x34 || objA0.animation.sprite == 0x39)
+		{
+			HUD.drawSprite(key, px+60, py-5, renderQueue-1)
+			HUD.drawSprite(isSKStage ? "hud_text_continue_superstage" : "hud_text_continue_chaosstage", px, py, renderQueue)
+			return true
+		}
+		else if (objA0.animation.sprite >= 0x12 && objA0.animation.sprite <= 0x16)
+		{
+			u8 character = getMainCharacter()
+			key = getECFCharacterResultsNameplate(global_ExChar_P1)
+			atex = 0x40 + character * 0x20
+			if (objA0.animation.sprite == 0x12)
+				key = stringformat((global.super_emeralds < 7) ? "%s_super" : "%s_hyper", key)
+				
+			if (Renderer.hasCustomSprite(key))
+			{
+				Renderer.drawSprite(key, px, py, atex, SPRITE_FLAG_PRIO, renderQueue)
+				return true
+			}
+		}
+	}
+	
+	// Continue icon
+	else if ((objA0.update_address == 0x02ebe8 || objA0.update_address == 0x02ec4a) && objA0.animation.sprite >= 0x29 && objA0.animation.sprite <= 0x2b) && (global_ExChar_P1)
+	{
+		// Enforce priority flag in special stage results screen for Super Emeralds, as it's supposed to be set, but is not part of "objA0.sprite_attributes"
+		if (global.game_mode == 0x48 && global.traded_emeralds)
+			flags |= SPRITE_FLAG_PRIO
+				
+		key = getECFCharacterContinueIcon(global_ExChar_P1)
+		if (Renderer.hasCustomSprite(key))
+		{
+			Renderer.drawSprite(key, px, py, 0x00, flags, renderQueue)
+			return true
+		}
+	}
+
+	// Blue Spheres
+	else if (objA0.update_address == 0x00903e && global_ExChar_P1)
+	{
+		atex = 0x40 + getMainCharacter() * 0x20
+		key = stringformat(stringformat("%s_0x%02x", getECFCharacterBluesphereSpriteKey(global_ExChar_P1)), objA0.animation.sprite)
+		if (Renderer.hasCustomSprite(key))
+		{
+			Renderer.drawCustomSprite(key, px, py, atex, flags, renderQueue)
+			return true
+		}
+	}
+
+	else if (objA0.update_address == 0x00927a && global_ExChar_P2)
+	{
+		atex = 0x40 + getSecondCharacter() * 0x20
+		key = stringformat(stringformat("%s_0x%02x", getECFCharacterBluesphereSpriteKey(global_ExChar_P2)), objA0.animation.sprite)
+		if (Renderer.hasCustomSprite(key))
+		{
+			Renderer.drawCustomSprite(key, px, py, atex, flags, renderQueue)
+			return true
+		}
+	}	
+
+	else if (objA0.update_address == 0x009488)
+	{
+		bool parentIsP1 = (u32[0xffff0000 + u32(u16[A0 + 0x3e])] == 0x00903e)
+		string name = (parentIsP1) ? global_ExChar_P1 : global_ExChar_P2
+
+		if (name)
+		{
+			atex = 0x40 + (parentIsP1 ? getMainCharacter() : getSecondCharacter()) * 0x20
+			key = stringformat(stringformat("%s_follow_0x%02x", getECFCharacterBluesphereSpriteKey(name)), objA0.animation.sprite)
+			
+			if (Renderer.hasCustomSprite(key))
+			{
+				Renderer.drawCustomSprite(key, px, py, atex, flags, renderQueue)
+				return true
+			}
+		}
+	}
+
+	// Tornado
+	// based on YYWTRRSHYGNDS, but works in vanilla context
+	else if (objA0.update_address == 0x05ebb4) && (global_ExChar_P1)
+	{
+		u8 char = getECFCharacterTornadoPilot(global_ExChar_P1)
+		string pal 
+		
+		if (char == 0xff)
+		{
+			key = getECFCharacterSpecialPilotKey(global_ExChar_P1)
+			pal = getECFCharacterSpecialPilotPalette(global_ExChar_P1)
+			atex = 0x40 + getMainCharacter() * 0x20
+		}
+		else
+		{
+			key = getCharacterTornadoSpriteKey(char)
+			if (char == getMainCharacter())
+				pal = getCharacterPaletteKey(char)
+			else
+				atex = 0x40 + char * 0x20
+		}
+
+		key = stringformat("%s_pilot", key)
+		
+		if (Renderer.hasCustomSprite(key))
+		{
+			SpriteHandle pilot = Renderer.addSpriteHandle(key, px, py, renderQueue)
+			pilot.setFlags(flags)
+			if (System.hasExternalPaletteData(pal, 0))
+				pilot.setPalette(pal, 0)
+			else
+				pilot.setPaletteOffset(atex)
+			return true
+		}
+	}
+	else if (objA0.mapping_offset == 0x060486 && global_ExChar_P1)
+	{
+		string pal 
+		if (objA0.animation.sprite == 14 || objA0.animation.sprite == 21)
+		{
+			atex = 0x40 + getMainCharacter() * 0x20
+			key = stringformat("%s_small", getECFCharacterTornadoSpriteKey(global_ExChar_P1))
+			
+			// handle Knuckles' variations
+			if (Renderer.hasCustomSprite(key) && global.zone_act == 0x0a01)
+			{
+				Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+				Renderer.drawSprite("tornado_ending_16", px - 1, py - 12, 0, flags, renderQueue)
+				return true
+			}
+			
+			// Knuckles exclusive sprite variations
+			string ver
+			if (global.zone_act == 0x0d01)
+				ver = "standing"
+			else if (outro.ending_type < 0)
+				ver = "exhausted"
+			
+			ver = stringformat("%s_%s", key, ver)
+			if (Renderer.hasCustomSprite(ver))
+				key = ver
+			
+			Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+			return true
+		}
+		else if (objA0.animation.sprite == 18 || objA0.animation.sprite == 12 || objA0.animation.sprite == 19)
+		{
+			u8 char = getECFCharacterTornadoPilot(global_ExChar_P1)
+			
+			if (char == 0xff)
+			{
+				key = getECFCharacterSpecialPilotKey(global_ExChar_P1)
+				pal = getECFCharacterSpecialPilotPalette(global_ExChar_P1)
+				atex = 0x40 + getMainCharacter() * 0x20
+			}
+			else
+			{
+				key = getCharacterTornadoSpriteKey(char)
+				if (char == getMainCharacter())
+					pal = getCharacterPaletteKey(char)
+				else
+					atex = 0x40 + char * 0x20
+			}
+
+			key = stringformat("%s_pilot", key)
+			if (objA0.animation.sprite == 12 || objA0.animation.sprite == 19)
+				key = stringformat("%s_small", key)
+			
+			if (Renderer.hasCustomSprite(key))
+			{
+				SpriteHandle pilot = Renderer.addSpriteHandle(key, px, py, renderQueue)
+				pilot.setFlags(flags)
+				if (System.hasExternalPaletteData(pal, 0))
+					pilot.setPalette(pal, 0)
+				else
+					pilot.setPaletteOffset(atex)
+				return true
+			}
+		}
+		else if (objA0.animation.sprite == 0x5 || objA0.animation.sprite == 0x6 || objA0.animation.sprite == 0x1a)
+		{
+			u8 char = getMainCharacter()
+			Renderer.drawSprite("tornado_tiny", px, py, 0, flags, renderQueue)
+			
+			// dork on the plane
+			if (objA0.animation.sprite != 0x1a)
+			{
+				key = stringformat("%s_tiny", getECFCharacterTornadoSpriteKey(global_ExChar_P1))
+				if (!Renderer.hasCustomSprite(key))
+					key = stringformat("%s_tiny", getCharacterTornadoSpriteKey(getMainCharacter()))
+				
+				Renderer.drawSprite(key, px, py, 0x40 + char * 0x20, flags, renderQueue)
+				// master emerald
+				if (global.zone_act == 0x0a01 && outro.ending_type >= 0)
+					Renderer.drawSprite("tornado_ending_17", px + 5, py - 3, 0, flags, renderQueue)
+			}
+			
+			// trusty pilot
+			char = getECFCharacterTornadoPilot(global_ExChar_P1)
+			if (char == 0xff)
+			{
+				key = getECFCharacterSpecialPilotKey(global_ExChar_P1)
+				pal = getECFCharacterSpecialPilotPalette(global_ExChar_P1)
+				atex = 0x40 + getMainCharacter() * 0x20
+			}
+			else
+			{
+				key = getCharacterTornadoSpriteKey(char)
+				if (char == getMainCharacter())
+					pal = getCharacterPaletteKey(char)
+				else
+					atex = 0x40 + char * 0x20
+			}
+			key = stringformat("%s_pilot_tiny", key)
+			
+			SpriteHandle pilot = Renderer.addSpriteHandle(key, px, py, renderQueue)
+			pilot.setFlags(flags)
+			if (System.hasExternalPaletteData(pal, 0))
+				pilot.setPalette(pal, 0)
+			else
+				pilot.setPaletteOffset(atex)
+			return true
+		}
+	}
+	
+	// Continue Screen
+	// Sonic
+	else if (objA0.update_address == 0x05c588 || objA0.update_address == 0x05c660) && (global_ExChar_P1 && isMainCharacter(CHARACTER_SONIC))
+	{
+		if (objA0.subtype2c)
+		{
+			key = stringformat("%s_continue_0x%02x", getECFCharacterSpriteKey(global_ExChar_P1, false), objA0.animation.sprite)
+			if (Renderer.hasCustomSprite(key))
+				Renderer.drawSprite(key, px, py, 0x40, flags, renderQueue)
+		}
+		else
+			ECF_drawCharEchoSprite(global_ExChar_P1, objA0.animation.sprite, px, py, flags, 0x40, renderQueue)
+		return true
+	}
+	else if (objA0.update_address == 0x05c55c && global_ExChar_P1) && (global_ExChar_P1 && isMainCharacter(CHARACTER_SONIC))
+	{
+		key = stringformat("%s_continue_0x%02x", getECFCharacterSpriteKey(global_ExChar_P1, false), objA0.animation.sprite)
+		if (Renderer.hasCustomSprite(key))
+		{
+			Renderer.drawSprite(key, px, py, 0x40, flags, renderQueue)
+			return true
+		}
+	}
+	// Tails
+	else if (objA0.update_address == 0x05c790 && global_ExChar_P1 && isMainCharacter(CHARACTER_TAILS))
+	{
+		ECF_drawCharEchoSprite(global_ExChar_P1, objA0.animation.sprite, px, py, flags, 0x60, renderQueue)
+		return true
+	}
+	else if (objA0.update_address == 0x05c74a && global_ExChar_P1 && isMainCharacter(CHARACTER_TAILS))
+	{
+		key = stringformat("%s_continue_0x%02x", getECFCharacterSpriteKey(global_ExChar_P1, false), objA0.animation.sprite - 5)
+		if (Renderer.hasCustomSprite(key))
+		{
+			Renderer.drawSprite(key, px, py, 0x60, flags, renderQueue)
+			return true
+		}
+	}
+	// Knuckles
+	else if (objA0.update_address == 0x05c8c8 && global_ExChar_P1 && isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		ECF_drawCharEchoSprite(global_ExChar_P1, objA0.animation.sprite, px, py, flags, 0x80, renderQueue)
+		return true
+	}
+	else if (objA0.update_address == 0x05c88c || objA0.update_address == 0x05c8ac) && (global_ExChar_P1 && isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		key = stringformat("%s_continue_0x%02x", getECFCharacterSpriteKey(global_ExChar_P1, false), objA0.animation.frame)
+		if (Renderer.hasCustomSprite(key))
+		{
+			Renderer.drawSprite(key, px, py, 0x80, flags, renderQueue)
+			return true
+		}
+	}
+	// Animated Icon
+	else if (objA0.update_address == 0x05ca5c && global_ExChar_P1)
+	{
+		u8 character = getMainCharacter()
+		key = stringformat("%s_wait_0x%02x", getECFCharacterContinueIcon(global_ExChar_P1), (character == CHARACTER_SONIC) ? objA0.animation.sprite : (character == CHARACTER_TAILS) ? objA0.animation.sprite-2 : objA0.animation.sprite-7)
+		
+		if (Renderer.hasCustomSprite(key))
+		{
+			Renderer.drawSprite(key, px, py, 0x40 + character * 0x20, flags, renderQueue)
+			return true
+		}
+	}
+	else if (objA0.update_address == 0x05ca9e && global_ExChar_P1)
+	{
+		u8 character = getMainCharacter()
+		key = stringformat("%s_wait_0x%02x", getECFCharacterContinueFollowObjectSpriteKey(global_ExChar_P1), objA0.animation.sprite-4)
+			
+		if (Renderer.hasCustomSprite(key))
+		{
+			Renderer.drawSprite(key, px, py, 0x40 + character * 0x20, flags, renderQueue)
+			return true
+		}
+	}
+	
+	// Bobbles
+	else if (objA0.mapping_offset == 0x04d926)
+	{
+		string name
+		string pal
+		
+		if (levelselect.characters == CHARACTER_SONIC)
+		{
+			name = "Sonic"
+			pal = getCharacterPaletteKey(CHARACTER_SONIC)
+		}
+		else if (levelselect.characters == CHARACTER_TAILS)
+		{
+			name = "Tails"
+			pal = getCharacterPaletteKey(CHARACTER_TAILS)
+		}
+		else if (levelselect.characters == CHARACTER_KNUCKLES)
+		{
+			name = "Knuckles"
+			pal = getCharacterPaletteKey(CHARACTER_KNUCKLES)
+		}
+		else
+		{
+			name = getECFCharNameAtId(levelselect.characters - 2)
+			pal = getECFCharacterPaletteKey(name)
+		}
+		
+		ECF_drawBobble(name, pal, objA0.animation.sprite, px, py, flags, renderQueue)
+		return true
+	}
+	
+#if !LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+	// Data Select Characters
+	// This 97 year old diner still serves their Coke the old-fashioned way.
+	else if (objA0.update_address == 0x00d30c || objA0.update_address == 0x00d42c)
+	{
+		string name
+		string id
+		if (objA0.update_address == 0x00d30c)
+		{
+			id = noSave_ExChar_P1_id
+			name = getECFCharNameAtId(id)
+		}
+		else
+		{
+			u8 read = (A0.u16 - 0xb0de) / 0x4a
+		#if GAMEAPP >= 0x26012400
+			name = ECF_Save_str[read - 1]
+			id = ECF_Save_num[read - 1]
+		#else
+			name = System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1", read)) 
+			id = System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1_id", read))
+		#endif
+		}
+
+		if (name)
+		{
+			ECF_drawCharSelectSpr(name, id, px, py - 20, renderQueue)
+			if (objA0.update_address == 0x00d42c && u8[u32[A0 + 0x30]] != 0x80 && u8[A0 + 0x1d] < 0x1d && u8[A0 + 0x1d] != 0x0f)
+				ECF_drawCharSelectSprIcons(name, id, px, py, renderQueue)
+			objA0.animation.sprite = 0
+			
+			if (objA0.compound.count >= 2 && objA0.value26 && objA0.update_address == 0x00d42c)
+			{
+				key = stringformat("saveimage_%s_%d", name, objA0.value26)
+				if (!Renderer.hasCustomSprite(key))
+					key = "saveimage_unknown"
+					
+				SpriteHandle zone = Renderer.addSpriteHandle(key, px, py - 120, renderQueue)
+				zone.setFlags(flags)
+				zone.setPaletteOffset(0x30)
+				objA0.compound.count = 1
+			}
+			return false
+		}
+	}
+#endif
+
+	// Endpose
+	else if (objA0.update_address == 0x05e18a || objA0.update_address == 0x05f4e4) && (global_ExChar_P1)
+	{
+		if (objA0.update_address == 0x05f4e4)
+			key = stringformat("%s_0x%02x", getECFCharacterEndPoseSpriteKey(global_ExChar_P1, false), objA0.animation.sprite)
+		else if (objA0.animation.sprite >= 0x03)
+		{
+			key = stringformat("%s_0x%02x", getECFCharacterEndPoseSpriteKey(global_ExChar_P1, false), objA0.animation.sprite - 0x03)
+			flags |= SPRITE_FLAG_FLIP_X
+		}
+		else if (objA0.animation.sprite == 0x02)
+			key = getECFCharacterEndPoseSpriteKey(global_ExChar_P1, true)
+		else if (objA0.animation.sprite <= 0x01)
+			key = stringformat("%s_0x%02x", getECFCharacterEndPoseSpriteKey(global_ExChar_P1, false), objA0.animation.sprite - 0x00)
+
+		if (Renderer.hasCustomSprite(key))
+		{
+			atex = 0x40 + getMainCharacter() * 0x20
+			Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+			return true
+		}
+	}
+	
+	// Best ending congrats character
+	else if (objA0.update_address == addressof(ECF_EndScreen_char))
+	{
+		key = stringformat("%s_ending_%d_%d", getECFCharacterSpriteKey(global_ExChar_P1, Character.getSuperState(0xffffb000)), objA0.state, objA0.animation.frame)
+		atex = 0x40 + getECFCharBase(global_ExChar_P1) * 0x20
+		if (Renderer.hasCustomSprite(key))
+			Renderer.drawSprite(key, px, py, atex, SPRITE_FLAG_PRIO, renderQueue)
+		else
+			debugLog(key)
+		return true
+	}
+	
+	// The one and only.
+	else if (objA0.update_address == addressof(ECF_BossTop))
+	{
+		key = stringformat("boss_mgz_top_%d", objA0.animation.sprite)
+		if (Renderer.hasCustomSprite(key))
+			Renderer.drawSprite(key, px, py, atex, SPRITE_FLAG_PRIO, renderQueue)
+		return true
+	}
+	
+	else if (objA0.update_address == addressof(ECF_BossTopRocket))
+	{
+		key = stringformat("boss_mgz_top_rocket_%d", objA0.animation.sprite)
+		if (objA0.animation.sprite == 0)
+			renderQueue += 0x40
+		else if (objA0.animation.sprite == 1)
+			renderQueue += 0x20
+			
+		if (Renderer.hasCustomSprite(key))
+		{
+			Renderer.drawSprite(key, px, py, atex, SPRITE_FLAG_PRIO, renderQueue)
+			if (objA0.animation.frame)
+				Renderer.drawSprite("boss_mgz_top_rocket_flame", px, py, atex, SPRITE_FLAG_PRIO, renderQueue + 1)
+		}
+		return true
+	}
+	
+	return base.Standalone.onWriteToSpriteTable(px, py, renderQueue)
+}
+
+function void ECF_drawBobble(string name, string pal, u8 frame, s16 px, s16 py, u8 flags, u16 renderQueue)
+{
+	string key = stringformat("bobble_%s_%d", name, frame)
+	if (!Renderer.hasCustomSprite(key) && frame >= 5 && frame <= 7)
+	{
+		key = stringformat("bobble_%s_%d", name, 8 - frame)
+		flags ^= SPRITE_FLAG_FLIP_X
+	}
+	
+	if (Renderer.hasCustomSprite(key))
+	{
+		SpriteHandle spr = Renderer.addSpriteHandle(key, px, py, renderQueue)
+		spr.setFlags(flags)
+		
+		if (System.hasExternalPaletteData(pal, 0))
+			spr.setPalette(pal, 0)
+		else
+			spr.setPalette(key, 0)
+		spr.setUseGlobalComponentTint(true)
+	}
+	else
+	{
+		if (frame >= 5 && frame <= 7)
+			frame = 8 - frame
+			
+		key = stringformat("bobble_unknown_%d", frame)
+		SpriteHandle spr = Renderer.addSpriteHandle(key, px, py, renderQueue)
+		spr.setFlags(flags)
+		
+		if (System.hasExternalPaletteData(pal, 0))
+			spr.setPalette(pal, 0)
+		else
+			spr.setPalette(key, 0)
+		spr.setUseGlobalComponentTint(true)
+	}
+}
+
+function bool Standalone.drawCharacterSprite(u8 character, u8 variant, s16 px, s16 py, bool asSmallGhost)
+{
+	string name = ECF_cRenderGetName()
+	if (name == "")
+		return base.Standalone.drawCharacterSprite(character, variant, px, py, asSmallGhost)
+	
+	// replaces some calls to ECF equivalents
+	
+	// renables rendering in Slot Machine and removes sprite rotation for follow objects.
+	
+	bool isPlayer1 = (variant == 0)
+	u32 characterAddress = isPlayer1 ? 0xffffb000 : 0xffffb04a
+
+	string cPrefixNormal
+	string cPrefixSuper 
+	
+	// Check only needed for Tails' tails
+	if (variant == 2)
+	{
+		characterAddress = 0xffff0000 + u16[A0 + 0x30]
+
+		// Do not render when blinking after hit
+		if (u8[characterAddress + 0x34] != 0 && ((u8[characterAddress + 0x34] + 1) & 0x04) == 0)
+		{
+			// Prevent emulator-like rendering
+			return true
+		}
+
+		// Do not render when Tails looks into the background (e.g. LBZ 2 end cutscene) and in DEZ gravity transporters
+		if (u8[characterAddress + 0x22] >= 0x55 && u8[characterAddress + 0x22] <= 0x5b)
+		{
+			// Prevent emulator-like rendering
+			return true
+		}
+
+		isPlayer1 = (characterAddress == 0xffffb000)
+		character = u8[characterAddress + 0x38]
+	}
+
+	u8 superFlag = Character.getSuperState(characterAddress)
+	
+	if (level.vertical_wrap == 0xff00)
+	{
+		// For vertically wrapping levels, "normalize" py into interval [-move_area.bottom.target * 3/4, -move_area.bottom.target * 1/4]
+		py &= level.height.bitmask
+		if (py > move_area.bottom.target * 3/4 && move_area.bottom.target >= 0xe0)	// move_area.bottom.target is very low in DEZ boss act
+			py -= move_area.bottom.target
+	}
+
+	u8 animationSprite = char.animation.sprite
+	u16 animationSpriteEx = Standalone.getModdedAnimationSpriteEx(character, animationSprite)
+	u8 flags = (char.render_flags & (SPRITE_FLAG_FLIP_X | SPRITE_FLAG_FLIP_Y))
+	u8 angle = 0
+	string key = Standalone.getModdedAnimationSpriteKey(character, animationSpriteEx)		// First ask modded scripts
+	u8 rotationMode = 0
+
+	if (variant < 2)
+	{
+		cPrefixNormal = getECFCharacterSpriteKey(name, false)
+		cPrefixSuper = getECFCharacterSpriteKey(name, superFlag)
+		
+		if (Game.getSetting(SETTING_SMOOTH_ROTATION))
+		{
+			// Character
+			if (animationSprite >= 0x01 && animationSprite <= 0x20)
+			{
+				// Walking animation
+				animationSprite = 0x01 + (animationSprite - 0x01) % 8
+				rotationMode = 1
+			}
+			else if (animationSprite >= 0x21 && animationSprite <= 0x30)
+			{
+				// Running animation
+				animationSprite = 0x21 + (animationSprite - 0x21) % 4
+				rotationMode = 1
+			}
+			else if (animationSprite >= 0x78 && animationSprite <= 0x7f)
+			{
+				// Swinging animation
+				animationSprite = 0x78
+				rotationMode = 2
+			}
+			else if (character == CHARACTER_TAILS && animationSprite >= 0xc3 && animationSprite <= 0xca)
+			{
+				// Tails' fastest run animation
+				animationSprite = 0xc3 + (animationSprite - 0xc3) % 2
+				rotationMode = 1
+			}
+			else if (character == CHARACTER_KNUCKLES && animationSprite == 0xc0)
+			{
+				// Only for DDZ
+				rotationMode = 1
+			}
+
+			if (rotationMode != 0)
+			{
+				bool useVanillaS3AIRRotation = true
+				if (Game.getSetting(SETTING_SMOOTH_ROTATION) == 2)
+				{
+					useVanillaS3AIRRotation = (char.flags & char.flag.IN_AIR || global.zone == 0x0c)	// Use in-air rotation in DDZ
+				}
+
+				if (useVanillaS3AIRRotation)
+				{
+					s8 oldRotation = isPlayer1 ? oldRotationPlayer1 : oldRotationPlayer2
+					flags = char.flags & char.flag.FACING_LEFT		// This really has to be "char.flags", not "char.render_flags"
+
+					angle = char.rotation
+					if (rotationMode == 1)
+					{
+						if (abs(s8(char.rotation)) <= 0x10 && abs(oldRotation) <= 0x10)
+						{
+							angle = 0
+						}
+
+						if (angle != char.rotation)
+						{
+							s8 diff = angle - oldRotation
+							angle = oldRotation + clamp(diff, -3, 3)
+						}
+					}
+				}
+				else
+				{
+					// Mania-accurate rotation #contributed by Elsie The Pict
+					u8 oldRotation = isPlayer1 ? oldRotationPlayer1 : oldRotationPlayer2
+					flags = char.flags & char.flag.FACING_LEFT		// This really has to be "char.flags", not "char.render_flags"
+
+					angle = char.rotation
+					if (rotationMode == 1)
+					{
+						if (char.rotation <= 0x04 || char.rotation >= 0xfc)
+						{
+							oldRotation = 0
+						}
+						else
+						{
+							u32 targetRotation = 0
+							if (char.rotation > 0x10 && char.rotation < 0xe8)
+								targetRotation = char.rotation
+
+							u32 rotate = targetRotation - oldRotation
+							u32 shift = (abs(char.groundspeed) <= 0x6000) + 1
+
+							if (abs(rotate) >= abs(rotate - 0x100))
+							{
+								if (abs(rotate - 0x200) < abs(rotate + 0x100))
+									oldRotation += (rotate - 0x100) >> shift
+								else
+									oldRotation += (rotate + 0x100) >> shift
+							}
+							else
+							{
+								if (abs(rotate) < abs(rotate + 0x100))
+									oldRotation += rotate >> shift
+								else
+									oldRotation += (rotate + 0x100) >> shift
+							}
+						}
+
+						angle = oldRotation & 0xff
+					}
+				}
+			}
+
+			if (isPlayer1)
+				oldRotationPlayer1 = angle
+			else
+				oldRotationPlayer2 = angle
+		}
+
+		if (isPlayer1)
+			timeattack.animSpriteEx = animationSpriteEx
+
+		if (key == 0)
+		{
+			if (cPrefixNormal != cPrefixSuper)
+			{
+				string temp1 = stringformat("%s_0x%02x", cPrefixNormal, animationSprite)
+				string temp2 = stringformat("%s_0x%02x", cPrefixSuper, animationSprite)
+				
+				if (Renderer.hasCustomSprite(temp2))
+					key = temp2
+				else 
+					key = temp1
+			}
+			else
+				key = stringformat("%s_0x%02x", cPrefixNormal, animationSprite)
+				
+			if (!Renderer.hasCustomSprite(key))
+			{
+				u32 sourceBase    = (character == CHARACTER_SONIC) ? ((animationSprite >= 0xda) ? 0x140060 : 0x100000) : (character == CHARACTER_TAILS) ? ((animationSprite >= 0xd1) ? 0x143d00 : 0x3200e0) : 0x1200e0
+				u32 tableAddress  = (character == CHARACTER_SONIC) ? (super.active ? 0x148378 : 0x148182) : (character == CHARACTER_TAILS) ? 0x14a08a : 0x14bd0a
+				u32 mappingOffset = (character == CHARACTER_SONIC) ? (super.active ? 0x146816 : 0x146620) : (character == CHARACTER_TAILS) ? 0x148eb8 : 0x14a8d6		// Not really necessary here, we could also use "char.mapping_offset"
+
+				key = Renderer.setupCustomCharacterSprite(sourceBase, tableAddress, mappingOffset, animationSprite, 0x00)
+			}
+		}
+	}
+	else
+	{
+		cPrefixNormal = getECFCharacterFollowObjectSpriteKey(name, false)
+		cPrefixSuper = getECFCharacterFollowObjectSpriteKey(name, superFlag)
+	
+		if (cPrefixNormal != cPrefixSuper)
+		{
+			string temp1 = stringformat("%s_0x%02x", cPrefixNormal, animationSprite)
+			string temp2 = stringformat("%s_0x%02x", cPrefixSuper, animationSprite)
+			if (Renderer.hasCustomSprite(temp2))
+				key = temp2
+			else 
+				key = temp1
+		}
+		else
+			key = stringformat("%s_0x%02x", cPrefixNormal, animationSprite)
+		
+		if (!Renderer.hasCustomSprite(key))
+			key = Renderer.setupCustomCharacterSprite(0x336620, 0x344d74, 0x344bb8, animationSprite, 0x00)
+	}
+
+	u16 renderQueue = 0xa000 - char.sprite_priority
+	u8 atex = (char.sprite_attributes >> 9) & 0x30
+	if (EXTENDED_CHARACTER_PALETTES)
+		atex = 0x40 + character * 0x20
+
+	if (char.sprite_attributes & sprite_attribute.PRIORITY)
+		flags |= SPRITE_FLAG_PRIO
+
+	if (rotationMode != 0 && global.inv_gravity)
+	{
+		// Correction for inverse gravity
+		angle = 128 - angle
+		flags ^= SPRITE_FLAG_FLIP_X
+	}
+
+	if (ROMDataAnalyser.isEnabled())
+	{
+		string category = (variant < 2) ? getCharacterSpriteKey(character) : stringformat("%s_tails", getCharacterSpriteKey(CHARACTER_TAILS))
+		Renderer.extractCustomSprite(key, category, animationSprite, atex)
+	}
+
+	// Render character
+	if (asSmallGhost)
+	{
+		Renderer.drawSpriteTinted(key, px, py, atex, flags | SPRITE_FLAG_PRIO, 0xa800, angle, 0xc0ffffff, 0x8000)
+	}
+	else
+	{
+		Renderer.drawSprite(key, px, py, atex, flags, renderQueue, angle, 255)
+	}
+
+	bool useAfterImages
+	if (isPlayer1)
+	{
+		if (superFlag)
+		{
+			useAfterImages = true
+		}
+		else
+		{
+			if (Game.getSetting(SETTING_SPEEDUP_AFTERIMGS))
+			{
+				useAfterImages = ((u8[characterAddress + 0x2b] & char.bonus.SPEED_UP) != 0)
+			}
+		}
+	}
+
+	if (useAfterImages)
+	{
+		// Additional offset for Sonic charging a Super Peel-Out (either Hyper Sonic or with Speed Shoes)
+		s16 afterImagesOffsetX = 0
+		if (char.character == CHARACTER_SONIC && char.spindash == 0x80)
+		{
+			afterImagesOffsetX = (char.groundspeed >> 7) * ((char.flags & char.flag.FACING_LEFT) ? 1 : -1)
+		}
+
+		for (s8 i = 3; i > 0; --i)
+		{
+			A1 = 0xffffe500 + u8(posbackup.offset.player1 - (i * 8 + 4))
+			s16 px0 = u16[A1] - camera.foreground.x.u16 + (i * afterImagesOffsetX / 4)
+			s16 py0 = u16[A1+2] - camera.foreground.y.u16
+			if (level.vertical_wrap == 0xff00)	// Consider vertical level wrap
+				py0 &= level.height.bitmask
+
+			Renderer.setSpriteTagWithPosition(characterAddress + 0x10 + i, px0, py0)
+			Renderer.drawSprite(key, px0, py0, atex, flags, renderQueue - i, angle, 192 - i * 32)
+		}
+	}
+
+	// Prevent emulator-like rendering
+	return true
+}
+
+function string ECF_cRenderGetName()
+{
+	// (as I'm writing this) the compiler just doesn't like addressof being used in if statements when used more than once...
+	// Maingame player
+	if (objA0.update_address == 0x010a94 || objA0.update_address == 0x01365c || objA0.update_address == 0x016444)
+		return getECFCharBufferName()
+	else if (objA0.update_address == addressof(TailsTails.Update))
+		return getECFCharBufferName(u32(0xffff0000 + u16[A0 + 0x30]))
+	// Slot Machine character
+	else if (objA0.update_address == 0x04b958 || objA0.update_address == 0x04bc54)
+		return global_ExChar_P1
+		
+	return ""
+}
+
+// generic shared rendering function for when an object is meant to reuse player sprites
+function void ECF_drawCharEchoSprite(string name, u8 animationSprite, s16 px, s16 py, u8 flags, u16 atex, u16 renderQueue)
+{
+	string key = stringformat("%s_0x%02x", getECFCharacterSpriteKey(name, false), objA0.animation.sprite)
+	if (!Renderer.hasCustomSprite(key))
+	{
+		u8 character = getECFCharBase(name)
+		u32 sourceBase    = (character == CHARACTER_SONIC) ? ((animationSprite >= 0xda) ? 0x140060 : 0x100000) : (character == CHARACTER_TAILS) ? ((animationSprite >= 0xd1) ? 0x143d00 : 0x3200e0) : 0x1200e0
+		u32 tableAddress  = (character == CHARACTER_SONIC) ? (super.active ? 0x148378 : 0x148182) : (character == CHARACTER_TAILS) ? 0x14a08a : 0x14bd0a
+		u32 mappingOffset = (character == CHARACTER_SONIC) ? (super.active ? 0x146816 : 0x146620) : (character == CHARACTER_TAILS) ? 0x148eb8 : 0x14a8d6		// Not really necessary here, we could also use "char.mapping_offset"
+
+		key = Renderer.setupCustomCharacterSprite(sourceBase, tableAddress, mappingOffset, animationSprite, 0x00)
+	}
+	
+	Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+}
+
+// YYWTRRSHYGNDS
+#if LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+function void LemonsRender_DataSelect_drawCharacterCombo(s16 px, s16 py, u16 renderQueue)
+{
+	string name = ECF_dataselect_getStr()
+	string id = ECF_dataselect_getNum()
+	
+	if (name)
+	{
+		ECF_drawCharSelectSpr(name, id, px, py - 20, renderQueue)
+		if (objA0.update_address == 0x00d42c && u8[u32[A0 + 0x30]] != 0x80 && u8[A0 + 0x1d] < 0x1d && u8[A0 + 0x1d] != 0x0f)
+			ECF_drawCharSelectSprIcons(name, id, px, py, renderQueue)
+	}
+	else
+		base.LemonsRender_DataSelect_drawCharacterCombo(px, py, renderQueue)
+}
+#endif
+
+// shared
+function void ECF_drawCharSelectSpr(string name, u16 id, s16 px, s16 py, u16 renderQueue)
+{
+	string _pal = getECFCharacterPaletteKey(name)
+
+	if (id)
+	{
+		string key = getECFCharacterSelectSpriteKey(name)
+		bool error = (!Renderer.hasCustomSprite(key))
+		if (error)
+			key = getCharacterSelectSpriteKey(getECFCharBase(name))
+			
+		SpriteHandle cspr = Renderer.addSpriteHandle(key, px, py, renderQueue)
+		cspr.setFlags(SPRITE_FLAG_PRIO)
+		if (error)
+		{
+			cspr.setTintColor(0, 0, 0, 1)
+			Renderer.drawText("smallfont:outline(0x242424ff,1,true)", px, py, name, 0x486cfcff, 5, 0, renderQueue, false, true)
+		}
+		else
+			cspr.setPalette(_pal, 0)
+	}
+	else
+	{
+		string font = "smallfont:outline(0x242424ff,1,true)"
+		Renderer.drawText(font, px, py - 5, name, 0xfc486cff, 5, 0, renderQueue, false, true)
+		Renderer.drawText(font, px, py + 5, "is not loaded!", 0xfc486cff, 5, 0, renderQueue, false, true)
+	}
+}
+
+function void ECF_drawCharSelectSprIcons(string name, u16 id, s16 px, s16 py, u16 renderQueue)
+{
+	string _ico = stringformat("%s_icons", getECFCharacterSelectSpriteKey(name))
+	string _pal = getECFCharacterPaletteKey(name)
+	if (!Renderer.hasCustomSprite(_ico))
+		_ico = "charselect_icons_unknown"
+
+	SpriteHandle cicons = Renderer.addSpriteHandle(_ico, px - 16, py + 8, renderQueue)
+	cicons.setFlags(SPRITE_FLAG_PRIO)
+	cicons.setPalette(_pal, 0)
+}
+
+function void ECF_drawCharSelectSprName(string name, s16 px, s16 py, u16 renderQueue)
+{
+	ECF_drawCharSelectSpr(name, getCharId(name), px, py, renderQueue)
+}
+
+function void ECF_drawCharSelectSprId(u16 id, s16 px, s16 py, u16 renderQueue)
+{
+	ECF_drawCharSelectSpr(getECFCharNameAtId(id), id, px, py, renderQueue)
+}

@@ -1,0 +1,9 @@
+function void ECF_charAirBubble_setPos()
+{
+	base.ECF_charAirBubble_setPos()
+	if (isECFCharAt(A2, "ECC-Ray"))
+	{
+		if (u16[A0 + 0x30] == 0)
+			objA1.position.y.u16 += 1
+	}
+}

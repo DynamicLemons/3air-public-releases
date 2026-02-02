@@ -1,0 +1,91 @@
+include engine/?
+include adjust/?
+include renderhooks
+#define EXTRA_CHARACTER_FRAMEWORK_ACTIVE = 1
+
+// tied directly to character objects
+global string ExChar_P1
+global u16 ExChar_P1_id
+global string ExChar_P2
+global u16 ExChar_P2_id
+global string ExChar_P3
+global u16 ExChar_P3_id
+global string ExChar_P4
+global u16 ExChar_P4_id
+
+// global ids, not meant to change mid game
+global string global_ExChar_P1
+global u16 global_ExChar_P1_id
+global string global_ExChar_P2
+global u16 global_ExChar_P2_id
+global string global_ExChar_P3
+global u16 global_ExChar_P3_id
+global string global_ExChar_P4
+global u16 global_ExChar_P4_id
+
+// ids for menus, names do not need to be stored here
+global u16 noSave_ExChar_P1_id
+global u16 noSave_ExChar_P2_id
+global u16 noSave_ExChar_P3_id
+global u16 noSave_ExChar_P4_id
+global u16 levelselect_ExChar_P1_id
+global u16 levelselect_ExChar_P2_id
+global u16 levelselect_ExChar_P3_id
+global u16 levelselect_ExChar_P4_id
+
+// store char names in a 20 char long list
+global bool ECF_charList_inited
+constant u16 ECF_charList_size = 20
+
+#if GAMEAPP >= 0x26012400
+	global string ECF_charList[20]
+	global string ECF_Save_str[8]
+	global u16 ECF_Save_num[8]
+#else
+	global string ECF_charList_1
+	global string ECF_charList_2
+	global string ECF_charList_3
+	global string ECF_charList_4
+	global string ECF_charList_5
+	global string ECF_charList_6
+	global string ECF_charList_7
+	global string ECF_charList_8
+	global string ECF_charList_9
+	global string ECF_charList_10
+	global string ECF_charList_11
+	global string ECF_charList_12
+	global string ECF_charList_13
+	global string ECF_charList_14
+	global string ECF_charList_15
+	global string ECF_charList_16
+	global string ECF_charList_17
+	global string ECF_charList_18
+	global string ECF_charList_19
+	global string ECF_charList_20
+	
+	global string ECF_Save1_P1
+	global string ECF_Save2_P1
+	global string ECF_Save3_P1
+	global string ECF_Save4_P1
+	global string ECF_Save5_P1
+	global string ECF_Save6_P1
+	global string ECF_Save7_P1
+	global string ECF_Save8_P1
+	
+	global u16 ECF_Save1_P1_id
+	global u16 ECF_Save2_P1_id
+	global u16 ECF_Save3_P1_id
+	global u16 ECF_Save4_P1_id
+	global u16 ECF_Save5_P1_id
+	global u16 ECF_Save6_P1_id
+	global u16 ECF_Save7_P1_id
+	global u16 ECF_Save8_P1_id
+#endif
+
+// unnecessary, just speeds up checks
+global u16 ECF_charList_length // includes hidden characters.
+global u16 ECF_firstSelectableId
+global u16 ECF_lastSelectableId
+
+// processor stuff.
+global bool ECF_disableBranchBase

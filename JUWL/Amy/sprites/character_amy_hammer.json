@@ -1,0 +1,14 @@
+{
+	"character_ECC-Amy_hammer_0x01":  { "File": "character_amy.bmp", "Rect": "800,1096,48,48", "Center": "24,24" },
+	"character_ECC-Amy_hammer_0x02":  { "File": "character_amy.bmp", "Rect": "856,1096,24,24", "Center": "0,12" },
+	"character_ECC-Amy_hammer_0x03":  { "File": "character_amy.bmp", "Rect": "888,1096,48,48", "Center": "24,24" },
+	"character_ECC-Amy_hammer_0x04":  { "File": "character_amy.bmp", "Rect": "944,1096,24,24", "Center": "12,0" },
+	"character_ECC-Amy_hammer_0x05":  { "File": "character_amy.bmp", "Rect": "976,1096,48,48", "Center": "24,24" },
+	"character_ECC-Amy_hammer_0x06":  { "File": "character_amy.bmp", "Rect": "1032,1096,24,24", "Center": "24,12" },
+	"character_ECC-Amy_hammer_0x07":  { "File": "character_amy.bmp", "Rect": "1064,1096,48,48", "Center": "24,24" },
+	"character_ECC-Amy_hammer_0x08":  { "File": "character_amy.bmp", "Rect": "1120,1096,24,24", "Center": "12,24" },
+	"character_ECC-Amy_hammer_0x09":  { "File": "character_amy.bmp", "Rect": "1152,1096,48,48", "Center": "24,24" },
+	"character_ECC-Amy_hammer_0x0a":  { "File": "character_amy.bmp", "Rect": "1208,1096,48,48", "Center": "24,24" },
+	"character_ECC-Amy_hammer_0x0b":  { "File": "character_amy.bmp", "Rect": "1264,1096,48,48", "Center": "24,24" },
+	"character_ECC-Amy_hammer_0x0c":  { "File": "character_amy.bmp", "Rect": "1320,1096,48,48", "Center": "24,24" }
+}
