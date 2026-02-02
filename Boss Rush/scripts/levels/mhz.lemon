@@ -1,0 +1,9 @@
+//# address-hook(0x054b80) end(0x054ba2)
+function void fn054b80()
+{
+	if (!isBossRushMode)
+	{
+		base.fn054b80()
+		return
+	}
+}

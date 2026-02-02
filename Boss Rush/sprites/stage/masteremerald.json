@@ -1,0 +1,5 @@
+{
+	"br_sm_master_emerald_0": { "File": "masteremerald.png", "Rect": "0,0,64,48", "Center": "32,24" },
+	"br_sm_master_emerald_1": { "File": "masteremerald.png", "Rect": "64,0,64,48", "Center": "32,24" },
+	"br_sm_master_emerald_g": { "File": "masteremerald_ground.bmp", "Rect": "0,0,64,48", "Center": "32,24" },
+}

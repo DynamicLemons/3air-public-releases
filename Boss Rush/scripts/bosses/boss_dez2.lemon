@@ -1,0 +1,23 @@
+//# address-hook(0x07f2fe) end(0x07f330)
+function void fn07f2fe()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07f2fe()
+		return
+	}
+	
+	if (u16[0xffffb000 + 0x10] < camera.position.x.u16 + getScreenWidth() + 0x20)
+		return
+
+	level.skip_titlecard = 0xff
+	level.backup.rings = 3
+	level.backup.timer.alldata = timer.alldata
+	global.shields_backup_2 = u8[0xffffb000 + 0x2b]
+
+	TriggerNextZone(0x1700)		// Death Egg boss act
+	UnloadObject()
+	
+	bossRush_bossProgress = 0
+}
+

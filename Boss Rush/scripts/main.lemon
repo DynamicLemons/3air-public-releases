@@ -1,0 +1,11 @@
+include general/?
+include levels/?
+include bosses/?
+
+global bool isBossRushMode
+global u16 bossRush_hitcount
+global u16 bossRush_bossProgress
+global u16 bossRush_scoreLimit
+
+global bool set_br_arenaAiz
+global bool set_br_arenaIcz

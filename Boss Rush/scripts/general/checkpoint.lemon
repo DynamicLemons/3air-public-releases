@@ -1,0 +1,12 @@
+//# address-hook(0x02cfc0) end(0x02d00c)
+//# alias(fn02cfc0) deprecated
+function void Checkpoint.Init()
+{
+	if (isBossRushMode)
+	{
+		UnloadObject()
+		return
+	}
+
+	base.Checkpoint.Init()
+}

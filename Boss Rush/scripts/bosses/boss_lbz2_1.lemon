@@ -1,0 +1,72 @@
+//# address-hook(0x073fe2) end(0x074092)
+function void fn073fe2()
+{
+	if (!isBossRushMode)
+	{
+		base.fn073fe2()
+		return
+	}
+	
+	if (objA0.update_address != 0 && u8[A0 + 0x28] == 0)
+	{
+		if (boss.remaining_hits == 0)
+		{
+			objA0.update_address = 0x073a52
+			hud.dirty.timer = 0
+			
+			if (bossRush_bossProgress >= bossRush_scoreLimit)
+			{
+				addScore(100)
+				++bossRush_scoreLimit
+				bossRush_hitcount = 0
+			}
+			++bossRush_bossProgress
+
+			objA0.render_flags &= ~render_flag.VISIBLE
+			objA0.countdown_value = 0x7f
+			objA0.flags38 |= 0x10
+			objA0.sprite_attributes = (sprite_attribute.PRIORITY | sprite_attribute.PALETTE.LINE1 | 0x0425)
+			objA0.velocity.y = -0x200
+			objA0.countdown_callback = 0x073a6a
+
+			// "spawnChildObjects(0x083fee)" replaced by:
+			spawnChildObject(0x083d84, 0x00, 0, 0)		// Boss explosion generator
+			if (_equal())
+			{
+				u8[A1 + 0x2c] = 0x04
+			}
+
+			screenmover_target.right = 0x3ab8
+
+			// "spawnSimpleChildObjects(0x084b00)" replaced by:
+			spawnSimpleChildObjects(0x084a48, 1)		// Screen mover for the right border
+		}
+		else
+		{
+			if (objA0.state == 0)
+			{
+				objA0.state = 0x20
+				playSound(0x6e)
+			}
+
+			objA0.flags2a |= 0x40
+			A1 = 0xfffffc36
+			u16[A1] = (objA0.state & 0x01) ? 0x0222 : 0x0eee
+
+			--objA0.state
+			if (objA0.state == 0)
+			{
+				objA0.flags2a &= ~0x40
+				u16[A1] = 0x0222
+				u8[A0 + 0x28] = u8[A0 + 0x25]
+			}
+		}
+	}
+}
+
+//# address-hook(0x073a6a) end(0x073a90)
+function void fn073a6a()
+{
+	base.fn073a6a()
+	bossRush_scoreLimit = max(bossRush_scoreLimit, 1)
+}

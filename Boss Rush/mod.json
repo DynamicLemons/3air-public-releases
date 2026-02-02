@@ -1,0 +1,67 @@
+{
+	"Metadata":
+	{
+		"Name": "Boss Rush",
+		"UniqueID": "dynamic-lemons-boss-rush",
+		"Author": "Dynamic Lemons",
+		"ModVersion": "1.0"
+	},
+	"Settings":
+	{
+		"List":
+		[
+			{
+				"InternalName": "arenaAiz",
+				"DisplayName": "Fire Breath",
+				"Variable": "set_br_arenaAiz",
+				"DefaultValue": "0",
+				"Category": "Arenas",
+				"Options":
+				{
+					"0": "Shoreline",
+					"1": "Burning"
+				}
+			},
+
+			{
+				"InternalName": "arenaIcz",
+				"DisplayName": "Big Icedus",
+				"Variable": "set_br_arenaIcz",
+				"DefaultValue": "0",
+				"Category": "Arenas",
+				"Options":
+				{
+					"0": "Snowy Peaks",
+					"1": "Glacial Lake"
+				}
+			},
+		]
+	},
+	"OtherMods":
+	{
+		"extra-character-framework":
+		{
+			"Priority": "Lower"
+		},
+
+		"radiant-nexus-limitless":
+		{
+			"Priority": "Lower"
+		},
+		
+		"dynamic-lemons-p2selection":
+		{
+			"Priority": "Lower"
+		},
+
+		"dynamic-lemons-extra-save-slots":
+		{
+			"Priority": "Lower"
+		},
+		
+		"dynamic-lemons-tweaks":
+		{
+			"Priority": "Lower"
+		}
+	}
+}

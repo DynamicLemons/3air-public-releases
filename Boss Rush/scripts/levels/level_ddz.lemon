@@ -1,0 +1,10 @@
+//# address-hook(0x05956c) end(0x05958e)
+function void InitLevelTiles.DDZ()
+{
+	base.InitLevelTiles.DDZ()
+	if (isBossRushMode)
+	{
+		global.super_emeralds = 7
+		global.chaos_emeralds = 7 // setting these here is necessary, as without this, the ending would softlock
+	}
+}

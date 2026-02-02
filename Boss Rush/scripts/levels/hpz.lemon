@@ -1,0 +1,12 @@
+//# address-hook(0x05a12e) end(0x05a152)
+function void InitLevelTiles.HPZ()
+{
+	if (!isBossRushMode)
+	{
+		base.InitLevelTiles.HPZ()
+		return
+	}
+
+	Level.GetCameraPosition()
+	Level.InitialTilesFill()
+}

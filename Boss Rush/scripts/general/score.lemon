@@ -1,0 +1,66 @@
+function void TriggerNextZone()
+{
+	base.TriggerNextZone()
+	bossRush_scoreLimit = 0 
+}
+
+//# address-hook(0x085f8a) end(0x085f9e)
+function void AddScoreForBossEnemy_NoHudDirty()
+{
+	if (isBossRushMode)
+	{
+		objA0.countdown_value = 0x3f
+		
+		if (bossRush_bossProgress >= bossRush_scoreLimit)
+		{
+			addOrSubtractScore(100 - bossRush_hitcount * 15)
+			++bossRush_scoreLimit
+		}
+		++bossRush_bossProgress
+		bossRush_hitcount = 0
+		objA0.render_flags &= ~render_flag.VISIBLE
+	}
+	else
+		base.AddScoreForBossEnemy_NoHudDirty()
+}
+
+function void subtractScore(u32 value)
+{
+	hud.dirty.score = 1
+	if (player.score > value)
+		player.score -= value
+	else
+		player.score = 0
+}
+
+function void Character.Die_noSound()
+{
+	base.Character.Die_noSound()
+	if (isBossRushMode && A0 == 0xffffb000)
+		subtractScore(50)
+}
+
+//# address-hook(0x010294) end(0x010364)
+function void Character.GettingHurt()
+{
+	base.Character.GettingHurt()
+	if (isBossRushMode && A0 == 0xffffb000) && (char.base_state == base_state.HURT && (char.protection_flag & 0x80) == 0)
+		++bossRush_hitcount
+}
+
+function void addOrSubtractScore(s32 value)
+{
+	if (value > 0)
+		addScore(value)
+	else if (value < 0)
+		subtractScore(-value)
+}
+
+/*
+//# address-hook(0x00db44) end(0x00dbb2)
+function void RenderHUD()
+{
+	debugLog(bossRush_hitcount)
+	base.RenderHUD()
+}
+*/

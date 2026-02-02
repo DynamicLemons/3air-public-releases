@@ -1,0 +1,22 @@
+//# address-hook(0x013a10) end(0x013b24)
+function void Character.TailsAI.Init()
+{
+	if (isBossRushMode)
+	{
+		char.state = char.state.RUNNING
+		char.velocity.x = 0
+		char.velocity.y = 0
+		char.groundspeed = 0
+		char.flags = 0
+		char.control_flags = 0
+	#if CHARACTER_SELECTION_PLUS_ACTIVE
+		setPData("respawn_counter", 0)
+		setPData("ai_routine", pAiRoutine_normal)
+	#else
+		tails.respawn_counter = 0
+		tails.ai_routine = 0x06
+	#endif
+	}
+	else
+		base.Character.TailsAI.Init()
+}

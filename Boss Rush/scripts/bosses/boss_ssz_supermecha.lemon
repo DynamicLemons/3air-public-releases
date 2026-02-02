@@ -1,0 +1,37 @@
+//# address-hook(0x07bc32) end(0x07bc6a)
+function void fn07bc32()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07bc32()
+		return
+	}
+	
+	--objA0.countdown_value
+	if (objA0.countdown_value >= 0)
+	{
+		DrawObject()
+		return
+	}
+
+	objA0.countdown_value = 0x1f
+	objA0.render_flags &= ~render_flag.VISIBLE
+	playMusic(MUSIC_CTRL_FADEOUT)
+
+	objA0.update_address = addressof(Object.CountdownAndTrigger)
+	objA0.position.y.u16 += 0x20
+	objA0.countdown_callback = 0x07bc70
+
+	// "spawnSimpleChildObjects(0x07d4ca)" replaced by:
+	spawnSimpleChildObjects(0x07ce90, 16)		// Mecha Sonic giblets
+}
+
+
+//# address-hook(0x07bc70) end(0x07bcae)
+function void fn07bc70()
+{
+	if (isBossRushMode)
+		TriggerNextZone(0x00b00)
+	else
+		base.fn07bc70()
+}

@@ -1,0 +1,134 @@
+//# address-hook(0x0575ea) end(0x057788)
+function void fn0575ea()
+{
+	if (!isBossRushMode)
+	{
+		base.fn0575ea()
+		return
+	}
+
+	if (u8[0xffffeed7] == 0)
+	{
+		D0.u16 = u16[0xffffb000 + 0x14]
+		if (D0.u16 <= 0x0400)
+		{
+			if (u8[0xffffeed8] == 0)
+			{
+				D0.u16 = 0x01c0
+				if (camera.position.y.u16 <= D0.u16)
+				{
+					level.vertical_wrap = 0x01c0
+					move_area.bottom.current = D0.u16
+					move_area.bottom.target = D0.u16
+					move_area.left = 0x03a0 - getScreenExtend()
+					move_area.right = 0x03a0 + getScreenExtend()
+					u8[0xffffeed8] = 0xff
+				}
+			}
+		}
+		else if (D0.u16 >= 0x0600)
+		{
+			if (D0.u16 >= 0x0880 || s8[0xffffeed2] < 0)
+			{
+				if (u8[0xffffeed2])
+				{
+					move_area.left = 0x0160 - getScreenExtend()
+					move_area.right = 0x0480
+				}
+				return
+			}
+
+			if (u8[0xffffeed2] != 0)
+				return
+
+			if (u8[0xffffeed3] == 0)
+			{
+				move_area.left = 0x0160 - getScreenExtend()
+				//move_area.right = 0x19a0 + getScreenExtend()
+				if (D0.u16 < 0x07c0 || camera.position.x.u16 != move_area.left || u8[0xffffb000 + 0x2a] & char.flag.IN_AIR)
+					return
+
+				move_area.right = 0x0160 + getScreenExtend()
+				D0.u16 = 0x07c0
+				level.vertical_wrap = D0.u16
+				move_area.bottom.target = D0.u16
+				u8[0xffffeed3] = 0xff
+			}
+
+			if (camera.position.y.u16 != 0x07c0)
+				return
+
+			if (allocDynamicObjectStd())
+			{
+				objA1.update_address = 0x07a20e
+				u8[0xffffeed7] = 0xff
+				level.display_routine = 0x7f00
+			}
+		}
+		else
+		{
+			if (s8[0xffffeed4] < 0)
+				return
+
+			if (u8[0xffffeed4] != 0)
+				return
+
+			if (u8[0xffffeed5] == 0)
+			{
+				move_area.right = 0x03a0 + getScreenExtend()
+				move_area.left = 0x0160 - getScreenExtend()
+				if (D0.u16 < 0x0420 || camera.position.x.u16 != 0x03a0 - getScreenExtend() || u8[0xffffb000 + 0x2a] & char.flag.IN_AIR)
+					return
+
+				move_area.left = 0x03a0 - getScreenExtend()
+				D0.u16 = 0x0500
+				level.vertical_wrap = D0.u16
+				move_area.bottom.current = camera.position.y.u16
+				move_area.bottom.target = D0.u16
+				u8[0xffffeed5] = 0xff
+			}
+
+			if (camera.position.y.u16 != level.vertical_wrap)
+				return
+
+			if (allocDynamicObjectStd())
+			{
+				objA1.update_address = 0x07a6a6
+				u8[0xffffeed7] = 0xff
+				u16[0xffffeed4] = 0x7f00
+			}
+		}
+	}
+}
+
+//# address-hook(0x0577fa) end(0x05788c)
+function void InitLevelScrolling.SSZ()
+{
+	if (!isBossRushMode)
+	{
+		base.InitLevelScrolling.SSZ()
+		return
+	}
+
+	u16[0xffffeee2] = 0
+
+	D0.u16 = camera.position.y.u16 & level.height.bitmask
+	if (D0.u16 >= 0x0800 && D0.u16 < 0x0f00)
+	{
+		level.scrolling_routine = 0x08
+		fn057a60()
+		fn04f2f6()
+		D1.u16 = 0x1c00
+		Level.InitialTilesFill()
+		A4 = 0x058502
+		A5 = 0xffffa804
+		fn04f0ce()
+	}
+	else
+	{
+		fn0579f0()
+		fn04f2f6()
+		Level.InitialTilesFill()
+		WriteScrollOffsets()
+	}
+}

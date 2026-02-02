@@ -1,0 +1,101 @@
+//# address-hook(0x082b06) end(0x082b80)
+function void fn082b06()
+{
+	if (!isBossRushMode)
+	{
+		base.fn082b06()
+		return
+	}
+	
+	// Collision check for missiles
+
+#if STANDALONE
+	bool isSuperActive = isMainCharacter(CHARACTER_TAILS) ? super.active.tails : super.active
+#else
+	bool isSuperActive = super.active
+#endif
+	if (!isSuperActive)
+		return
+
+	u8 jumpLocation = 0
+	if ((objA0.render_flags & render_flag.VISIBLE) && objA0.subtype2c != 0)
+	{
+		D0.u16 = u16[0xfffffaa4]
+		if (D0.u16 != 0)
+		{
+			A1 = 0xffff0000 + D0.u16
+			if (u8[A1 + 0x28] == 0)
+			{
+				A2 = 0x082bb4
+				fn085898()
+				if (!_equal())
+				{
+					--u8[A1 + 0x29]
+					u8[A1 + 0x28] = 0xff
+					jumpLocation = 0x082b78
+				}
+			}
+		}
+	}
+
+	if (jumpLocation == 0)
+	{
+		A1 = 0xffffb000
+		if (u8[A1 + 0x34] == 0)
+		{
+			// Targets:
+			//  - 0x082bcc	-> u8[A0 + 0x3d] = 0x00
+			//  - 0x082bd4	-> u8[A0 + 0x3d] = 0x01
+			//  - 0x082bdc	-> u8[A0 + 0x3d] = 0x02
+			//  - 0x082bd4	-> u8[A0 + 0x3d] = 0x03
+			//  - 0x082bcc	-> u8[A0 + 0x3d] = 0x04
+			//  - 0x082bd4	-> u8[A0 + 0x3d] = 0x05
+			//  - 0x082bdc	-> u8[A0 + 0x3d] = 0x06
+			//  - 0x082bd4	-> u8[A0 + 0x3d] = 0x07
+			A2 = tableLookupAddress(0x082bbc, u8[A0 + 0x3d] * 2)
+
+			fn0858c8()
+			if (!_equal())
+			{
+				jumpLocation = 0x082b6e
+			}
+		}
+	}
+
+	if (jumpLocation == 0x082b6e)
+	{
+		A1 = 0xffffb000
+		u8[A1 + 0x34] = 0x59
+		jumpLocation = 0x082b78
+		++bossRush_hitcount
+		//debugLog(bossRush_hitcount)
+	}
+	else
+	{
+		D0.u16 = u16[A0 + 0x46]
+		if (D0.u16 != 0)
+		{
+			A1 = 0xffff0000 + D0.u16
+			if (u8[A1 + 0x2a] & 0x80)
+			{
+				jumpLocation = 0x082b84
+			}
+		}
+	}
+
+	if (jumpLocation == 0x082b78)
+	{
+		D0.u16 = u16[A0 + 0x46]
+		if (D0.u16 != 0)
+		{
+			A1 = 0xffff0000 + D0.u16
+			--u8[A1 + 0x39]
+		}
+		jumpLocation = 0x082b84
+	}
+
+	if (jumpLocation == 0x082b84)
+	{
+		fn082b84()
+	}
+}

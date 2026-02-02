@@ -1,0 +1,8 @@
+//# address-hook(0x06dbae) end(0x06dbc4)
+function void fn06dbae()
+{
+	if (isBossRushMode)
+		TriggerNextZone(0x0301)
+	else
+		base.fn06dbae()
+}

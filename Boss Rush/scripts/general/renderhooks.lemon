@@ -1,0 +1,98 @@
+function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
+{
+	// This function gets called once when rendering an object, even if it consists of multiple VDP sprites
+	//  -> That is in contrast to e.g. "Standalone.onDrawVdpSprite" which gets called for each VDP sprite
+	//  -> So if an object's sprites should be replaced with a new loaded graphics, this here is the place to go
+
+	string key
+	u16 atex = (objA0.sprite_attributes >> 9) & 0x30
+	u8 flags = ((objA0.render_flags & render_flag.FLIP_X) ? SPRITE_FLAG_FLIP_X : 0) | ((objA0.render_flags & render_flag.FLIP_Y) ? SPRITE_FLAG_FLIP_Y : 0) | ((objA0.sprite_attributes & sprite_attribute.PRIORITY) ? SPRITE_FLAG_PRIO : 0)
+	u8 angle = 0
+	u8 alpha = 255
+	
+	if (isBossRushMode)
+	{
+		// COPIES ARE MONOCHROME.
+		// BUT YOU COLORED EACH OF US IN WITH CARE.
+		if (objA0.update_address == 0x063de0 && isMainCharacter(CHARACTER_KNUCKLES))
+		{
+			if (u16[A0 + 0x44] == 4)
+			{
+				key = stringformat("cutscene_knuckles_3_0x%02x", objA0.animation.sprite)
+				if (!Renderer.hasCustomSprite(key))
+					key = Renderer.setupCustomObjectSprite(u32[0x06668a], u32[0x06668a + 4], objA0.mapping_offset, objA0.animation.sprite, 0x00)
+			}
+			else if (u16[A0 + 0x44] == 2)
+			{
+				key = stringformat("cutscene_knuckles_2_0x%02x", objA0.animation.sprite)
+				if (!Renderer.hasCustomSprite(key))
+					key = Renderer.setupCustomObjectSprite(u32[0x066682], u32[0x066682 + 4], objA0.mapping_offset, objA0.animation.sprite, 0x00)
+			}
+			else if (u16[A0 + 0x44] == 0)
+			{
+				key = stringformat(stringformat("%s_0x%02x", getCharacterSpriteKey(CHARACTER_KNUCKLES, false)), objA0.animation.sprite)
+				if (!Renderer.hasCustomSprite(key))
+					key = Renderer.setupCustomCharacterSprite(0x1200e0, 0x14bd0a, 0x14a8d6, objA0.animation.sprite, 0x00)
+			}
+			
+			SpriteHandle spr = Renderer.addSpriteHandle(key, px, py, renderQueue)
+			spr.setFlags(flags)
+			spr.setPalette("boss_palette_copyknuckles", 0)
+			
+			return true
+		}
+		
+		if (objA0.update_address == 0x07c864 && global.zone_act == 0x0a00)
+		{
+			Renderer.drawSprite("br_sm_master_emerald_g", px, py, 0x20, flags, renderQueue)
+			key = stringformat("br_sm_master_emerald_%d", objA0.animation.sprite)
+			Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+		}
+
+		// Knuckles Ending
+		if (objA0.mapping_offset == 0x060a4c && objA0.update_address == 0x05e0d6)
+		{
+			key = stringformat("%s_0x%02x", getCharacterEndPoseSpriteKey(CHARACTER_KNUCKLES, false), objA0.animation.sprite)
+			atex = 0x40 + getMainCharacter() * 0x20
+			if (Renderer.hasCustomSprite(key))
+			{
+				Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+				return true
+			}
+			return false
+		}
+			
+	#if !LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+		if (global.zone_act == 0x0d01 && isMainCharacter(CHARACTER_KNUCKLES)) 
+		{
+			atex = 0x40 + getMainCharacter() * 0x20
+			if (objA0.mapping_offset == 0x060486)
+			{
+				// Tiny Tornado
+				if (objA0.animation.sprite == 0x5)
+				{
+					Renderer.drawSprite("knuckles_st_ending_tiny", px, py, atex, flags, renderQueue)
+					return true
+				}
+				
+				if (objA0.animation.sprite == 14 || objA0.animation.sprite == 21)
+				{
+					key = stringformat("%s_small", getCharacterTornadoSpriteKey(getMainCharacter()))
+					
+					string ver = stringformat("%s_standing", key)
+					if (Renderer.hasCustomSprite(ver))
+						key = ver
+						
+					if (Renderer.hasCustomSprite(key))
+					{
+						Renderer.drawSprite(key, px, py, atex, flags, renderQueue, angle, alpha)
+						return true
+					}
+				}
+			}
+		}
+	#endif
+	}
+
+	return base.Standalone.onWriteToSpriteTable(px, py, renderQueue)
+}

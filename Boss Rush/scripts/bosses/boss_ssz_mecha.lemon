@@ -1,0 +1,54 @@
+
+//# address-hook(0x07b888) end(0x07b938)
+function void fn07b888()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07b888()
+		return
+	}
+
+	objA0.hitbox_extends.y = 0x23
+
+	Object.ResetAnimationProgress(0x07d5e4)
+
+	A1 = 0x07d842
+	fn07c678()
+
+	// "spawnSimpleChildObjects(0x07d48c)" replaced by:
+	spawnSimpleChildObjects(0x07c948, 1)		// Electric sparks
+
+	playSound(0x96)
+
+	if (isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		// Knuckles
+		if ((objA0.flags38 & 0x80) == 0)
+		{
+			objA0.flags38 |= 0x20
+			objA0.base_state = 0x08
+			objA0.countdown_value = 191
+			objA0.countdown_callback = 0x07b996
+			playMusic(MUSIC_CTRL_FADEOUT)
+			player2.control_override = 0xff
+		}
+		else
+		{
+			objA0.update_address = 0x07bc32
+			hud.dirty.timer = 0
+			objA0.countdown_value = 0xbf
+
+			if (allocDynamicObjectStd())
+			{
+				objA1.update_address = 0x08642e
+			}
+
+			// "spawnSimpleChildObjects(0x07d4d0)" replaced by:
+			spawnSimpleChildObjects(0x07cf14, 3)
+		}
+	}
+	else
+	{
+		TriggerNextZone(0x0b00)
+	}
+}

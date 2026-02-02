@@ -1,0 +1,5 @@
+// intentionally ignoring character requirement here...
+function bool DEZFinalBoss3.canPlayerEnterDoomsday()
+{
+	return (isBossRushMode) ? true : base.DEZFinalBoss3.canPlayerEnterDoomsday()
+}

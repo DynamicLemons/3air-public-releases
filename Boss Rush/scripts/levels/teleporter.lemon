@@ -1,0 +1,41 @@
+//# address-hook(0x045528) end(0x0455c8)
+function void fn045528()
+{
+	if (!isBossRushMode || global.zone != 0x0a)
+	{
+		base.fn045528()
+		return
+	}
+
+	objA0.update_address = 0x0455cc
+	objA0.render_flags = render_flag.WORLD
+	objA0.box_size.y = 0x10
+	objA0.box_size.x = 0x18
+	objA0.sprite_priority = 0x0180
+	objA0.sprite_attributes = 0x035c
+	objA0.mapping_offset = 0x046b3c
+	u16[A0 + 0x16] = objA0.position.y.u16
+
+	if (objA0.subtype2c & 0x80)
+	{
+		A1 = (objA0.subtype2c & 0x40) ? 0xffffeed4 : 0xffffeed2
+		if ((u8[A1] & 0x80) == 0)
+		{
+		#if STANDALONE
+			if (!Game.isTimeAttack())
+		#endif
+			{
+				// Start inside the floor
+				objA0.velocity.y = 0x20
+			}
+		}
+	}
+
+	if (objA0.position.x.u16 == 0x0440 && objA0.position.y.u16 == 0x00270)
+	{
+		fn045a66()
+		return
+	}
+
+	fn0455cc()
+}

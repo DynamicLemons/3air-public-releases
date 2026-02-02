@@ -1,0 +1,84 @@
+//# address-hook(0x082c28) end(0x082c5e)
+function void fn082c28()
+{
+	base.fn082c28()
+	if (isBossRushMode && objA0.update_address == 0x08565e)
+		++bossRush_hitcount
+}
+
+//# address-hook(0x082dce) end(0x082e90)
+function void fn082dce()
+{
+	if (!isBossRushMode)
+	{
+		base.fn082dce()
+		return
+	}
+	
+#if STANDALONE
+	if (super.active == 0 && super.active.tails == 0)
+		return
+#else
+	if (super.active == 0)
+		return
+#endif
+
+	if (objA0.state == 0)
+	{
+		A1 = 0xffffb000
+		A2 = 0x082e92
+		fn0858c8()
+		if (_equal())
+			return
+
+		--boss.remaining_hits
+		if (s8[A0 + 0x29] < 0)
+		{
+			addOrSubtractScore(100 - bossRush_hitcount * 5)
+			bossRush_hitcount = 0
+			objA0.update_address = 0x081bbe
+			objA0.base_state = 0
+			objA0.flags2a |= 0x80
+			player1.control_override = 0xff
+			super.ring_dec.frames = 0x7fff
+
+			D0.u16 = camera.position.y.u16
+			level.vertical_wrap = D0.u16
+			move_area.bottom.current = D0.u16
+
+			D0.u16 = u16[0xfffffa8e]
+			if (D0.u16 != 0)
+			{
+				A1 = 0xffff0000 + D0.u16
+				u8[A1 + 0x38] &= ~0x04
+				objA1.velocity.x = -0x400
+				objA1.velocity.y = 0
+			}
+
+			if (allocDynamicObjectStd())
+			{
+				objA1.update_address = 0x082f1c
+				objA1.position.x.u16 = objA0.position.x.u16
+				objA1.position.y.u16 = objA0.position.y.u16
+				u16[A1 + 0x46] = A0.u16
+			}
+			return
+		}
+
+		objA0.state = 0x20
+		u8[0xffffb000 + 0x34] = 0x5a
+		playSound(0x6e)
+		fn082c6a()
+
+		D0.u16 = u16[0xfffffa8e]
+		if (D0.u16 != 0)
+		{
+			A1 = 0xffff0000 + D0.u16
+			objA1.velocity.x = -0x1000
+		}
+	}
+
+	D0 = (objA0.state & 0x01) ? 0 : 0x18
+	fn082d72()
+	--objA0.state
+}

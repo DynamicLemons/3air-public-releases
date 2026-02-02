@@ -1,0 +1,481 @@
+/*
+	This script file is part of the Sonic 3 A.I.R. script software distribution.
+	Copyright (C) 2017-2025 by Eukaryot
+
+	Published under the GNU GPLv3 open source software license, see license.txt
+	or https://www.gnu.org/licenses/gpl-3.0.en.html
+*/
+
+
+constant s16 ssz2_br_shiftX	= -0x12C0
+constant s16 ssz2_br_shiftY	= 0x180
+
+//# address-hook(0x07a72c) end(0x07a7e0)
+function void fn07a72c()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07a72c()
+		return
+	}
+
+	objA0.mapping_offset = 0x06820c
+	objA0.sprite_attributes = 0x052e
+	objA0.render_flags |= render_flag.WORLD
+	objA0.sprite_priority = 0x0180
+	objA0.position.x.u16 = 0x1700 + ssz2_br_shiftX
+	objA0.position.y.u16 = 0x0300 + ssz2_br_shiftY
+	objA0.animation.sprite = 0x0a		// Egg Mobile full body
+	objA0.base_state += 2
+	objA0.collision_attributes = collision.size.16x24
+	boss.remaining_hits = 8
+	u8[A0 + 0x3c] = 0x07
+
+	u16[0xfffffaf0] = objA0.position.x.u16
+	u16[0xfffffaf4] = objA0.position.y.u16
+	s16[0xfffffaf8] = 0
+	s16[0xfffffafa] = 0x100
+
+	objA0.box_size.x = 0x20
+#if STANDALONE
+	objA0.box_size.y = 0x20
+#endif
+	objA0.flags2e = 0
+	u8[A0 + 0x30] = 0
+	u8[A0 + 0x1d] = 0x40
+	objA0.flags38 = 0x27
+	objA0.value3a = 0x27
+
+	// "spawnChildObjects(0x0681bc)" replaced by:
+	spawnChildObject(0x067d0a, 0x00, 0, -32)		// Mecha Sonic head
+
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = 0x07ad8a
+		u32[A1 + 0x34] = A0
+	}
+
+	A2 = 0xfffffa82
+	u8[(A2+=1)-1] = 0x10
+	u8[(A2+=1)-1] = 0
+	u8[(A2+=1)-1] = 3
+	u8[(A2+=1)-1] = 0
+	u8[(A2+=1)-1] = 1
+	u8[(A2+=1)-1] = 0
+}
+
+//# address-hook(0x07a800) end(0x07a854)
+function void fn07a800()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07a800()
+		return
+	}
+
+	fn07b12e()
+
+	objA0.position.y.u16 = u16[0xfffffaf4]
+	if (u16[0xfffffaf4] >= 0x0420 + ssz2_br_shiftY)
+	{
+		objA0.value26 += 2
+		s16[0xfffffafa] = 0
+
+		D0.u16 = u16[0xffffb000 + 0x10]
+		if (D0.u16 >= u16[0xfffffaf0])
+		{
+			s16[0xfffffaf8] = SSZ_MidBoss2.getHorizontalMovementSpeed()
+			objA0.flags2e |= 0x80
+			objA0.render_flags |= render_flag.FLIP_X
+		}
+		else
+		{
+			s16[0xfffffaf8] = -SSZ_MidBoss2.getHorizontalMovementSpeed()
+			objA0.flags2e &= ~0x80
+			objA0.render_flags &= ~render_flag.FLIP_X
+		}
+	}
+
+	fn07ac06()
+	AddAsDynamicObject()
+	DrawObject()
+}
+
+//# address-hook(0x07a874) end(0x07a8d4)
+function void fn07a874()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07a874()
+		return
+	}
+	
+	fn07b12e()
+
+	if ((objA0.flags2e & 0x80) == 0)
+	{
+		if (u16[0xfffffaf0] < 0x1680 - getScreenExtend() + ssz2_br_shiftX)
+		{
+			objA0.flags2e ^= 0x80
+			s16[0xfffffaf8] = SSZ_MidBoss2.getHorizontalMovementSpeed()
+			objA0.render_flags |= render_flag.FLIP_X
+			if (objA0.flags2e & 0x40)
+			{
+				objA0.value26 += 2
+				s16[0xfffffafa] = -0x100
+			}
+			objA0.flags2e |= 0x40
+		}
+	}
+	else
+	{
+		if (u16[0xfffffaf0] >= 0x1780 + getScreenExtend() + ssz2_br_shiftX)
+		{
+			objA0.flags2e ^= 0x80
+			s16[0xfffffaf8] = -SSZ_MidBoss2.getHorizontalMovementSpeed()
+			objA0.render_flags &= ~render_flag.FLIP_X
+			if (objA0.flags2e & 0x40)
+			{
+				objA0.value26 += 2
+				s16[0xfffffafa] = -0x100
+			}
+			objA0.flags2e |= 0x40
+		}
+	}
+
+	fn07a8da()
+}
+
+
+//# address-hook(0x07a8f4) end(0x07a93a)
+function void fn07a8f4()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07a8f4()
+		return
+	}
+	
+	fn07b12e()
+	if (u16[0xfffffaf4] < 0x03f0 + ssz2_br_shiftY)
+	{
+		u16[0xfffffafa] = 0
+	}
+
+	if ((objA0.flags2e & 0x80) == 0)
+	{
+		if (u16[0xfffffaf0] < 0x1700 + ssz2_br_shiftX)
+		{
+			u16[0xfffffaf8] = 0
+		}
+	}
+	else
+	{
+		if (u16[0xfffffaf0] >= 0x1700 + ssz2_br_shiftX)
+		{
+			u16[0xfffffaf8] = 0
+		}
+	}
+
+	D0.u16 = u16[0xfffffaf8] | u16[0xfffffafa]
+	if (D0.u16 == 0)
+	{
+		objA0.value26 += 2
+	}
+	fn07a8da()
+}
+
+//# address-hook(0x07a98a) end(0x07a9d0)
+function void fn07a98a()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07a98a()
+		return
+	}
+	
+	if (objA0.value3a != 0)
+	{
+		--objA0.value3a
+	}
+	else
+	{
+		objA0.value3b = 0xff
+	}
+
+	if (objA0.flags38 >= 0x27)
+	{
+		--objA0.flags38
+	}
+
+	fn07b12e()
+
+	if (u16[0xfffffaf4] < 0x03b0 + ssz2_br_shiftY)
+	{
+	#if STANDALONE
+		// Move down if hit while entering from above, i.e. before reaching his normal height
+		++u16[0xfffffaf4]
+	#endif
+		u16[0xfffffafa] = 0
+	}
+
+	if (u8[A0 + 0x30] == 0)
+	{
+		if (objA0.value3b != 0)
+		{
+			objA0.value3b = 0x80
+		}
+		objA0.value26 += 2
+	}
+
+	fn07a8da()
+}
+
+//# address-hook(0x07aa66) end(0x07aaca)
+function void fn07aa66()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07aa66()
+		return
+	}
+	
+	fn07b12e()
+
+	if (u16[0xfffffaf4] < 0x03b0 + ssz2_br_shiftY)
+	{
+		u16[0xfffffafa] = 0
+	}
+
+	if ((objA0.flags2e & 0x80) == 0)
+	{
+		if (u16[0xfffffaf0] < 0x16a0 + ssz2_br_shiftX)
+		{
+			u8[A0 + 0x32] += 0x02
+			u16[0xfffffafa] = 0x180
+			u8[A0 + 0x31] = 0x03
+			u16[0xfffffafc] = 0x1e
+			objA0.render_flags |= render_flag.FLIP_X
+		}
+	}
+	else
+	{
+		if (u16[0xfffffaf0] >= 0x1760 + ssz2_br_shiftX)
+		{
+			u8[A0 + 0x32] += 0x02
+			u16[0xfffffafa] = 0x180
+			u8[A0 + 0x31] = 0x03
+			u16[0xfffffafc] = 0x1e
+			objA0.render_flags &= ~render_flag.FLIP_X
+		}
+	}
+
+	fn07a8da()
+}
+
+
+//# address-hook(0x07aace) end(0x07ab16)
+function void fn07aace()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07aace()
+		return
+	}
+	
+	fn07b12e()
+
+	if (u16[0xfffffaf4] >= 0x0420 + ssz2_br_shiftY)
+	{
+		s16[0xfffffafa] = -0x180
+		u8[A0 + 0x32] += 2
+		objA0.flags2e ^= 0x80
+	}
+	else
+	{
+		if ((objA0.flags2e & 0x80) == 0)
+		{
+			if (u16[0xfffffaf0] < 0x1680 + ssz2_br_shiftX)
+			{
+				u16[0xfffffaf8] = 0
+			}
+		}
+		else
+		{
+			if (u16[0xfffffaf0] >= 0x1780 + ssz2_br_shiftX)
+			{
+				u16[0xfffffaf8] = 0
+			}
+		}
+	}
+
+	fn07ab56()
+	fn07a8da()
+}
+
+
+//# address-hook(0x07ab1a) end(0x07ab52)
+function void fn07ab1a()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07ab1a()
+		return
+	}
+	
+	fn07b12e()
+	if (u16[0xfffffaf4] < 0x03f0 + ssz2_br_shiftY)
+	{
+		s16[0xfffffaf8] = (objA0.flags2e & 0x80) ? 0x100 : -0x100
+	}
+	if (u16[0xfffffaf4] < 0x03b0 + ssz2_br_shiftY)
+	{
+		u16[0xfffffafa] = 0
+		u8[A0 + 0x32] = 0
+	}
+
+	fn07ab56()
+	fn07a8da()
+}
+
+//# address-hook(0x07ae22) end(0x07aeaa)
+function void fn07ae22()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07ae22()
+		return
+	}
+	
+	A1 = objA0.countdown_callback
+	u16[A0 + 0x30] = objA1.position.y.u16 - 0x04
+	objA0.value3e = objA1.position.x.u16
+	if (u8[A1 + 0x39] != 0)
+	{
+		u8[A1 + 0x39] = 0
+		++u8[A1 + 0x30]
+
+		objA0.base_state += 2
+		u8[A0 + 0x3c] = 0x3c
+		objA0.state = 0x02
+		objA0.velocity.y = -0x400
+
+		D0.u16 = u16[0xffffb000 + 0x10] - objA0.position.x.u16
+		if (objA0.position.x.u16 < 0x16a0 + ssz2_br_shiftX)
+		{
+			D1.u16 = 0x80
+		}
+		else if (objA0.position.x.u16 >= 0x1760 + ssz2_br_shiftX)
+		{
+			D1.u16 = 0x80
+		}
+		else
+		{
+			D1.s16 = (D0.s16 < 0) ? 0x80 : -0x80
+		}
+		objA0.velocity.x = D1.u16
+
+		if (D1.s16 >= 0)
+			objA0.render_flags |= render_flag.FLIP_X
+		else
+			objA0.render_flags &= ~render_flag.FLIP_X
+	}
+
+	fn07aeb0()
+	fn07af5a()
+
+	AddAsDynamicObject()
+	DrawObject()
+}
+
+// Decoy
+
+//# address-hook(0x07afa4) end(0x07aff8)
+function void fn07afa4()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07afa4()
+		return
+	}
+	
+#if STANDALONE
+	// Avoid the decoy being culled too long while coming in from above
+	objA0.box_size.y = 0x20
+#endif
+
+	if (s8[A0 + 0x3c] >= 0)
+	{
+		--u8[A0 + 0x3c]
+		if (s8[A0 + 0x3c] < 0)
+		{
+			objA0.collision_attributes = (collision.flag.SPECIAL | collision.size.16x16)
+		}
+	}
+
+	UpdateMovementSimple()
+
+	objA0.velocity.y -= 0x20
+	if (objA0.velocity.y >= 0x0180)
+		objA0.velocity.y = 0x0180
+
+	if (objA0.velocity.y >= 0 && objA0.position.y.u16 >= 0x042c + ssz2_br_shiftY)
+	{
+		objA0.position.y.u16 = 0x042c + ssz2_br_shiftY
+		u16[A0 + 0x38] = 0x042c + ssz2_br_shiftY
+		u8[A0 + 0x32] = 1
+		objA0.base_state += 2
+		fn07b0a8()
+	}
+
+	fn07b0c2()
+	fn07affc()
+}
+
+//# address-hook(0x07b02a) end(0x07b0a2)
+function void fn07b02a()
+{
+	if (!isBossRushMode)
+	{
+		base.fn07b02a()
+		return
+	}
+	
+	if (s8[A0 + 0x3c] >= 0)
+	{
+		--u8[A0 + 0x3c]
+		if (s8[A0 + 0x3c] < 0)
+		{
+			objA0.collision_attributes = (collision.flag.SPECIAL | collision.size.12x12)
+		}
+	}
+	fn07b0c2()
+
+	if (objA0.animation.sprite != 0x08)
+	{
+		fn07affc()
+		return
+	}
+
+	D0.u8 = u8[A0 + 0x32]
+	LookupSinCos()
+	D0.u16 = u16[A0 + 0x38] - (D0.s16 >> 2)
+	if (D0.u16 < 0x042c + ssz2_br_shiftY)
+	{
+		objA0.position.y.u16 = D0.u16
+		++u8[A0 + 0x32]
+		if (u8[A0 + 0x32] & 0x01)
+		{
+			objA0.position.x.u16 += (objA0.render_flags & render_flag.FLIP_X) ? 1 : -1
+		}
+	}
+	else
+	{
+		objA0.position.y.u16 = 0x042c + ssz2_br_shiftY
+		fn07b0a8()
+		u8[A0 + 0x32] = 1
+	}
+
+	AddAsDynamicObject()
+	DrawObject()
+}

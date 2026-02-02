@@ -1,0 +1,376 @@
+// Knuckles in ST intro 
+//# address-hook(0x05ecb4) end(0x05ed0c)
+function void fn05ecb4()
+{
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		base.fn05ecb4()
+		return
+	}
+	
+	setupObjectAttributesFull(0x0600e6)
+
+	A1 = 0xffff0000 + u16[A0 + 0x46]
+	u8[A0 + 0x0a] = (u8[A0 + 0x0a] & ~0x80) | (u8[A1 + 0x0a] & 0x80)
+	if ((objA1.render_flags & render_flag.WORLD) == 0)
+	{
+		objA0.render_flags &= ~render_flag.WORLD
+	}
+
+	objA0.update_address = 0x05ed18
+	if (objA1.render_flags & render_flag.FLIP_X)
+		objA0.animation.sprite = 0
+	else
+	{
+		u16 offset = global.characters + 1
+		offset *= 2	// From here, first byte is the plane pilot, second byte is character standing on the wings
+		if (objA0.subtype2c != 0)
+			++offset	// Get offset of sprite for character on wings
+		objA0.animation.sprite = u8[0x05ed0e + offset]
+	}
+}
+
+// gliding instead of running
+//# address-hook(0x05d8bc) end(0x05d9e8)
+function void fn05d8bc()
+{
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		base.fn05d8bc()
+		return
+	}
+	
+	setupObjectAttributesFull(0x0600da)
+
+	objA0.render_flags &= ~render_flag.WORLD
+	objA0.base_state = 0x02
+	fn05fe82()
+
+	player1.camera_lock = 0xff
+	u8[0xfffffab8] = 0
+
+	A1 = 0xffffb000
+	objA1.render_flags &= ~render_flag.WORLD
+	u8[A1 + 0x0a] |= 0x80
+	u16[A1 + 0x1c] = 0x0800
+	objA1.state = char.state.KNUX_FLYCLIMB
+	u8[A1 + 0x2a] = 0
+	u8[A1 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_UPDATE)
+
+	u32[0xffffb04a] = 0
+	super.ring_dec.frames = 0x7fff
+	hud.dirty.timer = 0x01
+
+	fn05fcce()
+
+	objA0.position.x.u16 = 0x0100 + getScreenExtend()
+	objA0.position.y.u16 = 0xe0
+
+	// Spawn the Tornado
+	A1 = 0xffffb250
+	u16[A0 + 0x44] = A1.u16
+	objA1.update_address = 0x05ea52
+	u8[A1 + 0x2c] = 0xff
+	u8[A1 + 0x38] |= 0x04
+	u16[A1 + 0x46] = A0.u16
+
+	// Spawn the Master Emerald
+	A1 = 0xffffbde0
+	objA1.update_address = 0x05de60
+	u16[A1 + 0x46] = A0.u16
+	objA1.position.x.u16 = 0x011e + getScreenExtend()
+	objA1.position.y.u16 = 0xcf
+
+	copyMemory(0xfffffcc0, 0x0a97bc, 0x20)
+
+	Kosinski.addToDMAQueue(0x17fcba, 0xa5c0)	// Master Emerald sprite
+	Kosinski.addToDMAQueue(0x163418, 0x3c60)	// Tornado
+	Kosinski.addToDMAQueue(0x162914, 0x4dc0)	// Smaller ending sprites + Sonic pilot head + chain
+
+#if STANDALONE
+	Game.startSkippableCutscene()
+
+	if (Game.isNormalGame())
+		Game.setAchievementComplete(ACHIEVEMENT_LONGPLAY)
+#endif
+}
+
+// the original standing player is still there, just made invisible.
+//# address-hook(0x05e1c2) end(0x05e282)
+function void fn05e1c2()
+{
+	base.fn05e1c2()
+	if (isBossRushMode && isMainCharacter(CHARACTER_KNUCKLES))
+		u8[0xffffb022] = 0
+}
+
+//# address-hook(0x05e288) end(0x05e2bc)
+function void fn05e288()
+{
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		base.fn05e288()
+		return
+	}
+	
+	u8[0xffffcc0a + 0x04] &= ~0x04
+	fn0847e6()
+
+	UpdateMovementStraightSimple()
+	if (u8[0xfffffacc] == 0)
+		return
+
+	objA0.base_state = 0x04
+	objA0.countdown_value = 0x1f
+
+	if (allocDynamicObjectStd())
+		objA1.update_address = 0x05ef68
+}
+
+
+//# address-hook(0x05ef68) end(0x05efb4)
+function void fn05ef68()
+{
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		base.fn05ef68()
+		return
+	}
+	
+	objA0.update_address = 0x05f144
+	objA0.countdown_value = 0x01ff
+	super.palettefx.state = 0
+
+	A1 = 0x05efb6 + 0x28		// get entry of appropriate post credits routines from table
+	A2 = u32[(A1+=4)-4]		// Assigns logo routine to execute
+	objA0.countdown_callback = u32[(A1+=4)-4]		// Stores eyecatch routine for later
+	call A2
+}
+
+
+//# address-hook(0x05e2c2) end(0x05e322)
+function void fn05e2c2()
+{
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		base.fn05e2c2()
+		return
+	}
+	
+	if (u8[0xfffffab8] & 0x08)
+		Object.TriggerUnloading()
+	else
+	{
+		fn0847e6()
+		UpdateMovementStraightSimple()
+	}
+}
+
+// hide knuckles when the island flashes
+//# address-hook(0x05dd6a) end(0x05ddd0)
+function void fn05dd6a()
+{
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		base.fn05dd6a()
+		return
+	}
+	
+	--objA0.countdown_value
+	if (objA0.countdown_value < 0)
+	{
+		objA0.base_state = 0x1e
+		u8[0xffffeec4] = 0xff
+		objA0.animation.sprite = 0x1a
+		if (outro.ending_type >= 0)
+		{
+			A2 = 0x05ddd2
+			D1 = 0x41
+			D2 = 0x05
+			fn05fe1e()
+
+			A2 = 0x05ddea
+			D1 = 0x43
+			D2 = 0x01
+			fn05fe1e()
+
+			A2 = 0x05ddf2
+			D1 = 0x44
+			D2 = 0x03
+			fn05fe1e()
+
+			A2 = 0x05de02
+			D1 = 0x45
+			D2 = 0x01
+			fn05fe1e()
+
+			A2 = 0x05de0a
+			D1 = 0x46
+			D2 = 0x01
+			fn05fe1e()
+
+			A2 = 0x05de12
+			D1 = 0x47
+			D2 = 0x01
+			fn05fe1e()
+		}
+	}
+}
+
+// music stuff
+//# address-hook(0x05b1a2) end(0x05b1e6)
+function void fn05b1a2()
+{
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		base.fn05b1a2()
+		return
+	}
+	
+	u16[0xfffffa86] += 0x02
+	u8[0xfffffacc] = 0
+#if STANDALONE
+	camera.position.x.u16 = -getScreenExtend()		// Center the credits
+#endif
+	camera.position.y = 0
+	scrolloffset.y.both = 0
+	u16[0xfffffaae] = 0
+
+	fn05b514()
+
+	u16[0xfffffc02] = 0x0eee
+	u16[0xfffffc22] = 0x00ee
+
+	addPatternLoadingCue(0x05b1ec)		// Credits text font
+}
+
+
+// hit a sick pose
+//# address-hook(0x05e170) end(0x05e186)
+function void fn05e170()
+{
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		base.fn05e170()
+		return
+	}
+	
+	--objA0.countdown_value
+	if (objA0.countdown_value < 0)
+	{
+		objA0.base_state = 0x06
+		objA0.countdown_value = 180
+		
+		objA0.mapping_offset = 0x060a4c
+		objA0.sprite_attributes = (sprite_attribute.PALETTE.LINE0 | 0x0347 | sprite_attribute.PRIORITY)
+		objA0.sprite_priority = 0x0100
+		objA0.box_size.x = 0x80
+		objA0.box_size.y = 0x80
+		
+		objA0.animation.sprite = 0x01
+		objA0.animation.timer = 5
+
+		copyMemory(0xfffffc00, 0x060bea, 0x20)
+		
+	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+		if (global_ExChar_P1)
+		{
+			u32 targetAddress = 0x802000 + getMainCharacter() * 0x40
+			loadECFCharacterEndPosePalette(global_ExChar_P1, targetAddress, 0)
+			targetAddress += 0x180
+			loadECFCharacterEndPosePalette(global_ExChar_P1, targetAddress, 0)
+		}
+		else
+	#endif
+		{
+			u32 targetAddress = 0x802000 + getMainCharacter() * 0x40
+			loadCharacterEndPosePalette(getMainCharacter(), targetAddress, 0)
+			targetAddress += 0x180
+			loadCharacterEndPosePalette(getMainCharacter(), targetAddress, 0)
+		}
+		
+		// This is similar to `addPatternLoadingCue(0x05b50c)`, but isn't called directly here because the target in VRAM we need is different
+		// Search for next free place in table
+		A2 = 0xfffff680
+		while (u32[A2] != 0)
+		{
+			A2 += 6
+		}
+
+		u32[A2] = 0x0dea00
+		u16[A2+4] = 0x68e0
+	}
+}
+
+//# address-hook(0x05e0d6) end(0x05e0ea)
+function void fn05e0d6()
+{
+	if (isBossRushMode && isMainCharacter(CHARACTER_KNUCKLES) && objA0.base_state >= 6)
+	{
+		if (objA0.countdown_value >= 0)
+		{
+			--objA0.countdown_value
+			
+			if (objA0.countdown_value < 0)
+			{
+				u8[0xffffeec4] = 0xff
+				u8[0xfffffac1] = 0
+			}
+			
+			if (objA0.animation.sprite == 1)
+			{
+				--objA0.animation.timer
+				if (s8(objA0.animation.timer) < 0)
+					++objA0.animation.sprite
+			}
+		}
+		DrawObject()
+	}
+	else
+		base.fn05e0d6()
+}
+
+//# address-hook(0x05e188) end(0x05e188)
+function void fn05e188()
+{
+	if (!isBossRushMode)
+		base.fn05e188()
+}
+
+
+// skip credits
+//# address-hook(0x05b204) end(0x05b282)
+function void fn05b204()
+{
+	if (isBossRushMode)
+		fn05b29e()
+	else
+		base.fn05b204()
+}
+
+// prevent some knuckles endpose art from loading and breaking shit lmao
+//# address-hook(0x05b4de) end(0x05b4e2)
+function void fn05b4de()
+{
+	if (isBossRushMode && isMainCharacter(CHARACTER_KNUCKLES))
+		fn05b4e8()
+	else
+		base.fn05b4de()
+}
+
+
+// removes some code that loads in Knuckles posing..
+//# address-hook(0x05b29e) end(0x05b2d2)
+function void fn05b29e()
+{
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		base.fn05b29e()
+		return
+	}
+	
+	u16[0xfffffa86] += 2
+	timer.alldata = 0
+	u8[0xffffeec4] = 0xff
+	u8[0xfffffacc] = 0xff
+}

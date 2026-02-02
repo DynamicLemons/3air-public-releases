@@ -1,0 +1,80 @@
+//# address-hook(0x082be4) end(0x082c1e)
+function void fn082be4()
+{
+	if (!isBossRushMode)
+	{
+		base.fn082be4()
+		return
+	}
+	
+#if STANDALONE
+	if (super.active == 0 && super.active.tails == 0)
+		return
+#else
+	if (super.active == 0)
+		return
+#endif
+
+	A1 = 0xffff0000 + u16[A0 + 0x46]
+	if ((u8[A1 + 0x2a] & 0x80) == 0)
+	{
+		A1 = 0xffffb000
+		if (u8[A1 + 0x34] != 0)
+			return
+
+		A2 = 0x082c20
+		fn0858c8()
+		if (_equal())
+			return
+
+		u8[A1 + 0x34] = 0x3b
+		playSound(0xb4)
+		++bossRush_hitcount
+	}
+	Object.TriggerUnloading()
+}
+
+//# address-hook(0x082d18) end(0x082d70)
+function void fn082d18()
+{
+	if (!isBossRushMode)
+	{
+		base.fn082d18()
+		return
+	}
+	
+#if STANDALONE
+	if (super.active == 0 && super.active.tails == 0)
+		return
+#else
+	if (super.active == 0)
+		return
+#endif
+
+	if (u8[A0 + 0x28] == 0)
+		return
+
+	if (s8[A0 + 0x29] < 0)
+	{
+		addOrSubtractScore(100 - bossRush_hitcount * 5)
+		bossRush_hitcount = 0
+		objA0.flags2a |= 0x80
+		objA0.update_address = 0x081e7a
+		return
+	}
+
+	if (objA0.state == 0)
+	{
+		objA0.state = 0x20
+		playSound(0x9b)
+	}
+
+	D0 = (objA0.state & 0x01) ? 0 : 0x18
+	fn082d72()
+
+	--objA0.state
+	if (objA0.state == 0)
+	{
+		u8[A0 + 0x28] = 0
+	}
+}

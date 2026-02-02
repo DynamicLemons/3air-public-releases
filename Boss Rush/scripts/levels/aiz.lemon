@@ -1,0 +1,63 @@
+// level_aiz
+//# address-hook(0x01c550) end(0x01c5c4)
+function void fn01c550()
+{
+	if (!isBossRushMode)
+	{
+		base.fn01c550()
+		return
+	}
+	
+	u16 lock = 0x2638 + 40 - getScreenExtend()
+	if (camera.position.x.u16 >= lock)
+	{
+		move_area.left = lock
+		camera.update_routine = 0x06
+		if (allocDynamicObjectStd())
+		{
+			// Trigger boss
+			objA1.update_address = addressof(Boss.AIZ1.BaseUpdate)
+			objA1.position.x.u16 = 0x2638 + 312
+			objA1.position.y.u16 = 0x0230 - 40
+		}
+	}
+}
+
+//# address-hook(0x01c5c6) end(0x01c600)
+function void fn01c5c6()
+{
+	if (!isBossRushMode)
+	{
+		base.fn01c5c6()
+		return
+	}
+}
+
+//# address-hook(0x01c78c) end(0x01c7b6)
+function void fn01c78c()
+{
+	if (!isBossRushMode)
+	{
+		base.fn01c78c()
+		return
+	}
+	
+	// remove border changes
+	if (camera.position.x.u16 >= 0x02e0 - getScreenExtend())
+	{
+		camera.update_routine += 2
+
+		if (global.zone_act.apparent == 0x0001)
+			camera.update_routine += 2
+	}
+}
+
+// level_animation
+//# address-hook(0x02783a) end(0x027848)
+function void LevelTilesAnim.AIZ1()
+{
+	if (isBossRushMode && camera.update_routine != 0)
+		LevelTilesAnim.AIZ()
+	else
+		base.LevelTilesAnim.AIZ1()
+}

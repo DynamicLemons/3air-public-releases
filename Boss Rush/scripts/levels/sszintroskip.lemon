@@ -1,0 +1,61 @@
+//# address-hook(0x0571f6) end(0x057298)
+function void InitLevelTiles.SSZ()
+{
+	if (!isBossRushMode)
+	{
+		base.InitLevelTiles.SSZ()
+		return
+	}
+	
+	u16[0xffffee98] = 0
+	u16[0xffffee9c] = 0
+
+	zeroMemory(0xffffa9f6, 0x0a)
+	A1 = 0xffffaa00
+	if (allocDynamicObjectStd())
+	{
+		for (u32 k = 0; k < 5; ++k)
+		{
+			A5 = 0xffffa9f6 + k * 2
+			A6 = 0x058758 + k * 8
+			u16[A5] = A1.u16
+			objA1.update_address = 0x057bb2		// Cloud
+			u16[A1 + 0x38] = u16[A6]
+			u16[A1 + 0x3a] = u16[A6+2]
+			u16[A1 + 0x40] = u16[A6+4]
+			u8[A1 + 0x22]  = u16[A6+6]
+
+			if (!allocDynamicObjectAfterA1())
+				break
+		}
+	}
+
+	fn05758a()
+	Level.GetCameraPosition()
+	Level.InitialTilesFill()
+}
+
+//# address-hook(0x044f52) end(0x044fa0)
+function void fn044f52()
+{
+	if (!isBossRushMode)
+	{
+		base.fn044f52()
+		return
+	}
+	
+	objA0.render_flags = (render_flag.COMPOUND | render_flag.WORLD)
+	objA0.box_size.y = 0x10
+	objA0.box_size.x = 0x60
+	objA0.sprite_priority = 0x0180
+	objA0.sprite_attributes = (sprite_attribute.PRIORITY | sprite_attribute.PALETTE.LINE2 | 0x02f4)
+	objA0.mapping_offset = 0x046958
+	u16[A0 + 0x12] = objA0.position.x.u16
+	objA0.compound.count = 0x03
+	objA0.flags2a |= 0x80
+	objA0.countdown_value = 0xc0
+
+	A1 = 0x04501a
+	objA0.update_address = A1
+	call A1
+}

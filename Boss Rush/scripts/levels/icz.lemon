@@ -1,0 +1,65 @@
+//# address-hook(0x053608) end(0x05365e)
+function void InitLevelTiles.ICZ1()
+{
+	if (!isBossRushMode)
+	{
+		base.InitLevelTiles.ICZ1()
+		return
+	}
+
+	level.height.bitmask = 0x07ff
+	level.height.tilemask = 0x07f0
+	level.chunksize.bitmask = 0x3c
+	Level.GetCameraPosition()
+	Level.InitialTilesFill()
+}
+
+//# address-hook(0x053cc4) end(0x053cc8)
+function void InitLevelTiles.ICZ2()
+{
+	if (!isBossRushMode)
+	{
+		base.InitLevelTiles.ICZ2()
+		return
+	}
+	
+	// These seems to fill the patterns on screen initially
+	//  (the same as will be done when scrolling, but here for the whole screen once)
+	Level.GetCameraPosition()
+	Level.InitialTilesFill()
+}
+
+//# address-hook(0x0713e8) end(0x07141a)
+function void fn0713e8()
+{
+	if (!isBossRushMode)
+	{
+		base.fn0713e8()
+		return
+	}
+
+	SetupAsSignpostSpawner()
+
+	A1 = 0xffff0000 + u16[0xfffffaae]
+	if (objA1.update_address == 0x08b660)
+	{
+		u8[A1 + 0x38] |= 0x20
+	}
+
+	// Check if fighting upper boss (possible in Knuckles & Tails mode with Knuckles as well)
+	if (camera.position.y.u16 < 0x0700 && global.zone_act == 0x501)
+	{
+		// Create object that performs the palette change to daytime
+		if (allocDynamicObjectStd())
+		{
+			objA1.update_address = 0x071420
+		}
+	}
+
+	// Spawn boss giblets
+	// "spawnChildObjects(0x0719b0)" replaced by:
+	spawnChildObject(0x07168a, 0x00, -12, -12)
+	spawnChildObject(0x07168a, 0x02, 12, -12)
+	spawnChildObject(0x07168a, 0x04, -12, 12)
+	spawnChildObject(0x07168a, 0x06, 12, 12)
+}

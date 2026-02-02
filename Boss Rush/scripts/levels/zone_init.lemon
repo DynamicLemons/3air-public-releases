@@ -1,0 +1,427 @@
+function u32 Standalone.loadRawLevelData(string format, u16 zoneAndAct, u32 targetAddress)
+{
+	if (!isBossRushMode || global.zone_act.apparent == 0x0d01)
+		return base.Standalone.loadRawLevelData(format, zoneAndAct, targetAddress)
+	
+	string stage = getZoneActInitials(zoneAndAct)
+		
+	u32 bytes = System.loadExternalRawData(stringformat(format, stringformat("%s_boss_rush", stage)), targetAddress, 0, 0, false, true)
+	if (bytes != 0)
+		return bytes
+
+	return System.loadExternalRawData(stringformat(format, stage), targetAddress, 0, 0, (Game.getSetting(SETTING_LEVELLAYOUTS) == 2), true)
+}
+
+//# address-hook(0x01c2b0) end(0x01c360)
+function void fn01c2b0()
+{
+	if (!isBossRushMode)
+	{
+		base.fn01c2b0()
+		return
+	}
+	
+	// Just load the chunks, tiles, and blocks manually if the files for those exist
+	string key 
+	u16 zone = global.zone_act
+	
+	// Primary Blocks
+	
+	A2 = MainGame.getLevelDataPointer()
+
+	D0 = u32[A2+8] & 0x00ffffff
+	D7 = D0
+	
+	string initials = stringformat("%s_boss_rush", getZoneActInitials(global.zone_act))
+	key = stringformat("%s_blocks_p", initials)
+	if (System.hasExternalRawData(key))
+	{
+		System.loadExternalRawData(key, 0x840000)
+		D0 = 0x840000
+	}
+	
+	Kosinski.decompress(D0, 0xffff9000)
+	
+	// Secondary Blocks
+	
+	D0 = u32[A2+12] & 0x00ffffff
+	
+	key = stringformat("%s_blocks_s", initials)
+	if (System.hasExternalRawData(key))
+	{
+		System.loadExternalRawData(key, 0x840000)
+		D0 = 0x840000
+	}
+	
+	if (D7 != D0)
+	{
+		Kosinski.decompress(D0, A1)
+	}
+	
+	// Primary Chunks
+
+	D0 = u32[A2+16] & 0x00ffffff
+	D7 = D0
+
+	key = stringformat("%s_chunks_p", initials)
+	if (System.hasExternalRawData(key))
+	{
+		System.loadExternalRawData(key, 0x840000)
+		D0 = 0x840000
+	}
+	
+	Kosinski.decompress(D0, 0xffff0000)
+	
+	// Secondary Chunks
+	
+	D0 = u32[A2+20] & 0x00ffffff
+
+	key = stringformat("%s_chunks_s", initials)
+	if (System.hasExternalRawData(key))
+	{
+		System.loadExternalRawData(key, 0x840000)
+		D0 = 0x840000
+	}
+	
+	if (D7 != D0)
+	{
+		Kosinski.decompress(D0, A1)
+	}
+	fn01c362()
+
+	// Stage Art
+	
+	D1.u8 = u8[A2]
+	D0 = u8[A2+4]
+	if (D0.u8 != 0 && D1.u8 != D0.u8)
+	{
+		requestLoadingPatterns(D0.u8)
+	}
+
+	// Load level palette
+	if (global.zone_act.apparent == 0x0001 && isMainCharacter(CHARACTER_KNUCKLES)) // jank
+		Level.loadNonfadingPaletteData(0x30)
+	else
+		Level.loadNonfadingPaletteData(u8[A2+8])
+
+#if STANDALONE
+	//// Copy 16 palette entries from 0x10 to 0x90, primarily for the rings
+	//// TODO: Here is not a good place to do this, as
+	////  - 1.) the primary palette has to be updated when fully underwater
+	////  - 2.) fading effects won't work this way
+	//for (u8 i = 0; i < 0x10; ++i)
+	//{
+	//	Renderer.setPaletteEntryPacked(0x90 + i, u16[0xfffffca0 + i * 2])
+	//	Renderer.setSecondaryPaletteEntryPacked(0x90 + i, u16[0xfffff020 + i * 2])
+	//}
+#endif
+}
+
+//# address-hook(0x01be46) end(0x01bfae)
+function void SetupCharacterAtStartPosition()
+{
+	if (!isBossRushMode || checkpoint.number != 0)
+	{
+		base.SetupCharacterAtStartPosition()
+		return
+	}
+
+	u16 index = global.zone * 4 + global.act * 2
+	constant array<u16> pos = 
+	{
+		// AIZ
+		0x2600, 0x02DC,
+		0x3A80, 0x025C,
+		// HCZ
+		0x32F0, 0x02E8,
+		0x3F80, 0x07EC,
+		// MGZ
+		0x2d60, 0x0ebf,
+		0x3B0F, 0x06fe,
+		// CNZ
+		0x2F00, 0x022F,
+		0x473E, 0x02F0,
+		// FBZ
+		0x2D70, 0x05E8,
+		0x2940, 0x0668,
+		// ICZ
+		0x0603, 0x036C,
+		0x42D3, 0x06D9,
+		// LBZ
+		0x3CC0, 0x01E8,
+		0x38E1, 0x05E8,
+		// MHZ
+		0x4030, 0x0728,
+		0x3AF8, 0x02E8,
+		// SOZ
+		0x4258, 0x09E8,
+		0x5040, 0x0728,
+		// LRZ
+		0x2A3E, 0x07A8,
+		0, 0,
+		// SSZ
+		0x0580, 0x0928,
+		0x0080, 0x0020,
+		// DEZ
+		0x34C0, 0x02E8,
+		0x32d0, 0x04A8,
+	}
+	
+	// AIZ 1.5
+	if (global.zone_act.apparent == 0x0000 && global.zone_act == 0x0001)
+	{
+		D1.u16 = 0x0FC4
+		D0.u16 = 0x0320
+	}
+	// ICZ 1.5
+	else if (global.zone_act.apparent == 0x0500 && global.zone_act == 0x0501)
+	{
+		D1.u16 = pos[20]
+		D0.u16 = pos[21]
+	}
+	// AIZ 1 K
+	else if (global.zone_act == 0x0001 && isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		D1.u16 = 0x3B70
+		D0.u16 = 0x067C
+	}
+	// HCZ 2 K
+	else if (global.zone_act == 0x0101 && isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		D1.u16 = 0x44c0
+		D0.u16 = 0x0368
+	}
+	// MGZ 2 K
+	else if (global.zone_act == 0x0201 && isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		D1.u16 = 0x3BE0
+		D0.u16 = 0x0080
+	}
+	// LBZ 1 K
+	else if (global.zone_act == 0x0600 && isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		D1.u16 = 0x3B40
+		D0.u16 = 0x07E8
+	}
+	// LBZ 2 K
+	else if (global.zone_act == 0x0601 && isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		D1.u16 = 0x40B3
+		D0.u16 = 0x0268
+	}
+	// HPZ
+	else if (global.zone_act == 0x1601)
+	{
+		D1.u16 = 0x0de8
+		D0.u16 = 0x03ec
+	}
+	else if (index < pos.length() - 1)
+	{
+		D1.u16 = pos[index]
+		D0.u16 = pos[index + 1]
+	}
+	else
+	{
+		A1 = isMainCharacter(CHARACTER_KNUCKLES) ? 0x1e3cd8 : 0x1e3c18		// Get starting positions from respective tables
+		A1 += global.zone * 8 + global.act * 4
+		D1 = u16[A1]		// Get x-position
+		D0 = u16[A1+2]		// Get y-position
+	}
+	u16[0xffffb000 + 0x10] = D1.u16		// Set Player 1 x-position
+	u16[0xffffb000 + 0x14] = D0.u16		// Set Player 1 y-position
+
+	D1.s16 = max(D1.s16 - getScreenWidth() / 2, 0)
+	D0.s16 = clamp(D0.s16 - 96, 0, s16(move_area.bottom.current))
+	if (global.zone_act.apparent == 0x0001 && !isMainCharacter(CHARACTER_KNUCKLES))
+		D1.s16 = 0x3a90
+	else if (global.zone_act == 0x0101 && isMainCharacter(CHARACTER_KNUCKLES))
+		D1.s16 = 0x44e0
+		
+	if (competition_mode.active == 0)
+	{
+	#if STANDALONE
+		// Avoid exact tile edges
+		//  -> This was particularly added in to avoid glitches in first pixel row after exiting first Giant Ring in AIZ 2
+		//     (There's probably a better solution, that generally solves this type of glitches when going left in AIZ 2)
+		if ((D1.u16 & 0x0f) == 0)
+			++D1.u16
+	#endif
+		D1.u16 = min(D1.u16, move_area.right)
+	}
+
+	camera.position.x.u16 = D1.u16
+	camera.position.x.u16.player2 = D1.u16
+	camera.position.y.u16 = D0.u16
+	camera.position.y.u16.player2 = D0.u16
+}
+
+//# address-hook(0x01bc60) end(0x01bcc2)
+//# alias(fn01bc60) deprecated
+function void Level.SetupLevelSize()
+{
+	if (!isBossRushMode)
+	{
+		base.Level.SetupLevelSize()
+		return
+	}
+
+	u8[0xffffee30] = 0
+	u8[0xffffee08] = 0
+	player1.camera_lock = 0
+	player2.camera_lock = 0
+	u8[0xffffee39] = 0
+	camera.update_routine = 0
+	outro.wait_time = 0
+	u16[0xfffff662] = 0
+
+	A0 = 0x01bcc6 + global.zone * 16 + global.act * 8
+	u16 minX = u16[A0]
+	u16 maxX = u16[A0+2]
+	u16 minY = u16[A0+4]
+	u16 maxY = u16[A0+6]
+
+	if (global.zone_act == 0x0000)
+	{
+		minX = 0x2580
+		maxX = 0x2660 + getScreenExtend()
+		minY = 0x01a0
+		maxY = 0x0238
+	}
+	else if (global.zone_act == 0x0001)
+	{
+		if (global.zone_act.apparent == 0x0000)
+		{
+			minX = 0x0f41
+		}
+		else
+		{
+			if (isMainCharacter(CHARACTER_KNUCKLES))
+			{
+				minX = 0x3b40
+				maxY = 0x067c
+			}
+			else
+				minX = 0x3900
+		}
+	}
+	else if (global.zone_act == 0x0100)
+		minX = 0x3280
+	else if (global.zone_act == 0x0101 && isMainCharacter(CHARACTER_KNUCKLES))
+		maxY = 0x02b8
+	else if (global.zone_act == 0x0200)
+		minX = 0x2c8a
+	else if (global.zone_act == 0x0201)
+		minX = (isMainCharacter(CHARACTER_KNUCKLES)) ? 0x3bc0 : 0x3ac0
+	else if (global.zone_act == 0x0300)
+		minX = 0x2e38
+	else if (global.zone_act == 0x0301)
+		minY = 0
+	else if (global.zone_act.apparent == 0x0500)
+		minX = 0x05e0
+	else if (global.zone_act == 0x0501)
+		minX = 0x4280
+	else if (global.zone_act == 0x0600 && !isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		minX = 0x3c00
+		maxY = 0x0140
+	}
+	else if (global.zone_act == 0x0601)
+	{
+		if (isMainCharacter(CHARACTER_KNUCKLES))
+			minX = 0x4060
+		else
+			minX = 0x38c0
+	}
+	else if (global.zone_act == 0x0700)
+		minX = 0x3fd0
+	else if (global.zone_act == 0x0701)
+		minX = 0x3ac0
+	else if (global.zone_act == 0x0701)
+		minX = 0x3ac0
+	else if (global.zone_act == 0x0800)
+	{
+		minX = 0x4180
+		maxY = 0x0960
+	}
+	else if (global.zone_act == 0x0801)
+	{
+		minY = 0x0680
+		maxY = 0x0680
+	}
+	else if (global.zone_act == 0x0400)
+		minX = 0x2d00
+	else if (global.zone_act == 0x0401)
+		minX = 0x2880
+	else if (global.zone_act == 0x0900)
+		minX = 0x29c0
+	else if (global.zone_act == 0x1601)
+		minX = 0x0d20
+	else if (global.zone_act == 0x0a00)
+	{
+		minY = 0x07c0
+		maxX = 0x0480
+	}
+	else if (global.zone_act == 0x0b00)
+		minX = 0x3480
+	else if (global.zone_act == 0x0b01)
+		minX = 0x3280
+		
+	move_area.left = minX
+	move_area.right = maxX
+	move_area.left.target = minX
+	move_area.right.target = maxX
+	move_area.left.player2 = minX
+	move_area.right.player2 = maxX
+
+	level.vertical_wrap = minY
+	move_area.bottom.current = maxY
+	move_area.top.target = minY
+	move_area.bottom.target = maxY
+	level.vertical_wrap.player2 = minY
+	move_area.bottom.current.player2 = maxY
+
+	camera.yoffset.player = 0x60
+	camera.yoffset.tails = 0x60
+	level.width.bitmask = 0xffff
+	level.height.bitmask = 0xffff
+	SetupCharacterAtStartPosition()
+}
+
+//# address-hook(0x0067ee) end(0x0069b6)
+function void fn0067ee()
+{
+	if (isBossRushMode)
+	{
+		u32[0xffffb094] = addressof(ResetDynamicObjectList)
+		InitializeGameCharacters()
+		RestoreShield()
+		
+		ring_counter = 3
+		bossRush_bossProgress = 0
+	
+		u32 A0_o = A0
+		
+		A0 = 0xffffb000
+		if (global.zone_act.apparent == 0x0001 && !isMainCharacter(CHARACTER_KNUCKLES) || global.zone_act == 0x0101 && isMainCharacter(CHARACTER_KNUCKLES))
+			u32[0xffffb172] = 0x044a0c
+		else if (global.zone_act == 0x1600)
+		{
+		#if CHARACTER_SELECTION_PLUS_ACTIVE
+			for (A1 = 0xffffb000; A1 <= getHighestPlayerAddress(); A1 += 0x4a)
+		#else
+			for (A1 = 0xffffb000; A1 <= 0xffffb04a; A1 += 0x4a)
+		#endif
+			{
+				if (u32[A1] != 0)
+				{
+					objA1.state = char.state.FALLING_PANIC
+					objA1.flags2a |= char.flag.IN_AIR
+				}
+			}
+		}
+		
+		A0 = A0_o
+	}
+	else
+		base.fn0067ee()
+}

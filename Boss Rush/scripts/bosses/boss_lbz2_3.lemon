@@ -1,0 +1,26 @@
+//# address-hook(0x0742a8) end(0x074308)
+function void fn0742a8()
+{
+	base.fn0742a8()
+	bossRush_scoreLimit = max(bossRush_scoreLimit, 2 - isMainCharacter(CHARACTER_KNUCKLES))
+}
+
+//# address-hook(0x0746f4) end(0x074734)
+function void fn0746f4()
+{
+	if (!isBossRushMode)
+	{
+		base.fn0746f4()
+		return
+	}
+	
+	// Wait until defeated Robotnik leaves the screen to the top
+	--objA0.position.y.u16
+	if (objA0.position.y.u16 >= camera.position.y.u16 - 0x40)
+	{
+		DrawObject()
+		return
+	}
+
+	TriggerNextZone(0x0700)
+}

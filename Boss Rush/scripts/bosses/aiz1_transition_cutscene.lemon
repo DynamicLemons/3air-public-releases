@@ -1,0 +1,13 @@
+//# address-hook(0x068556) end(0x068572)
+function void fn068556()
+{
+	if (!isBossRushMode || global.zone_act != 0x0000)
+	{
+		base.fn068556()
+		return
+	}
+	
+	objA0.base_state = 0x04
+	objA0.countdown_value = 0xb4
+	playMusic(MUSIC_CTRL_FADEOUT)
+}

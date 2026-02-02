@@ -1,0 +1,7 @@
+//# address-hook(0x06af32) end(0x06af6e)
+function void fn06af32()
+{
+	if (isBossRushMode && getScreenExtend() > 40)
+		objA0.position.x.u16 += (getScreenExtend() - 40)
+	base.fn06af32()
+}

@@ -1,0 +1,38 @@
+//# address-hook(0x044a26) end(0x044a62)
+function void fn044a26()
+{
+	if (!isBossRushMode)
+	{
+		base.fn044a26()
+		return
+	}
+	
+	if (!player1.control_override && global.zone_act == 0x0001)
+	{
+		A1 = 0xffffb000
+		u8[A1 + 0x3d] = 1
+		objA1.flags2a |= char.flag.ROLLING
+		objA1.state = char.state.ROLLING
+		objA1.hitbox_extends.x = char.hitbox.x.ROLLING
+		objA1.hitbox_extends.y = char.hitbox.y.ROLLING
+		objA1.groundspeed = 0xa00
+	}
+	
+	player1.control_override = 1
+	control.player1 = 0x0800		// CONTROL_RIGHT, 0
+
+	camera.use_forced_target = true			// Forces camera to a certain position
+	camera.forced_target.x = max(u16[0xffffb000 + 0x10], u16[A0 + 0x30])
+	camera.forced_target.y = u16[0xffffb014]
+
+	D0.u16 = u16[0xffffb000 + 0x10] + 0x10
+	if (global.zone_act == 0x0101)
+		D0.u16 -= 40
+		
+	if (D0.u16 < u16[A0 + 0x30])
+		return
+
+	player1.control_override = 0
+	player2.control_override = 0
+	UnloadObject()
+}

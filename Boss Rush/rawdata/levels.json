@@ -1,0 +1,59 @@
+{
+	"aiz1_boss_rush_layout": { "File": "AIZ/Layout/1.bin" },
+	"aiz1_boss_rush_objects": { "File": "AIZ/Object Pos/1.bin" },
+	"aiz1_boss_rush_rings": { "File": "AIZ/Ring Pos/1.bin" },
+	"aiz1_boss_rush_chunks_p": { "File": "AIZ/Chunks/Act 1.bin" },
+	
+	"aiz2_boss_rush_objects": { "File": "AIZ/Object Pos/2.bin" },
+	"aiz2_boss_rush_rings": { "File": "AIZ/Ring Pos/2.bin" },
+	
+	"hcz1_boss_rush_rings": { "File": "HCZ/Ring Pos/1.bin" },
+	"hcz2_boss_rush_rings": { "File": "HCZ/Ring Pos/2.bin" },
+	
+	"mgz2_boss_rush_rings": { "File": "MGZ/Ring Pos/2.bin" },
+
+	"icz1_boss_rush_layout": { "File": "ICZ/Layout/1.bin" },
+	"icz1_boss_rush_objects": { "File": "ICZ/Object Pos/1.bin" },
+	"icz1_boss_rush_rings": { "File": "ICZ/Ring Pos/1.bin" },
+	"icz1_boss_rush_chunks_p": { "File": "ICZ/Chunks/Primary.bin" },
+	"icz1_boss_rush_chunks_s": { "File": "ICZ/Chunks/Act 1 Secondary.bin" },
+	
+	"icz2_boss_rush_layout": { "File": "ICZ/Layout/2.bin" },
+	"icz2_boss_rush_objects": { "File": "ICZ/Object Pos/2.bin" },
+	"icz2_boss_rush_rings": { "File": "ICZ/Ring Pos/2.bin" },
+	
+	"lbz1_boss_rush_objects": { "File": "LBZ/Object Pos/1.bin" },
+	"lbz1_boss_rush_rings": { "File": "LBZ/Ring Pos/1.bin" },
+
+	"lbz2_boss_rush_objects": { "File": "LBZ/Object Pos/2.bin" },
+	"lbz2_boss_rush_rings": { "File": "LBZ/Ring Pos/2.bin" },
+	
+	"mhz1_boss_rush_layout": { "File": "MHZ/Layout/1.bin" },
+	"mhz1_boss_rush_objects": { "File": "MHZ/Object Pos/1.bin" },
+	"mhz1_boss_rush_rings": { "File": "MHZ/Ring Pos/1.bin" },
+	
+	"mhz2_boss_rush_layout": { "File": "MHZ/Layout/2.bin" },
+	"mhz2_boss_rush_objects": { "File": "MHZ/Object Pos/2.bin" },
+	"mhz2_boss_rush_rings": { "File": "MHZ/Ring Pos/2.bin" },
+	
+	"soz1_boss_rush_objects": { "File": "SOZ/Object Pos/1.bin" },
+	
+	"fbz1_boss_rush_rings": { "File": "FBZ/Ring Pos/1.bin" },
+	
+	"fbz2_boss_rush_layout": { "File": "FBZ/Layout/2.bin" },
+	"fbz2_boss_rush_objects": { "File": "FBZ/Object Pos/2.bin" },
+	"fbz2_boss_rush_rings": { "File": "FBZ/Ring Pos/2.bin" },
+	
+	"lrz1_boss_rush_rings": { "File": "LRZ/Ring Pos/1.bin" },
+	
+	"hpz1_boss_rush_objects": { "File": "LRZ/Object Pos/3.bin" },
+	"hpz1_boss_rush_rings": { "File": "LRZ/Ring Pos/3.bin" },
+	
+	"hpz2_boss_rush_rings": { "File": "HPZ/Ring Pos/1.bin" },
+	
+	"ssz1_boss_rush_layout": { "File": "SSZ/Layout/1.bin" },
+	"ssz1_boss_rush_objects": { "File": "SSZ/Object Pos/1.bin" },
+	"ssz1_boss_rush_rings": { "File": "SSZ/Ring Pos/1.bin" },
+	
+	"dez2_boss_rush_rings": { "File": "DEZ/Ring Pos/2.bin" },
+}
