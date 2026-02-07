@@ -323,9 +323,18 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	}
 	else if (objA0.update_address == 0x05ebb4)
 	{
-		u8 character = getCharacterTornadoPilot(getMainCharacter())
-		key = stringformat("%s_pilot", getCharacterTornadoSpriteKey(character))
-		atex = 0x40 + character * 0x20
+		if (objA0.animation.sprite == 0x0c)
+		{
+			key = stringformat("%s_pilot", getCharacterTornadoSpriteKey(CHARACTER_TAILS))
+			atex = 0x40 + CHARACTER_TAILS * 0x20
+		}
+		else if (objA0.animation.sprite == 0x0b || objA0.animation.sprite == 0x12)
+		{
+			key = stringformat("%s_pilot", getCharacterTornadoSpriteKey(CHARACTER_SONIC))
+			atex = 0x40 + CHARACTER_SONIC * 0x20
+		}
+		else
+			debugLog(objA0.animation.sprite)
 	}
 	
 	// Handling this for all endings, actually
@@ -356,16 +365,25 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		u8 pilot = getCharacterTornadoPilot(getMainCharacter())
 		if (objA0.animation.sprite == 17)
 			atex = 0
+		// pilot
 		else if (objA0.animation.sprite == 18)
 		{
+			debugLog("18")
 			key = stringformat("%s_pilot", getCharacterTornadoSpriteKey(pilot))
 			atex = 0x40 + pilot * 0x20
 		}
-		else if (objA0.animation.sprite == 12 || objA0.animation.sprite == 19)
+		// pilot (s)
+		else if (objA0.animation.sprite == 12)
 		{
-			key = stringformat("%s_pilot_small", getCharacterTornadoSpriteKey(pilot))
-			atex = 0x40 + pilot* 0x20
+			key = stringformat("%s_pilot_small", getCharacterTornadoSpriteKey(CHARACTER_TAILS))
+			atex = 0x40 + CHARACTER_TAILS * 0x20
 		}
+		else if (objA0.animation.sprite == 13 || objA0.animation.sprite == 19) // first for Tails, second for Knuckles
+		{
+			key = stringformat("%s_pilot_small", getCharacterTornadoSpriteKey(CHARACTER_SONIC))
+			atex = 0x40 + CHARACTER_SONIC * 0x20
+		}
+		// stander
 		else if (objA0.animation.sprite == 14 || objA0.animation.sprite == 21)
 		{
 			atex = 0x40 + getMainCharacter() * 0x20
