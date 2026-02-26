@@ -671,39 +671,33 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 function void LemonsRender_DataSelect_drawCharacterCombo(s16 px, s16 py, u16 renderQueue)
 {
 	u16 characters = (objA0.update_address == 0x00d30c) ? dataselect.nosave_characters : u16[A0 + 0x34]
-	string cname
 	// characters 
 	if (characters == CHARS_SONIC_AND_TAILS)
 	{
 		// Sonic & Tails
 		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_SONIC), px-9, py-20, 0x40, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
 		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_TAILS), px+6, py-18, 0x60, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
-		cname = "sonic"
 	}
 	else if (characters == CHARS_SONIC_ALONE)
 	{
 		// Sonic alone
 		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_SONIC), px-3, py-20, 0x40, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
-		cname = "sonic"
 	}
 	else if (characters == CHARS_TAILS_ALONE)
 	{
 		// Tails alone
 		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_TAILS), px+1, py-16, 0x60, SPRITE_FLAG_PRIO, renderQueue)
-		cname = "tails"
 	}
 	else if (characters == CHARS_KNUCKLES_ALONE)
 	{
 		// Knuckles alone
 		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_KNUCKLES), px, py-20, 0x80, SPRITE_FLAG_PRIO, renderQueue)
-		cname = "knuckles"
 	}
 	else if (characters == CHARS_KNUCKLES_AND_TAILS)
 	{
 		// Knuckles & Tails
 		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_KNUCKLES), px-7, py-20, 0x80, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
 		Renderer.drawSprite(getCharacterSelectSpriteKey(CHARACTER_TAILS), px+6, py-18, 0x60, SPRITE_FLAG_PRIO | SPRITE_FLAG_FLIP_X, renderQueue)
-		cname = "knuckles"
 	}
 	else
 	{
