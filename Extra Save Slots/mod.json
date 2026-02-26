@@ -5,7 +5,7 @@
 		"UniqueID": "dynamic-lemons-extra-save-slots",
 		"Author": "Dynamic Lemons",
 		"Description": "Adds more save slots to the game.",
-		"ModVersion": "1.0 - 12/12/25",
+		"ModVersion": "2/26/2026",
 		"GameVersion": "24.12.05.0"
 	},
 	"UsesFeatures": { "Controls_LR": true },

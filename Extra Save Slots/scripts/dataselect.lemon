@@ -600,7 +600,7 @@ function void fn00d42c()
 	
 		if (ESS_save_entered == 2)
 			return
-		
+
 		result = fn00d458()
 		if (result == 0)
 			return
@@ -2047,9 +2047,11 @@ function void ESS_updateCamScroll()
 function s16 ESS_getScrollEnd(u8 num)
 {
 	if (ESS_set_horzPage && ESS_set_seamless)
-		return (s16(num) * 104) - 53
+		return (s16(num) * 104) - 13 - getScreenExtend()
 	else
-		return clamp(66 + (clamp(s16(num), 1, 8) * 104) - getScreenWidth() / 2, 0, 657)
+	{
+		return clamp(64 + (clamp(s16(num), 1, 8) * 104) - getScreenWidth() / 2, 0, 741 - getScreenExtend() * 2)
+	}
 }
 
 // eggman
@@ -2364,14 +2366,19 @@ function bool fn00d458()
 				level.giantrings_clear = 0
 			}
 			fn00da4e()
-
+			
+		#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+			string name = ECF_dataselect_getStr()
+			string id = ECF_dataselect_getNum()
+		#endif
+		
 			global.zone_act = D0.u16
 			global.zone_act.apparent = D0.u16
 			levelselect.characters  = (u8[A1 + 0x02] >> 4)
 		#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-			levelselect_ExChar_P1_id = ECF_dataselect_getNum()
-			if (u16[A0 + 0x34] == 5)
-				u8[A1 + 0x02] = getECFGlobalCharId(getECFCharNameAtId(levelselect_ExChar_P1_id))
+			levelselect_ExChar_P1_id = id
+			if (name)
+				u8[A1 + 0x02] = getECFGlobalCharId(getECFCharNameAtId(id)) << 4
 		#endif
 			global.next_bluespheres = (u8[A1 + 0x02] & 0x0f)
 				
