@@ -1,0 +1,101 @@
+//# address-hook(0x053608) end(0x05365e)
+function void InitLevelTiles.ICZ1()
+{
+	if (global_ExChar_P1 == 0 || ECF_disableBranchBase)
+	{
+		base.InitLevelTiles.ICZ1()
+		return
+	}
+	
+	if (checkpoint.number == 0 && ECF_ICZ_introBase(global_ExChar_P1) == CHARACTER_KNUCKLES)
+	{
+		// Spawn transporter
+		if (allocDynamicObjectStd())
+		{
+			objA1.update_address = 0x053ad4
+			u16[0xffffb000 + 0x10] = 0x3640
+			u16[0xffffb000 + 0x14] = 0x0660
+			camera.foreground.x.u16 = 0x35a0
+			camera.position.x.u16 = 0x35a0
+			camera.foreground.y.u16 = 0x05fb
+			camera.position.y.u16 = 0x05fb
+		}
+	}
+
+	level.height.bitmask = 0x07ff
+	level.height.tilemask = 0x07f0
+	level.chunksize.bitmask = 0x3c
+	Level.GetCameraPosition()
+	Level.InitialTilesFill()
+}
+
+//# address-hook(0x05372c) end(0x05372c)
+//# address-hook(0x053744) end(0x05377e)
+function void fn053744()
+{
+	if (global_ExChar_P1 == 0 || ECF_disableBranchBase)
+	{
+		base.fn053744()
+		return
+	}
+	
+	if (u16[0xffffeec6] != 0)
+	{
+		u16[0xffffeec6] = 0
+
+		if (ECF_ICZ_introBase(global_ExChar_P1) == CHARACTER_KNUCKLES)
+		{
+			level.scrolling_routine += 4
+		}
+		else
+		{
+			if (allocDynamicObjectStd())
+			{
+				objA1.update_address = 0x053a34
+			}
+
+			u32[0xffffeed2] = 0
+			u32[0xffffeed6] = 0
+			fn0539ac()
+			fn04f2f6()
+
+			level.scrolling_routine += 4
+			fn0537ba()
+			return
+		}
+	}
+
+	fn053780()
+}
+
+//# address-hook(0x053730) end(0x053730)
+//# address-hook(0x0537a8) end(0x0537d6)
+function void fn0537a8()
+{
+	if (global_ExChar_P1 == 0 || ECF_disableBranchBase)
+	{
+		base.fn0537a8()
+		return
+	}
+	
+	if (u16[0xffffeec6] == 0)
+	{
+		if (ECF_ICZ_introBase(global_ExChar_P1) == CHARACTER_KNUCKLES)
+		{
+			fn053780()
+		}
+		else
+		{
+			fn0539ac()
+			fn0537ba()
+		}
+	}
+	else
+	{
+		u16[0xffffeec6] = 0
+		u16[0xffffeec8] = 0x02e0
+		u16[0xffffeeca] = 0x0f
+		level.scrolling_routine += 4
+		fn0537da()
+	}
+}

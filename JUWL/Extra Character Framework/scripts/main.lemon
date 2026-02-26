@@ -87,5 +87,11 @@ global u16 ECF_charList_length // includes hidden characters.
 global u16 ECF_firstSelectableId
 global u16 ECF_lastSelectableId
 
+// used similarly to groundhit velocity values
+global bool p1_landedInObjBreakState
+global bool p2_landedInObjBreakState
+global bool p3_landedInObjBreakState
+global bool p4_landedInObjBreakState
+
 // processor stuff.
 global bool ECF_disableBranchBase

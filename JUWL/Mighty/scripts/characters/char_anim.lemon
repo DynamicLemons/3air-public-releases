@@ -8,10 +8,21 @@ constant u8 char.state.MIGHTY_INTRO_SLIDE = 0x24
 //# translated(0x012a2a) end(0x012a6e)
 function void UpdateSonicAnimation()
 {
-	if (!isECFCharA0("ECC-Mighty"))
+	if (objA0.update_address == 0x04dfee)
 	{
-		base.UpdateSonicAnimation()
-		return
+		if (global_ExChar_P1 != "JUWL-Mighty")
+		{
+			base.UpdateSonicAnimation()
+			return
+		}
+	}
+	else
+	{
+		if (!isECFCharA0("JUWL-Mighty"))
+		{
+			base.UpdateSonicAnimation()
+			return
+		}
 	}
 	
 	if (char.state != char.state.former)
@@ -61,9 +72,6 @@ function void UpdateSonicAnimation()
 			0xff
 		}
 
-		D1.u8 = char.flags & char.flag.FACING_LEFT
-		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
-		
 		A1 = 0x800000
 		for (u8 i = 0; i < AniTable.length(); ++i)
 			u8[A1 + i] = AniTable[i]
@@ -80,9 +88,6 @@ function void UpdateSonicAnimation()
 			0xff
 		}
 
-		D1.u8 = char.flags & char.flag.FACING_LEFT
-		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
-		
 		A1 = 0x800000
 		for (u8 i = 0; i < AniTable.length(); ++i)
 			u8[A1 + i] = AniTable[i]
@@ -99,9 +104,6 @@ function void UpdateSonicAnimation()
 			0xff
 		}
 
-		D1.u8 = char.flags & char.flag.FACING_LEFT
-		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
-		
 		A1 = 0x800000
 		for (u8 i = 0; i < AniTable.length(); ++i)
 			u8[A1 + i] = AniTable[i]
@@ -117,8 +119,25 @@ function void UpdateSonicAnimation()
 			5,
 			
 			0x9d, 0x9e,
-			0xfc,
+			0xfe, 2
+		}
 
+		D1.u8 = char.flags & char.flag.FACING_LEFT
+		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+
+		A1 = 0x800000
+		for (u8 i = 0; i < AniTable.length(); ++i)
+			u8[A1 + i] = AniTable[i]
+		D0.u8 = AniTable[0]
+		
+		updateSonicAnimationStanding()
+	}
+	else if (char.state == char.state.BRAKE_TURN)
+	{
+		constant array<u8> AniTable = 
+		{
+			5,
+			
 			0x9f,
 			0xfe, 1
 		}
@@ -131,36 +150,7 @@ function void UpdateSonicAnimation()
 			u8[A1 + i] = AniTable[i]
 		D0.u8 = AniTable[0]
 		
-		if (char.animation.frame <= 2 && abs(char.groundspeed) < 0x200)
-		{
-			char.animation.frame = 4
-			char.animation.sprite = AniTable[char.animation.frame]
-			char.animation.timer = AniTable[0]
-		}
-		else if (objA0.animation.timer == 0) && (AniTable[char.animation.frame + 1] == 0xfc)
-		{
-			bool check = false 
-			
-			if (char.flags & char.flag.FACING_LEFT)
-				check = (char.groundspeed < -0x200)
-			else
-				check = (char.groundspeed > 0x200)
-				
-			if (check)
-			{
-				char.animation.frame = 1
-				char.animation.sprite = AniTable[char.animation.frame]
-				char.animation.timer = AniTable[0]
-			}
-			else
-			{
-				char.animation.frame += 2
-				char.animation.sprite = AniTable[char.animation.frame]
-				char.animation.timer = AniTable[0]				
-			}
-		}
-		else
-			updateSonicAnimationStanding()
+		updateSonicAnimationStanding()
 	}
 #endif
 	else if (char.state == char.state.WIN_POSE)
@@ -175,9 +165,6 @@ function void UpdateSonicAnimation()
 			0xfe, 15
 		}
 
-		D1.u8 = char.flags & char.flag.FACING_LEFT
-		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
-		
 		A1 = 0x800000
 		for (u8 i = 0; i < AniTable.length(); ++i)
 			u8[A1 + i] = AniTable[i]
@@ -194,9 +181,6 @@ function void UpdateSonicAnimation()
 			0xff
 		}
 
-		D1.u8 = char.flags & char.flag.FACING_LEFT
-		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
-		
 		A1 = 0x800000
 		for (u8 i = 0; i < AniTable.length(); ++i)
 			u8[A1 + i] = AniTable[i]
@@ -215,9 +199,6 @@ function void UpdateSonicAnimation()
 			0xfd, 0
 		}
 
-		D1.u8 = char.flags & char.flag.FACING_LEFT
-		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
-		
 		A1 = 0x800000
 		for (u8 i = 0; i < AniTable.length(); ++i)
 			u8[A1 + i] = AniTable[i]
@@ -234,9 +215,6 @@ function void UpdateSonicAnimation()
 			0xfe, 2
 		}
 
-		D1.u8 = char.flags & char.flag.FACING_LEFT
-		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
-		
 		A1 = 0x800000
 		for (u8 i = 0; i < AniTable.length(); ++i)
 			u8[A1 + i] = AniTable[i]
@@ -253,9 +231,6 @@ function void UpdateSonicAnimation()
 			0xff
 		}
 
-		D1.u8 = char.flags & char.flag.FACING_LEFT
-		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
-		
 		A1 = 0x800000
 		for (u8 i = 0; i < AniTable.length(); ++i)
 			u8[A1 + i] = AniTable[i]
@@ -269,12 +244,9 @@ function void UpdateSonicAnimation()
 		{
 			4,
 			0xc2,
-			0xfd, 0x02 // state change: char.state.ROLLING
+			0xfd, char.state.ROLLING
 		}
 
-		D1.u8 = char.flags & char.flag.FACING_LEFT
-		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
-		
 		A1 = 0x800000
 		for (u8 i = 0; i < AniTable.length(); ++i)
 			u8[A1 + i] = AniTable[i]
@@ -293,9 +265,6 @@ function void UpdateSonicAnimation()
 			0xfe, 1
 		}
 
-		D1.u8 = char.flags & char.flag.FACING_LEFT
-		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
-		
 		A1 = 0x800000
 		for (u8 i = 0; i < AniTable.length(); ++i)
 			u8[A1 + i] = AniTable[i]
@@ -312,11 +281,8 @@ function void UpdateSonicAnimation()
 			0x9d, 0x9e,
 			0xfc,
 
-			0xfd, 0x00 // state change: char.state.RUNNING
+			0xfd, char.state.RUNNING
 		}
-
-		D1.u8 = char.flags & char.flag.FACING_LEFT
-		char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
 
 		A1 = 0x800000
 		for (u8 i = 0; i < AniTable.length(); ++i)
@@ -325,6 +291,9 @@ function void UpdateSonicAnimation()
 		
 		if (objA0.animation.timer == 0) && (AniTable[char.animation.frame + 1] == 0xfc)
 		{
+			D1.u8 = char.flags & char.flag.FACING_LEFT
+			char.render_flags = (char.render_flags & ~(render_flag.FLIP_X | render_flag.FLIP_Y)) | D1.u8
+
 			bool check = (char.groundspeed > 0)
 				
 			if (check)
@@ -334,9 +303,7 @@ function void UpdateSonicAnimation()
 				char.animation.timer = AniTable[0]
 			}
 			else
-			{
 				char.state = char.state.RUNNING
-			}
 		}
 		else
 			updateSonicAnimationStanding()

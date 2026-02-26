@@ -1,57 +1,57 @@
 function void ECF_buildCharList()
 {
-	ECF_allocChar("ECC-Ray")
+	ECF_allocChar("JUWL-Ray")
 	base.ECF_buildCharList()
 }
 
 function string ECF_getCharDisplayName(string name)
 {
-	if (name == "ECC-Ray")
+	if (name == "JUWL-Ray")
 		return "Ray"
 	return base.ECF_getCharDisplayName(name)
 }
 
 function bool ECF_isCharacterAttacking()
 {
-	if (isECFCharA0("ECC-Ray") && char.state == char.state.RAY_HEADBUTT && char.animation.frame >= 6)
+	if (isECFCharA0("JUWL-Ray") && char.state == char.state.RAY_HEADBUTT && char.animation.frame >= 6)
 		return true
 	return base.ECF_isCharacterAttacking()
 }
 
 function bool ECF_canCharacterOpenMonitor()
 {
-	if (isECFCharA0("ECC-Ray") && char.state == char.state.RAY_HEADBUTT && char.animation.frame >= 6)
+	if (isECFCharA0("JUWL-Ray") && char.state == char.state.RAY_HEADBUTT && char.animation.frame >= 6)
 		return true
 	return base.ECF_canCharacterOpenMonitor()
 }
 
 function u32 ECF_getFollowInitRoutine(string name)
 {
-	return (name == "ECC-Ray") ? addressof(TailsTails.Init) : base.ECF_getFollowInitRoutine(name)
+	return (name == "JUWL-Ray") ? addressof(TailsTails.Init) : base.ECF_getFollowInitRoutine(name)
 }
 
 function u32 ECF_getFollowBluespheresInitRoutine(string name)
 {
-	return (name == "ECC-Ray") ? 0x009444 : base.ECF_getFollowBluespheresInitRoutine(name)
+	return (name == "JUWL-Ray") ? 0x009444 : base.ECF_getFollowBluespheresInitRoutine(name)
 }
 
 function s16 ECF_getResultsNameTagWidth(string name)
 {
-	if (name == "ECC-Ray")
+	if (name == "JUWL-Ray")
 		return 48
 	return base.ECF_getResultsNameTagWidth(name)
 }
 
 function u8 ECF_AIZ_introBase(string name)
 {
-	if (name == "ECC-Ray")
+	if (name == "JUWL-Ray")
 		return CHARACTER_SONIC
 	return base.ECF_AIZ_introBase(name)
 }
 
 function string getECFCharacterPaletteKey(string name)
 {
-	if (name == "ECC-Ray" && ecc_setting_rayAltPalette)
+	if (name == "JUWL-Ray" && setting_rayAltPalette)
 		return stringformat("%s_Mania", base.getECFCharacterPaletteKey(name))
 		
 	return base.getECFCharacterPaletteKey(name)
@@ -59,7 +59,7 @@ function string getECFCharacterPaletteKey(string name)
 
 function string getECFCharacterBluespherePaletteKey(string name)
 {
-	if (name == "ECC-Ray" && ecc_setting_rayAltPalette)
+	if (name == "JUWL-Ray" && setting_rayAltPalette)
 		return stringformat("%s_Mania", base.getECFCharacterBluespherePaletteKey(name))
 		
 	return base.getECFCharacterBluespherePaletteKey(name)
@@ -67,7 +67,7 @@ function string getECFCharacterBluespherePaletteKey(string name)
 
 function string getECFCharacterEndPosePaletteKey(string name)
 {
-	if (name == "ECC-Ray" && ecc_setting_rayAltPalette)
+	if (name == "JUWL-Ray" && setting_rayAltPalette)
 		return stringformat("%s_Mania", base.getECFCharacterEndPosePaletteKey(name))
 		
 	return base.getECFCharacterEndPosePaletteKey(name)
@@ -75,7 +75,7 @@ function string getECFCharacterEndPosePaletteKey(string name)
 
 function string getECFCharacterLivesIcon(string name)
 {
-	if (name == "ECC-Ray" && ecc_setting_rayAltPalette)
+	if (name == "JUWL-Ray" && setting_rayAltPalette)
 		return stringformat("%s_Mania", base.getECFCharacterLivesIcon(name))
 		
 	return base.getECFCharacterLivesIcon(name)
@@ -83,7 +83,7 @@ function string getECFCharacterLivesIcon(string name)
 
 function string getECFCharacterContinueIcon(string name)
 {
-	if (name == "ECC-Ray" && ecc_setting_rayAltPalette && objA0.update_address != 0x05ca5c)
+	if (name == "JUWL-Ray" && setting_rayAltPalette && objA0.update_address != 0x05ca5c)
 		return stringformat("%s_Mania", base.getECFCharacterContinueIcon(name))
 		
 	return base.getECFCharacterContinueIcon(name)
@@ -91,7 +91,7 @@ function string getECFCharacterContinueIcon(string name)
 
 function string getECFCharacterBonusTextIcon(string name)
 {
-	if (name == "ECC-Ray" && ecc_setting_rayAltPalette)
+	if (name == "JUWL-Ray" && setting_rayAltPalette)
 		return stringformat("%s_Mania", base.getECFCharacterBonusTextIcon(name))
 		
 	return base.getECFCharacterBonusTextIcon(name)
@@ -99,14 +99,14 @@ function string getECFCharacterBonusTextIcon(string name)
 
 function string getECFCharacterResultsNameplate(string name)
 {
-	if (name == "ECC-Ray" && ecc_setting_rayAltPalette)
+	if (name == "JUWL-Ray" && setting_rayAltPalette)
 		return stringformat("%s_Mania", base.getECFCharacterResultsNameplate(name))
 		
 	return base.getECFCharacterResultsNameplate(name)
 }
 function string Lemons_getSlotIcon(u8 i)
 {
-	if (global_ExChar_P1 == "ECC-Ray")
+	if (global_ExChar_P1 == "JUWL-Ray")
 	{
 		string key
 		if (i == 2)
@@ -126,12 +126,12 @@ function string Lemons_getSlotIcon(u8 i)
 
 function string ECF_getRPCSprite(string name)
 {
-	return (name == "ECC-Ray") ? "https://i.imgur.com/pcd0iOx.png" : base.ECF_getRPCSprite(name)
+	return (name == "JUWL-Ray") ? "https://i.imgur.com/pcd0iOx.png" : base.ECF_getRPCSprite(name)
 }
 
 function void ESS_getCharacterColors(string name)
 {
-	if (name == "ECC-Ray")
+	if (name == "JUWL-Ray")
 	{
 		D0.u32 = 0x4890fc
 		D1.u32 = 0x2448b4
@@ -142,12 +142,17 @@ function void ESS_getCharacterColors(string name)
 
 function u32 ECF_getLedColor(string name)
 {
-	return (name == "ECC-Ray") ? 0x0099ff : base.ECF_getLedColor(name)
+	return (name == "JUWL-Ray") ? 0x0099ff : base.ECF_getLedColor(name)
 }
 
-function s16 ActSelect_CSP_isFaceLeft(string name)
+function s16 CSP_menu_isFaceLeft(string name)
 {
-	if (name == "ECC-Ray")
+	if (name == "JUWL-Ray")
 		return true
-	return base.ActSelect_CSP_isFaceLeft(name)
+	return base.CSP_menu_isFaceLeft(name)
+}
+
+function string ECF_legacyNameConversion(string name)
+{
+	return (name == "ECC-Ray") ? "JUWL-Ray" : base.ECF_legacyNameConversion(name)
 }

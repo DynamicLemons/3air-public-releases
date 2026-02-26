@@ -1,0 +1,63 @@
+function u8 ECF_isObjectBreakableWall()
+{
+	// wall
+	if (objA0.update_address == 0x021568)
+		return ((u8[A0 + 0x2c] & 0x80) == 0)
+	else if (objA0.update_address == 0x021818 && s8[A0 + 0x2c] >= 0)
+		return 2
+	// rocks
+	else if (objA0.update_address == 0x01fd08)
+		return (objA0.subtype2c & 0x80) ? 2 : 1
+		
+	return 0
+}
+
+function bool ECF_isObjectInvisibleCollision()
+{
+	// invisible solid collision
+	if (objA0.update_address == 0x01ec6c || objA0.update_address == 0x01f4c4 || objA0.update_address == 0x01f528 || objA0.update_address == 0x01f45e)
+		return true
+	// cnz 2 invisible wall during knuckles event
+	else if (objA0.update_address == 0x062458)
+		return true
+	// lbz 1 falling building
+	else if (objA0.update_address == 0x054164)
+		return true
+	// ballshooter invisible wall
+	else if (objA0.update_address == 0x073eb4)
+		return true
+		
+	return false
+}
+
+function bool Character_doesLandedObjectCancelAbility()
+{
+	// spikes 
+	if (objA1.update_address == 0x024090)
+		return ((char.bonus_effect & char.bonus.INVINCIBLE) == 0 && char.invuln.countdown == 0)
+	// harmful floors
+	else if (objA1.update_address == 0x01f4c4)
+	{
+		u8 objFx = objA1.flags2b & (char.bonus.ALL_SHIELDS | char.bonus.INVINCIBLE)
+		return ((char.bonus_effect & char.bonus.INVINCIBLE) == 0 && char.invuln.countdown == 0 && (objFx & char.bonus_effect) == 0)
+	}
+	// springs
+	else if (objA1.update_address == 0x022ef4 || objA1.update_address == 0x023490)
+		return true
+	// breakable floors
+	else if (objA1.update_address == 0x01faf2 && objA1.subtype2c & 0x01 || objA1.update_address == 0x02a502 || objA1.update_address == 0x04172e || objA1.update_address == 0x08b384)
+		return getPlayerGlobalValue("landedInObjBreakState") // this runs a bit too late to properly invoke ECF_canCharBreakFloor(), referencing this var instead
+	// hcz spinning pillar
+	else if (objA1.update_address == 0x0326b6)
+		return true
+	// cnz barrel
+	else if (objA1.update_address == 0x032188)
+		return true
+	// cnz cannon
+	else if (objA1.update_address == 0x0318f2)
+		return true
+	// ssz shell platform
+	else if (objA1.update_address == 0x0462b6)
+		return true
+	return false
+}

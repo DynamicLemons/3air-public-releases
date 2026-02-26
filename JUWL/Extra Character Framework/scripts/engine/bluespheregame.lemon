@@ -1,0 +1,347 @@
+//# address-hook(0x04d64e) end(0x04d6b2)
+function void fn04d64e()
+{
+	objA0.mapping_offset = 0x04d926
+	objA0.sprite_attributes = (levelselect.characters == CHARS_KNUCKLES_ALONE) ? (sprite_attribute.PRIORITY | (BlueSphereGame.Bumpers.targetInVRAM >> 5)) : (sprite_attribute.PRIORITY | sprite_attribute.PALETTE.LINE3 | (BlueSphereGame.Bumpers.targetInVRAM >> 5))
+#if STANDALONE
+	if (levelselect.characters == CHARS_TAILS_ALONE)
+		objA0.sprite_attributes = (sprite_attribute.PRIORITY | sprite_attribute.PALETTE.LINE2 | (BlueSphereGame.Bumpers.targetInVRAM >> 5))
+#endif
+
+	objA0.position.x.u16 = ((objA0.render_flags & render_flag.FLIP_X) ? 0x140 : 0x100) + getScreenExtend()
+	objA0.position.y.u16 = (bluespheregame.fully_unlocked == 0) ? 0xbe : 0x0126
+	u32[A0 + 0x30] = (objA0.render_flags & render_flag.FLIP_X) ? 0x04d7b2 : 0x04d7a6
+	objA0.sprite_priority = 0
+	
+	// changed sprite bounds and start frame
+	objA0.box_size.x = 16
+	objA0.box_size.y = 16
+	objA0.animation.sprite = 3
+	
+	objA0.update_address = 0x04d6b8
+	fn04d6b8()
+}
+
+//# address-hook(0x04cb1a) end(0x04cb34)
+function void fn04cb1a()
+{
+	A1 = (bluespheregame.enable_progress == 0) ? 0x04cb36 : 0x04cbb6
+	copyMemory(A2, A1, 0x80)
+	
+	// Usually some Tails-related palette loading logic here, not necessary, so it's been removed
+}
+
+//# address-hook(0x04d6b8) end(0x04d7a0)
+function void fn04d6b8()
+{
+	// some awkward draw logic and palette forcing is also originally here, not needed.
+	
+	// untouched
+	if (bluespheregame.fully_unlocked != 0)
+	{
+		A1 = u32[A0 + 0x30]
+		D0 = bluespheregame.menu_selection * 4
+		D2.u16 = u16[A1 + D0.u16] + getScreenExtend()
+		D3.u16 = u16[A1 + D0.u16 + 2]
+
+		// Update velocity-x
+		bool skipPart = false
+		if (D2.u16 == objA0.position.x.u16)
+		{
+			D0.u16 = objA0.velocity.x + 0x80
+			if (D0.u16 <= 0x0100)
+			{
+				D1 = 0
+				objA0.velocity.x = D1.u16
+				skipPart = true
+			}
+		}
+
+		if (!skipPart)
+		{
+			D1.u16 = 0x40
+			if (D2.s16 < s16(objA0.position.x.u16))
+			{
+				D1.s16 = -D1.s16
+				if (objA0.velocity.x >= 0)
+				{
+					D1.u16 *= 4
+				}
+			}
+			else
+			{
+				if (objA0.velocity.x < 0)
+				{
+					D1.u16 *= 4
+				}
+			}
+		}
+		objA0.velocity.x += D1.u16
+
+		// Update velocity-y
+		skipPart = false
+		if (D3.u16 == objA0.position.y.u16)
+		{
+			D0.u16 = objA0.velocity.y + 0x0100
+			if (D0.u16 <= 0x0200)
+			{
+				D1 = 0
+				objA0.velocity.y = D1.u16
+				skipPart = true
+			}
+		}
+
+		if (!skipPart)
+		{
+			D1.u16 = 0x80
+			if (D3.s16 < s16(objA0.position.y.u16))
+			{
+				D1.s16 = -D1.s16
+				if (objA0.velocity.y >= 0)
+				{
+					D1.u16 *= 4
+				}
+			}
+			else
+			{
+				if (objA0.velocity.y < 0)
+				{
+					D1.u16 *= 4
+				}
+			}
+		}
+		objA0.velocity.y += D1.u16
+
+		UpdateMovementStraightSimple()
+	}
+
+	// ani
+	--objA0.animation.timer
+	if (s8(objA0.animation.timer) < 0)
+	{
+		objA0.animation.timer = 5
+		++objA0.animation.sprite
+		objA0.animation.sprite &= 0x07
+	}
+	
+	if (A0 != 0xffffbd4c) // Only consider first of the two objects
+	{
+		DrawObject()
+		return
+	}
+		
+#if STANDALONE
+	if (control.pad1.pressed & CONTROL_B || Input.buttonPressed(BUTTON_BACK))
+	{
+		if (bluespheregame.menu_selection != 2)
+		{
+			// Back to the main menu
+			playSound(0xad)
+
+			u32 backupA0 = A0
+			FadeOutScreenBlocking()
+			A0 = backupA0
+
+			Game.returnToMainMenu()
+			yieldExecution()
+		}
+		else
+		{
+			fn04d488()
+		}
+		DrawObject()
+		return
+	}
+#endif
+
+	if (control.pad1.pressed & CONTROL_ABC)
+		levelselect.characters = (levelselect.characters + 1) % (ECF_charList_length + 3)
+
+	DrawObject()
+}
+
+//# address-hook(0x04cf82) end(0x04d03c)
+function void fn04cf82()
+{
+	base.fn04cf82()
+	// kind of awkward, but we don't need to remove any code here.
+	if (global.game_mode == 0x34)
+	{
+		if (levelselect.characters <= CHARACTER_KNUCKLES)
+		{
+			global.characters = levelselect.characters + 1
+			global_ExChar_P1_id = 0
+			global_ExChar_P1 = 0
+		}
+		else
+		{
+			global_ExChar_P1_id = levelselect.characters - 2
+			global_ExChar_P1 = getECFCharNameAtId(global_ExChar_P1_id)
+			global.characters = getECFGlobalCharId(global_ExChar_P1)
+		}
+	}
+}
+
+//# address-hook(0x04da7e) end(0x04dde6)
+function void fn04da7e()
+{
+	playMusic(MUSIC_CTRL_FADEOUT)
+#if STANDALONE
+	changeMusicTempo(0)
+#endif
+	fn04c8e4()
+
+	copyMemory(0xfffffc80, 0x04de08, 0x80)
+
+	// Special Stage results-related graphics. Loaded here for the Emerald sprites
+	Kosinski.decompress(0x15bac0, 0xffff0000)	// Special stage results text + Chaos emeralds and Sonic's continue icon
+	Kosinski.decompress(0x15c130, A1)			// Knuckles and Tails' continue icons
+	updateSpritePattern(0xffff0000, BlueSphereGame.Emeralds.targetInVRAM, A1.u16 >> 1)
+
+	// Smaller text sprites and code digits
+	Kosinski.decompress(0x1897de, 0xffff4000)
+	updateSpritePattern(0xffff4000, BlueSphereGame.Menu.targetInVRAM, 0x06d0)
+
+	Nemesis.loadDataToVRAM(0x0dde34, BlueSphereGame.TextTiles.targetInVRAM)
+	Nemesis.loadDataToVRAM(0x189c7c, BlueSphereGame.BGLogo.targetInVRAM)		// Sonic & Knuckles head logo
+
+	A1 = 0x04de88	// "CONGRATULATIONS!"
+	D2.u16 = 0x030a
+	D6.u16 = (sprite_attribute.PRIORITY | (BlueSphereGame.TextTiles.targetInVRAM >> 5))
+	fn05b318()
+
+	// Mapping for Sonic & Knuckles head logo in the background
+	Enigma.decompress(0x189c4e, 0xffff8000, (sprite_attribute.PALETTE.LINE3 | (BlueSphereGame.BGLogo.targetInVRAM >> 5)))
+
+	fn04dea2()
+
+	bluespheregame.menu_selection = 1
+	u32[0xffffb000] = 0x04def8
+	u32[0xffffb04a] = 0x04df86	// Character
+	u32[0xffffb1bc] = 0x04d03e	// Level text and number
+	u16[0xffffb1bc + 0x14] = 0x90
+	u32[0xffffb862] = 0x04e012	// Emeralds
+
+	UpdateGameObjects()
+	RenderSprites()
+
+	playMusic(MUSIC_LEVELCLEAR)
+	VDP.Config.setActiveDisplay(true)
+
+#if STANDALONE
+	for (u8 player = 0; player < getNumPlayers(); ++player)
+	{
+		u8 character = getPlayerCharacter(player)
+		string paletteKey
+		string var = System.getGlobalVariableValueByName(stringformat("global_ExChar_P%d", player + 1))
+		if (var)
+			paletteKey = getECFCharacterPaletteKey(var)
+		else
+			paletteKey = getCharacterPaletteKey(character)
+		
+		u16 numColors = System.loadExternalPaletteData(paletteKey, 0, 0x800000, 32)
+		if (numColors > 0)
+		{
+			u32 dest = 0x802180 + player * 0x40
+			zeroMemory(dest, 64)
+			for (u16 i = 0; i < numColors; ++i)
+			{
+				u16[dest + i * 2] = packColor(u32[0x800000 + i * 4])
+			}
+		}
+	}
+#endif
+
+	BlueSpheres.FadeIn()
+
+	while (true)
+	{
+		global.frame_state = 0x1a
+		Kosinski.ProcessDecompressionQueue()
+		waitForNextFrame()
+
+		UpdateGameObjects()
+		RenderSprites()
+		Kosinski.ProcessModules()
+		if (global.game_mode != 0x30)
+			break
+	}
+
+	if (bluespheres.rings_remaining != 0)
+	{
+		if (s8(bluespheregame.enable_progress) >= 0 && bluespheregame.fully_unlocked != 0)
+		{
+			// Next stage
+			BlueSphereGame.advanceStages(1)
+		}
+		return
+	}
+
+	playMusic(MUSIC_CTRL_FADEOUT)
+	FadeOutScreenBlocking()
+	fn04c8e4()
+
+	// reload base cast 
+	loadCharacterPalette(CHARACTER_SONIC,    0x802180, 0)
+	loadCharacterPalette(CHARACTER_TAILS,    0x8021c0, 0)
+	loadCharacterPalette(CHARACTER_KNUCKLES, 0x802200, 0)
+	
+	zeroMemory(0xfffffa80, 0x80)
+	copyMemory(0xfffffc80, 0x0a8a3c, 0x20)
+	copyMemory(0xfffffca0, 0x0a8afc, 0x20)
+	copyMemory(0xfffffcc0, 0x04de68, 0x20)
+	copyMemory(0xfffffce0, 0x060aba, 0x20)
+
+	Nemesis.loadDataToVRAM(0x189c7c, BlueSphereGame.Background.targetInVRAM)		// Sonic & Knuckles head logo
+
+	Nemesis.LoadMultipleToVRAM(0x04dde8)		// Robotnik + Egg Mobile and critter art for perfect results screen
+
+	Kosinski.decompress(0x16416e, 0xffff0000)	// Small Sonic & Knuckles title logo
+	Kosinski.decompress(0x0de364, A1)			// "& Knuckles" subtitle (might be loaded for the trademark sign?)
+	Kosinski.decompress(0x17fcbc, A1)			// Master Emerald sprite
+	Kosinski.decompress(0x163248, A1)			// Robotnik posing sprites
+	Kosinski.decompress(0x15fdde, A1)			// Egg Robo head sprites
+
+	updateSpritePattern(0xffff0000, BlueSphereGame.SKTitleLogo.targetInVRAM, A1.u16 >> 1)
+
+	// Repeating Sonic & Knuckles head logo background
+	Enigma.decompress(0x189c4e, 0xffff8000, (sprite_attribute.PALETTE.LINE2 | (BlueSphereGame.Background.targetInVRAM >> 5)))
+	fn04dea2()
+
+	u32[0xffffb04a] = 0x04d03e	// Level text and number
+	u16[0xffffb04a + 0x14] = 0xc0
+	u32[0xffffb3c2] = 0x04e0a4	// "Difficulty" text
+
+	UpdateGameObjects()
+	RenderSprites()
+
+	super.active = 0
+	super.palettefx.state = 0
+	global.characters = CHARS_SONIC_ALONE
+	playMusic(MUSIC_INVINCIBLE)
+
+	VDP.Config.setActiveDisplay(true)
+
+	Menu.FadeInAfterInit()
+
+	while (true)
+	{
+		global.frame_state = 0x1a
+		Kosinski.ProcessDecompressionQueue()
+		waitForNextFrame()
+
+		UpdateGameObjects()
+		RenderSprites()
+		Kosinski.ProcessModules()
+		UpdatePaletteEffects.SuperForm()
+
+		if ((bluespheregame.shown_difficulty == bluespheregame.difficulty_level) && control.pad1.pressed != 0)
+			break
+	}
+
+	if (s8(bluespheregame.enable_progress) >= 0 && bluespheregame.fully_unlocked != 0)
+	{
+		// Advance 10 stages
+		BlueSphereGame.advanceStages(10)
+	}
+}

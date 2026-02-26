@@ -115,7 +115,6 @@ function void Character.Initialization.shared(u8 character)
 	}
 }
 
-// remove c-abilities
 //# address-hook(0x010bba) end(0x010c8e)
 function void Character.UpdateNormalState.Sonic()
 {
@@ -279,12 +278,7 @@ function void Character.updateJumpMoves()
 		}
 	}
 	else
-	{
-		if (char.spindash == 0)
-		{
-			char.velocity.y = max(char.velocity.y, -0x0fc0)
-		}
-	}
+		base.Character.updateJumpMoves()
 }
 
 function void ECFGenericPressedJumpInMidAir()
@@ -309,6 +303,12 @@ function void Character.UpdateKnucklesUprightInAir()
 		Character.UpdateKnucklesRollingInAir()
 	else
 		base.Character.UpdateKnucklesUprightInAir()
+}
+
+function void Character.LandingOnGroundStandUp()
+{
+	setPlayerGlobalValue("landedInObjBreakState", ECF_canCharBreakFloor())
+	base.Character.LandingOnGroundStandUp()
 }
 
 function void Character.LandingOnGroundResetState()
@@ -743,7 +743,6 @@ function void fn085826()
 }
 
 // remove super sonic stats
-
 function void setSpeedCapProperties(u32 address, bool isSuperActive)
 {
 	if (getECFCharBufferName(A0) == 0 || ECF_disableBranchBase)

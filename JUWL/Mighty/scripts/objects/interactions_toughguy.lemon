@@ -2,7 +2,7 @@
 //# address-hook(0x01021e) end(0x010288)
 function void Character.OnThreatCollision()
 {
-	if (!isECFCharA0("ECC-Mighty"))
+	if (!isECFCharA0("JUWL-Mighty"))
 	{
 		base.Character.OnThreatCollision()
 		return
@@ -59,7 +59,7 @@ function void Character.OnThreatCollision()
 	{
 		deflectProjectile()
 		// this deflect sound should only play if mighty's tough guy is what causes the deflect
-		if (ecc_setting_mightyManiaSounds)
+		if (setting_mightyManiaSounds)
 			Audio.playAudio("mighty_deflect")
 		else
 			Audio.playAudio("mighty_c_deflect")
@@ -70,7 +70,7 @@ function void Character.OnThreatCollision()
 //# address-hook(0x01028a) end(0x010392)
 function void Character.OnThreatCollisionInner()
 {
-	if (!isECFCharA0("ECC-Mighty") || char.invuln.countdown != 0)
+	if (!isECFCharA0("JUWL-Mighty") || char.invuln.countdown != 0)
 	{
 		base.Character.OnThreatCollisionInner()
 	}
@@ -168,7 +168,7 @@ function void Character.OnThreatCollisionInner()
 				else if (type == 4)
 				{
 					deflectProjectile()
-					if (ecc_setting_mightyManiaSounds)
+					if (setting_mightyManiaSounds)
 						Audio.playAudio("mighty_deflect")
 					else
 						Audio.playAudio("mighty_c_deflect")
@@ -183,7 +183,7 @@ function void Character.OnThreatCollisionInner()
 				else if (type == 4)
 				{
 					deflectProjectile()
-					if (ecc_setting_mightyManiaSounds)
+					if (setting_mightyManiaSounds)
 						Audio.playAudio("mighty_deflect")
 					else
 						Audio.playAudio("mighty_c_deflect")
@@ -210,7 +210,7 @@ function void Character.OnThreatCollisionInner()
 function void DamageCharacter()
 {
 	// spikes and hurt floors (if not elemental floor)
-	if (isECFCharA1("ECC-Mighty"))
+	if (isECFCharA1("JUWL-Mighty"))
 	{
 		u8 type = MightyInteraction_getType(A1, A0)
 		if (type)
@@ -272,7 +272,7 @@ function void DamageCharacter()
 //# address-hook(0x0857b4) end(0x0857c0)
 function void Enemy.DamageCharacter()
 {
-	if (isECFCharA1("ECC-Mighty"))
+	if (isECFCharA1("JUWL-Mighty"))
 	{
 		u8 type = MightyInteraction_getType(A1, A0)
 		if (type)
@@ -357,7 +357,7 @@ function void MightyInteraction_uncurl(u8 dir)
 	char.hlock_countdown = 0
 	char.spindash = 0
 	
-	if (ecc_setting_mightyManiaSounds)
+	if (setting_mightyManiaSounds)
 		Audio.playAudio("mighty_unspin")
 	else
 		Audio.playAudio("mighty_c_unspin")
@@ -727,6 +727,10 @@ function u8 MightyInteraction_getType()
 	// Big Icedus
 	else if (upd == 0x0714b8)
 		return 1
+
+	// Egg Froster
+	else if (upd == 0x0720d4)
+		return 2
 		
 	// LBZ
 	
@@ -838,6 +842,10 @@ function u8 MightyInteraction_getType()
 	else if (upd == 0x044592)
 		return 2
 		
+	// Hot Mobile
+	else if (upd == 0x0797fa || upd == 0x79dea)
+		return 1
+
 	// Hot Mobile bombs
 	else if (upd == 0x079ac4 || upd == 0x079b22 || upd == 0x079b54)
 		return 2
@@ -848,6 +856,26 @@ function u8 MightyInteraction_getType()
 	else if (upd == 0x0462b6)
 		return 2
 	
+	// Wrecking Ball
+	else if (upd == 0x07a514)
+		return 1
+	
+	// Egg Bouncer
+	else if (upd == 0x07ad8a)
+		return 2
+		
+	// Mecha Sonic (Phase 1)
+	else if (upd == 0x7b288)
+		return 1
+	
+	// Small Hitbox attached to phase 1
+	else if (upd == 0x7c9c8)
+		return 2
+	
+	// Mecha Sonic (Phase 2)
+	else if (upd == 0x7bd4c)
+		return 1
+		
 	// DEZ
 	
 	// Bonker
@@ -1018,7 +1046,7 @@ function void fn08b4ec()
 	D0.u16 *= 2
 	A1 = 0xffff0000 + u16[0x08b52a + D0.u16]
 
-	if (!isECFCharA1("ECC-Mighty"))
+	if (!isECFCharA1("JUWL-Mighty"))
 	{
 		base.fn08b4ec()
 		return
@@ -1060,7 +1088,7 @@ function void fn08b4ec()
 //# address-hook(0x025d2c) end(0x025d52)
 function void fn025d2c()
 {
-	if (!isECFCharA1("ECC-Mighty") || objA1.state != char.state.MIGHTY_HAMMERDROP)
+	if (!isECFCharA1("JUWL-Mighty") || objA1.state != char.state.MIGHTY_HAMMERDROP)
 	{
 		base.fn025d2c()
 		return
@@ -1078,7 +1106,7 @@ function void fn025d2c()
 //# address-hook(0x042ec0) end(0x042ee6)
 function void fn042ec0()
 {
-	if (!isECFCharA1("ECC-Mighty") || objA1.state != char.state.MIGHTY_HAMMERDROP)
+	if (!isECFCharA1("JUWL-Mighty") || objA1.state != char.state.MIGHTY_HAMMERDROP)
 	{
 		base.fn042ec0()
 		return

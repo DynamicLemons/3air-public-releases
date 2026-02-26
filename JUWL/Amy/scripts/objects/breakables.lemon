@@ -1,0 +1,15 @@
+function void ECF_onWallBreak()
+{
+	if (isECFCharA1("JUWL-Amy") && (u8[A1 + 0x2f] == 2 || u8[A1 + 0x2f] == 4))
+	{
+		u32 A0_o = A0
+		u32 A1_o = A1
+		A0 = A1_o
+		A1 = A0_o
+		Amy_wallJump()
+		A0 = A0_o
+		A1 = A1_o
+	}
+	else
+		base.ECF_onWallBreak()
+}

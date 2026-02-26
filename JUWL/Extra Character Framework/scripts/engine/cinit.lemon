@@ -478,9 +478,15 @@ function void SetupCharacterAtStartPosition()
 		return
 	}
 	
+	// Angel Island Act 1 
+	// Stop Knuckles based characters from softlocking by enforcing the right spawn location
+	// ... Ignores 3AIR spawn location, due to that being hardcoded, but maybe that's a good thing...
+	if (global.zone_act == 0x0000 && ECF_AIZ_introBase(global_ExChar_P1) == CHARACTER_TAILS && isMainCharacter(CHARACTER_KNUCKLES))
+		SetupCharacterAtStartPosition_simple()
 	// IceCap Act 1
-	// force Tails intro
-	if (global.zone_act == 0x0500)
+	// See level_icz for teleporter handling.
+	// Setup for crashing into the wall
+	else if (global.zone_act == 0x0500 && ECF_ICZ_introBase(global_ExChar_P1) == CHARACTER_TAILS)
 	{
 		u16[0xffffb000 + 0x10] = 0x3780
 		u16[0xffffb000 + 0x14] = 0x01e0
@@ -495,8 +501,52 @@ function void SetupCharacterAtStartPosition()
 		camera.position.x.u16.player2 = 0x36f0
 		camera.position.y.u16.player2 = 0x0200
 	}
+	// For Snowboarding
+	else if (global.zone_act == 0x0500 && !isMainCharacter(CHARACTER_SONIC) && ECF_ICZ_introBase(global_ExChar_P1) != CHARACTER_KNUCKLES)
+		SetupCharacterAtStartPosition_simple(0x1e3c18)
 	else
 		base.SetupCharacterAtStartPosition()
+}
+
+function void SetupCharacterAtStartPosition_simple()
+{
+	SetupCharacterAtStartPosition_simple(isMainCharacter(CHARACTER_KNUCKLES) ? 0x1e3cd8 : 0x1e3c18) // Get starting positions from respective tables
+}
+
+
+function void SetupCharacterAtStartPosition_simple(u32 index)
+{
+	A1 = index
+	A1 += global.zone * 8 + global.act * 4
+	SetupCharacterAtStartPosition_simple(u16[A1], u16[A1 + 2])
+}
+
+function void SetupCharacterAtStartPosition_simple(u16 px, u16 py)
+{
+	D1 = px
+	D0 = py
+	u16[0xffffb000 + 0x10] = D1.u16		// Set Player 1 x-position
+	u16[0xffffb000 + 0x14] = D0.u16		// Set Player 1 y-position
+
+	D1.s16 = max(D1.s16 - getScreenWidth() / 2, 0)
+	if (competition_mode.active == 0)
+	{
+	#if STANDALONE
+		// Avoid exact tile edges
+		//  -> This was particularly added in to avoid glitches in first pixel row after exiting first Giant Ring in AIZ 2
+		//     (There's probably a better solution, that generally solves this type of glitches when going left in AIZ 2)
+		if ((D1.u16 & 0x0f) == 0)
+			++D1.u16
+	#endif
+		D1.u16 = min(D1.u16, move_area.right)
+	}
+
+	camera.position.x.u16 = D1.u16
+	camera.position.x.u16.player2 = D1.u16
+
+	D0.s16 = clamp(D0.s16 - 96, 0, s16(move_area.bottom.current))
+	camera.position.y.u16 = D0.u16
+	camera.position.y.u16.player2 = D0.u16
 }
 
 //# address-hook(0x0067ee) end(0x0069b6)
@@ -518,7 +568,7 @@ function void fn0067ee()
 			u32[0xffffb172] = 0x063446
 	}
 	// Carnival Night / Mushroom Hill
-	else if (global.zone_act == 0x0300 && (!isMainCharacter(CHARACTER_KNUCKLES) || level.start_location == 1) || global.zone_act == 0x0700 && !isMainCharacter(CHARACTER_KNUCKLES))
+	else if (global.zone_act == 0x0300 && (!isMainCharacter(CHARACTER_KNUCKLES) && ECF_enableBossTop() || level.start_location == 1) || global.zone_act == 0x0700 && !isMainCharacter(CHARACTER_KNUCKLES))
 	{
 		zoneInit_shared()
 		
@@ -544,12 +594,15 @@ function void fn0067ee()
 		}
 	}
 	// IceCap
-	else if (global.zone_act == 0x0500 && !isMainCharacter(CHARACTER_KNUCKLES))
+	else if (global.zone_act == 0x0500)
 	{
 		zoneInit_shared()
 		
-		// Use Tails' start
-		u32[0xffffb172] = 0x039b66
+		// IceCap Zone
+		if (ECF_ICZ_introBase(global_ExChar_P1) == CHARACTER_SONIC)
+			u32[0xffffb172] = 0x0396e4
+		else if (ECF_ICZ_introBase(global_ExChar_P1) == CHARACTER_TAILS)
+			u32[0xffffb172] = 0x039b66
 	}
 	else
 		base.fn0067ee()

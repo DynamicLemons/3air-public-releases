@@ -1,0 +1,95 @@
+//# address-hook(0x018c20) end(0x018c82)
+function void fn018c20()
+{
+	if (!getECFCharBufferName(A2))
+	{
+		base.fn018c20()
+		return
+	}
+	
+	// The first check is against "sonic.drown_countdown"
+	//  -> Deactivate this while the drown countdown is shown, because the digits use the same VRAM as this effect here
+	if (u8[A2 + 0x2c] < 12 || u8[A2 + 0x05] >= base_state.HURT)
+	{
+		objA0.state = 0
+		return
+	}
+
+	// Check if not spindashing any more
+	if (u8[A2 + 0x3d] == 0)
+	{
+		objA0.state = 0
+		return
+	}
+
+	objA0.position.x.u16 = u16[A2 + 0x10]
+	objA0.position.y.u16 = u16[A2 + 0x14]
+	objA0.flags2a = u8[A2 + 0x2a] & char.flag.FACING_LEFT
+
+	objA0.position.y.u16 += (-s16(u8[A2 + 0x44]) + s16(u8[A2 + 0x1e]) - s16(char.hitbox.y.UPRIGHT) + u8[A2 + 0x44]) * (global.inv_gravity ? -1 : 1)
+
+	if (objA0.state.former == 0)
+	{
+		if (u16[A2 + 0x0a] & sprite_attribute.PRIORITY)
+			objA0.sprite_attributes |= sprite_attribute.PRIORITY
+		else
+			objA0.sprite_attributes &= ~sprite_attribute.PRIORITY
+	}
+		
+	fn018c94()
+
+	if (global.inv_gravity)
+		objA0.render_flags |= render_flag.FLIP_Y
+	else
+		objA0.render_flags &= ~render_flag.FLIP_Y
+}
+
+//# address-hook(0x018cb6) end(0x018d68)
+function void fn018cb6()
+{
+	if (!getECFCharBufferName(A2))
+	{
+		base.fn018cb6()
+		return
+	}
+
+	if (u8[A2 + 0x20] != char.state.BRAKING)
+	{
+		objA0.base_state = 0x02
+		u8[A0 + 0x36] = 0
+		return
+	}
+	
+	D1 = u8[A2 + 0x1e] - 3
+
+	--u8[A0 + 0x36]
+	if (s8[A0 + 0x36] < 0)
+	{
+		u8[A0 + 0x36] = 3
+		if ((u8[A2 + 0x2a] & char.flag.UNDERWATER) == 0)
+		{
+			if (allocDynamicObjectStd())
+			{
+				// Spawn skidding dust
+				objA1.update_address = objA0.update_address
+				objA1.position.x.u16 = u16[A2 + 0x10]
+				objA1.position.y.u16 = u16[A2 + 0x14]
+				if (global.inv_gravity)
+					D1.s16 = -D1.s16
+
+				objA1.position.y.u16 += D1.u16
+				objA1.render_flags = objA0.render_flags
+				u8[A1 + 0x05] += 2
+				objA1.box_size.x = 4
+				objA1.sprite_priority = 0x80
+				objA1.sprite_attributes = (objA0.sprite_attributes & ~sprite_attribute.PRIORITY) | (u16[A2 + 0x0a] & sprite_attribute.PRIORITY)
+				objA1.mapping_offset = objA0.mapping_offset
+				u8[A1 + 0x20] = 3
+				u8[A1 + 0x2a] = 0
+				objA1.dustcloud.character_address = objA0.dustcloud.character_address
+			}
+		}
+	}
+
+	fn018d6a()
+}

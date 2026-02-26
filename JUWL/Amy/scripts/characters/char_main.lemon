@@ -1,10 +1,9 @@
-//# address-hook(0x010afa) end(0x010bb8)
-function void Character.Initialization.Sonic()
+function void Character.Initialization.shared(u8 character)
 {
-	base.Character.Initialization.Sonic()
+	base.Character.Initialization.shared(character)
 	
 	setPlayerGlobalValue("amy_bounceLoss", 0)
-	if (isECFCharA0("ECC-Amy"))
+	if (isECFCharA0("JUWL-Amy"))
 	{
 		char.hitbox_extends.y = char.hitbox.y.UPRIGHT_TAILS
 		char.hitbox.default.y = char.hitbox.y.UPRIGHT_TAILS
@@ -14,116 +13,23 @@ function void Character.Initialization.Sonic()
 //# address-hook(0x010bba) end(0x010c8e)
 function void Character.UpdateNormalState.Sonic()
 {
-	if (!isECFCharA0("ECC-Amy"))
+	if (!isECFCharA0("JUWL-Amy"))
 	{
 		base.Character.UpdateNormalState.Sonic()
 		return
 	}
 
-	if (A0 == 0xffffb000)
-	{
-		if (updateDebugModeInput(false))
-			return
-	}
-
-#if CHARACTER_SELECTION_PLUS_ACTIVE
-	Character.ControlUpdate()
-#else
-	if (player1.control_override == 0)
-	{
-		// Set player 1 control state
-		control.player1 = control.pad1
-	}
-#endif
-
 	if (char.control_flags & 0x01)
-	{
-		// Character is not directly controllable (but may be indirectly via an object, like when hanging on a pole or similar)
-		char.double_jump_state = 0
 		setPlayerGlobalValue("amy_bounceLoss", 0)
-	}
-	else
-	{
-		// Call update function depending on flags
-		pushA456()
-		// Targets:
-		//  - 0x010f2c	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = 0x00												-> Character.UpdateSonicUprightOnGround()
-		//  - 0x010fb6	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = char.flag.IN_AIR									-> Character.UpdateSonicUprightInAir()
-		//  - 0x010fe0	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = char.flag.ROLLING								-> Character.UpdateSonicRollingOnGround()
-		//  - 0x011036	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = (char.flag.IN_AIR | char.flag.ROLLING)			-> Character.UpdateSonicRollingInAir()
-		call tableLookupAddress(0x010c90, char.flags & (char.flag.IN_AIR | char.flag.ROLLING))
-		popA456()
-	}
 	
-#if STANDALONE
-	if (Game.getSetting(SETTING_SUPERFAST_RUNANIM) && !super.active && abs(char.groundspeed) >= 0x0d00)
-	{
-		sonic.fastrunanim.timer = 30
-	}
-	else if (sonic.fastrunanim.timer > 0)
-	{
-		if (abs(char.groundspeed) >= 0x0800)
-			--sonic.fastrunanim.timer
-		else
-			sonic.fastrunanim.timer = 0
-	}
-#endif
-
-	if (level.vertical_wrap == 0xff00)
-	{
-		char.position.y.u16 &= level.height.bitmask
-	}
-
-	Character.updateBonusEffects()
-	Character.UpdateRingsInSuperForm()
-	Character.WriteToPositionBackup()
-	Character.checkForWaterSurface()
-		
-	char.angle_sensor_1 = u8[0xfffff768]
-	char.angle_sensor_2 = u8[0xfffff76a]
-
-	if (u8[0xfffff7c8] != 0)
-	{
-		if (char.state == char.state.RUNNING)
-			char.state = char.state.former
-	}
-
-	if ((char.control_flags & 0x02) == 0)	// Hanging flag
-	{
-		UpdateSonicAnimation()
-		if (global.inv_gravity)
-		{
-			char.render_flags ^= render_flag.FLIP_Y
-		}
-		UpdateSonicSpritePatterns()
-	}
+	base.Character.UpdateNormalState.Sonic()
+	
 #if LEMONS_TWEAKS_ACTIVE
-	else
-		setPlayerGlobalValue("customKey", 0)
-#endif
-
-	if ((char.control_flags & 0xa0) == 0)
-	{
-		Character.CheckCollisionsWithDynamicObjects()
-	#if LEMONS_TWEAKS_ACTIVE
-		if ((char.control_flags & 0x02) == 0 && char.state != char.state.former)	// Hanging flag
-		{
-			UpdateSonicAnimation()
-			if (global.inv_gravity)
-			{
-				char.render_flags ^= render_flag.FLIP_Y
-			}
-			UpdateSonicSpritePatterns()
-		}
+	#if CHARACTER_SELECTION_PLUS_ACTIVE
+		A2 = getPAddress("follow")
+	#else
+		A2 = 0xffffcc0a
 	#endif
-	}
-	
-#if LEMONS_TWEAKS_ACTIVE
-#if CHARACTER_SELECTION_PLUS_ACTIVE
-	A2 = getPAddress("follow")
-#else
-	A2 = 0xffffcc0a
-#endif
 	Amy_getHammerLayerState()
 	setPlayerGlobalValue("follow_expectedSprite", objA0.animation.sprite)
 #endif
@@ -133,7 +39,7 @@ function void Character.UpdateNormalState.Sonic()
 function void TailsTails.Update()
 {
 	A2 = 0xffff0000 + u16[A0 + 0x30]
-	if (!isECFCharAt(A2, "ECC-Amy"))
+	if (!isECFCharAt(A2, "JUWL-Amy"))
 	{
 		base.TailsTails.Update()
 		return
@@ -223,7 +129,7 @@ constant u8 Amy_minHoldTime = 5
 
 function void Character.updateJumpMoves()
 {
-	if (!isECFCharA0("ECC-Amy"))
+	if (!isECFCharA0("JUWL-Amy"))
 	{
 		base.Character.updateJumpMoves()
 		return
@@ -234,7 +140,7 @@ function void Character.updateJumpMoves()
 	bool isSuperActive = Character.getSuperState()
 
 #if CHARACTER_SELECTION_PLUS_ACTIVE
-	bool secondaryMode = (A0 != 0xffffb000 && tails.ai_routine != pAiRoutine_flyInExit && tails.control_counter == 0 && (isSoloMode || !csp_set_fourPlayer))
+	bool secondaryMode = (A0 != 0xffffb000 && isSoloMode)
 #else
 	bool secondaryMode = false
 #endif
@@ -321,7 +227,7 @@ function void Character.updateJumpMoves()
 					char.state = char.state.AMY_HAMMERSPIN_N
 					Audio.stopChannel(Character.getCharAudioChannelA())
 				}
-				else if (ecc_setting_amyTwinSpin && D1.s16 <= 10 && char.state == char.state.AMY_HAMMERSPIN_H)
+				else if (setting_amyTwinSpin && D1.s16 <= 10 && char.state == char.state.AMY_HAMMERSPIN_H)
 					Amy_wallJump()
 			}
 			// twinspin a
@@ -416,7 +322,7 @@ function void AmyPressedJumpInMidAir()
 	char.hitbox_extends.x = char.hitbox.x.ROLLING
 	char.hitbox_extends.y = char.hitbox.y.ROLLING
 
-	Audio.playAudio((ecc_setting_amySuperstarsSounds) ? "amy_s_attack" : "amy_attack")
+	Audio.playAudio((setting_amySuperstarsSounds) ? "amy_s_attack" : "amy_attack")
 }
 
 function void Amy_wallJump()
@@ -442,7 +348,7 @@ function void Character.LandingOnGroundResetState()
 {
 	setPlayerGlobalValue("amy_bounceLoss", 0)
 	
-	if (!isECFCharA0("ECC-Amy"))
+	if (!isECFCharA0("JUWL-Amy"))
 	{
 		base.Character.LandingOnGroundResetState()
 		return
@@ -452,7 +358,10 @@ function void Character.LandingOnGroundResetState()
 	char.flags &= ~char.flag.PUSHING
 	char.flags &= ~char.flag.CONTROL_LOCK
 	char.jumping = 0
-	score.bonus_counter = 0		// No more increasing bonusses after hitting the ground
+#if LEMONS_TWEAKS_ACTIVE
+	if (A0 == 0xffffb000)
+#endif
+		score.bonus_counter = 0		// No more increasing bonusses after hitting the ground
 	char.rotation.x = 0
 	u8[A0 + 0x2d] = 0
 	u8[A0 + 0x30] = 0
@@ -461,30 +370,11 @@ function void Character.LandingOnGroundResetState()
 	// Check for double jump state
 	if (char.double_jump_state != 0)
 	{
-		if (char.double_jump_state == 2 && !AmyInteraction_cancelLand())
+		if (char.double_jump_state == 2 && !Character_interaction_cancelAbilityLanding())
 			AmyLandedWithAirAbility()
 		else
 			char.double_jump_state = 0
 	}
-}
-
-
-function bool AmyInteraction_cancelLand()
-{
-	bool result = false
-	u32 A1_o = A1
-	A1 = 0xffff0000 + u32(char.object_standing_on)
-		
-	if (char.flags & char.flag.ON_OBJECT && char.object_standing_on)
-	{
-		if (objA1.update_address == 0x0462b6)
-			result = true
-		 
-	}
-	
-	A1 = A1_o
-	
-	return result
 }
 
 #if !LEMONS_TWEAKS_ACTIVE
@@ -495,7 +385,7 @@ function bool AmyInteraction_cancelLand()
 //# address-hook(0x0153c2) end(0x01560a)
 function void Character.CheckCollision()
 {
-	if (!isECFCharA0("ECC-Amy") || char.double_jump_state != 2)
+	if (!isECFCharA0("JUWL-Amy") || char.double_jump_state != 2)
 	{
 		base.Character.CheckCollision()
 		return
@@ -511,7 +401,11 @@ function void Character.CheckCollision()
 	}
 #endif
 
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	bool someFlag = getPData("level.HCZ_water_current_flags")
+#else
 	bool someFlag = (char.character == CHARACTER_TAILS) ? level.HCZ_water_current_flags.tails : level.HCZ_water_current_flags.player1
+#endif
 
 	u32[0xfffff796] = (char.layer_flags1 == 0x0c) ? u32[0xfffff7b4] : u32[0xfffff7b8]
 
@@ -696,32 +590,6 @@ function void Character.CheckCollision()
 }
 #endif
 
-function bool Character_checkWallInFront()
-{	
-	pushA456()
-
-	u32[0xfffff796] = (char.layer_flags1 == 0x0c) ? u32[0xfffff7b4] : u32[0xfffff7b8]
-	D5.u8 = char.layer_flags2
-	
-	u8 result
-	if (char.flags & char.flag.FACING_LEFT)
-	{
-		Character.CheckLeftWallCollision()
-		if (D1.s16 <= 0)
-			result = true
-	}
-	else
-	{
-		Character.CheckRightWallCollision()
-		if (D1.s16 <= 0)
-			result = true
-	}
-	
-	popA456()
-	
-	return result
-}
-
 function void AmyLandedWithAirAbility()
 {
 #if LEMONS_TWEAKS_ACTIVE
@@ -774,13 +642,13 @@ function void AmyLandedWithAirAbility()
 	s8 dy = char.hitbox_extends.y - char.hitbox.default.y
 	char.position.y.u16 += (global.inv_gravity) ? dy : -dy
 	
-	Audio.playAudio((ecc_setting_amySuperstarsSounds) ? "amy_s_bounce" : "amy_bounce")
+	Audio.playAudio((setting_amySuperstarsSounds) ? "amy_s_bounce" : "amy_bounce")
 }
 
 //# address-hook(0x011036) end(0x01105e)
 function void Character.UpdateSonicRollingInAir()
 {
-	if (!isECFCharA0("ECC-Amy"))
+	if (!isECFCharA0("JUWL-Amy"))
 	{
 		base.Character.UpdateSonicRollingInAir()
 		return
@@ -811,7 +679,7 @@ function void Character.UpdateSonicRollingInAir()
 //# address-hook(0x017680) end(0x01770e)
 function void Character.UpdateControlInAir()
 {
-	if (!isECFCharA0("ECC-Amy") || char.double_jump_state != 4)
+	if (!isECFCharA0("JUWL-Amy") || char.double_jump_state != 4)
 	{
 		base.Character.UpdateControlInAir()
 		return
@@ -885,7 +753,7 @@ function void Character.UpdateControlInAir()
 //# address-hook(0x00fe8e) end(0x00ff04)
 function void Character.CheckCollisionsWithDynamicObjects()
 {
-	if (!isECFCharA0("ECC-Amy"))
+	if (!isECFCharA0("JUWL-Amy"))
 	{
 		base.Character.CheckCollisionsWithDynamicObjects()
 		return
@@ -914,7 +782,7 @@ function void Character.CheckCollisionsWithDynamicObjects()
 
 function void Character.OnHitBoss()
 {
-	if (isECFCharA0("ECC-Amy") && (char.double_jump_state == 1 || char.double_jump_state == 2))
+	if (isECFCharA0("JUWL-Amy") && (char.double_jump_state == 1 || char.double_jump_state == 2))
 	{
 		sonic.dropdash_counter = 0
 		char.double_jump_state = 0
@@ -938,7 +806,7 @@ function void Character.OnHitBoss()
 function void Character.OnHitBadnik()
 {
 	base.Character.OnHitBadnik()
-	if (isECFCharA0("ECC-Amy") && char.double_jump_state == 2 && char.velocity.y < 0)
+	if (isECFCharA0("JUWL-Amy") && char.double_jump_state == 2 && char.velocity.y < 0)
 	{
 		sonic.dropdash_counter = 0
 		char.double_jump_state = 0
@@ -952,7 +820,7 @@ function void Character.OnHitBadnik()
 
 function void Character.OnHitMonitor()
 {
-	if (isECFCharA0("ECC-Amy") && char.state == char.state.AMY_TWINSPIN)
+	if (isECFCharA0("JUWL-Amy") && char.state == char.state.AMY_TWINSPIN)
 		Amy_wallJump()
 	else
 		base.Character.OnHitMonitor()
@@ -961,7 +829,7 @@ function void Character.OnHitMonitor()
 //# address-hook(0x01021e) end(0x010288)
 function void Character.OnThreatCollision()
 {
-	if (!isECFCharA0("ECC-Amy"))
+	if (!isECFCharA0("JUWL-Amy"))
 	{
 		base.Character.OnThreatCollision()
 		return
@@ -1039,7 +907,7 @@ function void Character.OnThreatCollision()
 //# address-hook(0x0857c2) end(0x0857e6)
 function void fn0857c2()
 {
-	if (isECFCharA1("ECC-Amy") && (objA1.state == char.state.AMY_HAMMERSPIN_N || objA1.state == char.state.AMY_HAMMERSPIN_H || objA1.state == char.state.AMY_TWINSPIN))
+	if (isECFCharA1("JUWL-Amy") && (objA1.state == char.state.AMY_HAMMERSPIN_N || objA1.state == char.state.AMY_HAMMERSPIN_H || objA1.state == char.state.AMY_TWINSPIN))
 	{
 		fn085822()
 		return
@@ -1051,7 +919,7 @@ function void fn0857c2()
 //# address-hook(0x0869c6) end(0x0869f4)
 function void StartCharacterWinPose()
 {
-	if (!isECFCharA1("ECC-Amy"))
+	if (!isECFCharA1("JUWL-Amy"))
 	{
 		base.StartCharacterWinPose()
 		return
@@ -1084,7 +952,7 @@ function void StartCharacterWinPose()
 //# address-hook(0x085b8e) end(0x085ba6)
 function void StopCharacterWinPose()
 {
-	if (!isECFCharA1("ECC-Amy"))
+	if (!isECFCharA1("JUWL-Amy"))
 	{
 		base.StopCharacterWinPose()
 		return
@@ -1112,7 +980,7 @@ function void StopCharacterWinPose()
 
 function void Character.updateUprightOnGround()
 {
-	if (!isECFCharA0("ECC-Amy") || char.state != char.state.WIN_POSE)
+	if (!isECFCharA0("JUWL-Amy") || char.state != char.state.WIN_POSE)
 	{
 		base.Character.updateUprightOnGround()
 		return
@@ -1153,7 +1021,7 @@ function void Character.updateUprightOnGround()
 //# address-hook(0x014f74) end(0x015000)
 function void Character.CheckForStartRolling()
 {
-	if (isECFCharA0("ECC-Amy") && char.state == char.state.WIN_POSE)
+	if (isECFCharA0("JUWL-Amy") && char.state == char.state.WIN_POSE)
 		return
 	base.Character.CheckForStartRolling()
 }
@@ -1162,7 +1030,7 @@ function void Character.CheckForStartRolling()
 //# address-hook(0x01560c) end(0x01569a)
 function void Character.LandingOnGround()
 {
-	if (isECFCharA0("ECC-Amy") && char.state == char.state.WIN_POSE)
+	if (isECFCharA0("JUWL-Amy") && char.state == char.state.WIN_POSE)
 		Character.LandingOnGround_AmyWin()
 	else
 		base.Character.LandingOnGround()
@@ -1173,7 +1041,7 @@ function void Character.LandingOnGround()
 //# address-hook(0x017b24) end(0x017bb4)
 function void Character.LandingOnGroundNoSpindash()
 {
-	if (isECFCharA0("ECC-Amy") && char.state == char.state.WIN_POSE)
+	if (isECFCharA0("JUWL-Amy") && char.state == char.state.WIN_POSE)
 		Character.LandingOnGround_AmyWin()
 	else
 		base.Character.LandingOnGroundNoSpindash()
@@ -1204,7 +1072,7 @@ function void Character.LandingOnGround_AmyWin()
 
 function void ECF_characterSoundUpdate()
 {
-	if (isECFCharA0("ECC-Amy") && !ecc_setting_amySuperstarsSounds)
+	if (isECFCharA0("JUWL-Amy") && !setting_amySuperstarsSounds)
 	{
 		string spinSound = (char.double_jump_state == 2) ? "amy_loop_c" : "amy_loop"
 		

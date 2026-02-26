@@ -6,7 +6,7 @@
 		"UniqueID": "juwl-ecc-mighty",
 		"Description": "Adds Mighty as an additional character. A port of Sonic Mania's Mighty, with an optional wall cling move from Chaotix.",
 		"URL": "https://x.com/juwlmodding",
-		"ModVersion": "2/2/2026",
+		"ModVersion": "2/26/2026",
 	},
 	"Settings":
 	{
@@ -15,7 +15,7 @@
 			{
 				"InternalName": "audio",
 				"DisplayName": "Sound Effects",
-				"Variable": "ecc_setting_mightyManiaSounds",
+				"Variable": "setting_mightyManiaSounds",
 				"DefaultValue": "1",
 				"Category": "Sound Selection",
 				//"Category": "Mod Options",		
@@ -29,7 +29,7 @@
 			{
 				"InternalName": "palette",
 				"DisplayName": "Character Palette:",
-				"Variable": "ecc_setting_mightyAltPalette",
+				"Variable": "setting_mightyAltPalette",
 				"DefaultValue": "0",
 				"Category": "Color Changes",
 				//"Category": "Mod Options",
@@ -43,7 +43,7 @@
 			{
 				"InternalName": "walljump",
 				"DisplayName": "Wall Jump",
-				"Variable": "ecc_setting_mightyWallJump",
+				"Variable": "setting_mightyWallJump",
 				"DefaultValue": "1",
 				"Category": "Abilities",
 				//"Category": "Mod Options",
@@ -57,7 +57,7 @@
 			{
 				"InternalName": "walljumpcontrol",
 				"DisplayName": "Wall Jump Behavior",
-				"Variable": "ecc_setting_mightyWallJumpControls",
+				"Variable": "setting_mightyWallJumpControls",
 				"DefaultValue": "1",
 				"Category": "Abilities",
 				//"Category": "Mod Options",
@@ -77,7 +77,7 @@
 			"Priority": "Lower"
 		},
 
-		"dynamic-lemons-extrasaveslots":
+		"dynamic-lemons-extra-save-slots":
 		{
 			"Priority": "Lower"
 		},

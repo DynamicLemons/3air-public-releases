@@ -1,109 +1,29 @@
-//# address-hook(0x010afa) end(0x010bb8)
-function void Character.Initialization.Sonic()
+function void Character.Initialization.shared(u8 character)
 {
-	base.Character.Initialization.Sonic()
+	base.Character.Initialization.shared(character)
 	setPlayerGlobalValue("ray_boostCounter", 1)
 }
 
 //# address-hook(0x010bba) end(0x010c8e)
 function void Character.UpdateNormalState.Sonic()
 {
-	if (!isECFCharA0("ECC-Ray"))
+	if (!isECFCharA0("JUWL-Ray"))
 	{
 		base.Character.UpdateNormalState.Sonic()
 		return
 	}
 	
-	if (A0 == 0xffffb000)
-	{
-		if (updateDebugModeInput(false))
-			return
-	}
-
-#if CHARACTER_SELECTION_PLUS_ACTIVE
-	Character.ControlUpdate()
-#else
-	if (player1.control_override == 0)
-	{
-		// Set player 1 control state
-		control.player1 = control.pad1
-	}
-#endif
-
 	if (char.control_flags & 0x01)
-	{
-		// Character is not directly controllable (but may be indirectly via an object, like when hanging on a pole or similar)
-		char.double_jump_state = 0
 		setPlayerGlobalValue("ray_boostCounter", 1)
-	}
-	else
-	{
-		// Call update function depending on flags
-		pushA456()
-		// Targets:
-		//  - 0x010f2c	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = 0x00												-> Character.UpdateSonicUprightOnGround()
-		//  - 0x010fb6	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = char.flag.IN_AIR									-> Character.UpdateSonicUprightInAir()
-		//  - 0x010fe0	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = char.flag.ROLLING								-> Character.UpdateSonicRollingOnGround()
-		//  - 0x011036	-> (char.flags & (char.flag.IN_AIR | char.flag.ROLLING)) = (char.flag.IN_AIR | char.flag.ROLLING)			-> Character.UpdateSonicRollingInAir()
-		call tableLookupAddress(0x010c90, char.flags & (char.flag.IN_AIR | char.flag.ROLLING))
-		popA456()
-	}
-
-	if (level.vertical_wrap == 0xff00)
-	{
-		char.position.y.u16 &= level.height.bitmask
-	}
-
-	Character.updateBonusEffects()
-	Character.UpdateRingsInSuperForm()
-	Character.WriteToPositionBackup()
-	Character.checkForWaterSurface()
-		
-	char.angle_sensor_1 = u8[0xfffff768]
-	char.angle_sensor_2 = u8[0xfffff76a]
-
-	if (u8[0xfffff7c8] != 0)
-	{
-		if (char.state == char.state.RUNNING)
-			char.state = char.state.former
-	}
-
-	if ((char.control_flags & 0x02) == 0)	// Hanging flag
-	{
-		UpdateSonicAnimation()
-		if (global.inv_gravity)
-		{
-			char.render_flags ^= render_flag.FLIP_Y
-		}
-		UpdateSonicSpritePatterns()
-	}
-#if LEMONS_TWEAKS_ACTIVE
-	else
-		setPlayerGlobalValue("customKey", 0)
-#endif
-
-	if ((char.control_flags & 0xa0) == 0)
-	{
-		Character.CheckCollisionsWithDynamicObjects()
-	#if LEMONS_TWEAKS_ACTIVE
-		if ((char.control_flags & 0x02) == 0 && char.state != char.state.former)	// Hanging flag
-		{
-			UpdateSonicAnimation()
-			if (global.inv_gravity)
-			{
-				char.render_flags ^= render_flag.FLIP_Y
-			}
-			UpdateSonicSpritePatterns()
-		}
-	#endif
-	}
+	
+	base.Character.UpdateNormalState.Sonic()
 	
 #if LEMONS_TWEAKS_ACTIVE
-#if CHARACTER_SELECTION_PLUS_ACTIVE
-	A2 = getPAddress("follow")
-#else
-	A2 = 0xffffcc0a
-#endif
+	#if CHARACTER_SELECTION_PLUS_ACTIVE
+		A2 = getPAddress("follow")
+	#else
+		A2 = 0xffffcc0a
+	#endif
 	Ray_getTailAnimState()
 	setPlayerGlobalValue("follow_expectedSprite", objA0.animation.sprite)
 #endif
@@ -114,7 +34,7 @@ function void TailsTails.Update()
 {
 	A2 = 0xffff0000 + u16[A0 + 0x30]
 	
-	if (!isECFCharAt(A2, "ECC-Ray"))
+	if (!isECFCharAt(A2, "JUWL-Ray"))
 	{
 		base.TailsTails.Update()
 		return
@@ -200,7 +120,7 @@ function void Ray_getTailAnimState()
 
 function void Character.updateJumpMoves()
 {
-	if (!isECFCharA0("ECC-Ray"))
+	if (!isECFCharA0("JUWL-Ray"))
 	{
 		base.Character.updateJumpMoves()
 		return
@@ -211,7 +131,7 @@ function void Character.updateJumpMoves()
 	bool isSuperActive = Character.getSuperState()
 
 #if CHARACTER_SELECTION_PLUS_ACTIVE
-	bool secondaryMode = (A0 != 0xffffb000 && tails.ai_routine != pAiRoutine_flyInExit && tails.control_counter == 0 && (isSoloMode || !csp_set_fourPlayer))
+	bool secondaryMode = (A0 != 0xffffb000 && isSoloMode)
 #else
 	bool secondaryMode = false
 #endif
@@ -287,13 +207,8 @@ function void Character.updateJumpMoves()
 			}
 		}
 	}
-#if !LEMONS_TWEAKS_ACTIVE
 	else
-	{
-		if (char.spindash == 0)
-			char.velocity.y = max(char.velocity.y, -0x0fc0)
-	}
-#endif
+		base.Character.updateJumpMoves()
 }
 
 function void RayPressedJumpInMidAir()
@@ -304,7 +219,7 @@ function void RayPressedJumpInMidAir()
 	if (char.double_jump_state != 4)
 	{
 		// handle an airboost
-		if (ecc_setting_rayHeadbutt) && (input_state & CONTROL_UP && char.double_jump_state == 0 || input_pressed & CONTROL_UP) && (getPlayerGlobalValue("ray_boostCounter") > 0)
+		if (setting_rayHeadbutt) && (input_state & CONTROL_UP && char.double_jump_state == 0 || input_pressed & CONTROL_UP) && (getPlayerGlobalValue("ray_boostCounter") > 0)
 		{
 			Ray_headButt()
 			return
@@ -385,7 +300,7 @@ function void Ray_headButt()
 //# address-hook(0x010fb6) end(0x010fde)
 function void Character.UpdateSonicUprightInAir()
 {
-	if (!isECFCharA0("ECC-Ray"))
+	if (!isECFCharA0("JUWL-Ray"))
 	{
 		base.Character.UpdateSonicUprightInAir()
 		return
@@ -538,7 +453,7 @@ function void Player_State_RayGlide()
 		return
 	}
 	
-	if (ecc_setting_rayHeadbutt) && (input_pressed & CONTROL_UP) && (getPlayerGlobalValue("ray_boostCounter") > 0 && ray_isGlidingUp)
+	if (setting_rayHeadbutt) && (input_pressed & CONTROL_UP) && (getPlayerGlobalValue("ray_boostCounter") > 0 && ray_isGlidingUp)
 	{
 		Ray_headButt()
 		return
@@ -701,7 +616,7 @@ function void Player_State_RayGlide()
 
 function void Character.checkForWaterSurface()
 {
-	if (isECFCharA0("ECC-Ray") && char.double_jump_state == 1)
+	if (isECFCharA0("JUWL-Ray") && char.double_jump_state == 1)
 	{
 		bool wasUnderwaterBefore = (char.flags & char.flag.UNDERWATER) != 0
 		s16 oldVx = char.velocity.x
@@ -722,7 +637,7 @@ function void Character.LandingOnGroundResetState()
 {
 	setPlayerGlobalValue("ray_boostCounter", 1)
 	
-	if (!isECFCharA0("ECC-Ray"))
+	if (!isECFCharA0("JUWL-Ray"))
 	{
 		base.Character.LandingOnGroundResetState()
 		return
@@ -732,7 +647,10 @@ function void Character.LandingOnGroundResetState()
 	char.flags &= ~char.flag.PUSHING
 	char.flags &= ~char.flag.CONTROL_LOCK
 	char.jumping = 0
-	score.bonus_counter = 0		// No more increasing bonusses after hitting the ground
+#if LEMONS_TWEAKS_ACTIVE
+	if (A0 == 0xffffb000)
+#endif
+		score.bonus_counter = 0		// No more increasing bonusses after hitting the ground
 	char.rotation.x = 0
 	u8[A0 + 0x2d] = 0
 	u8[A0 + 0x30] = 0
@@ -766,7 +684,7 @@ function void Character.LandingOnGroundResetState()
 
 function void Character.OnHitBoss()
 {
-	if (isECFCharA0("ECC-Ray") && char.state >= char.state.RAY_GLIDE_U && char.state <= char.state.RAY_HEADBUTT)
+	if (isECFCharA0("JUWL-Ray") && char.state >= char.state.RAY_GLIDE_U && char.state <= char.state.RAY_HEADBUTT)
 	{
 		char.double_jump_state = 0
 		char.state = char.state.ROLLING
@@ -781,7 +699,7 @@ function void Character.OnHitBoss()
 
 function void ECF_characterSoundUpdate()
 {
-	if (isECFCharA0("ECC-Ray"))
+	if (isECFCharA0("JUWL-Ray"))
 	{
 		// in Mania, Ray's glide sound is stored on a "soundboard"
 		// it automatically plays the sound, while Ray communicates the volume to it.
@@ -794,10 +712,10 @@ function void ECF_characterSoundUpdate()
 		float time_i = .05
 		float time_o = .1
 
-		string _swoop	= (ecc_setting_rayManiaSounds) ? "ray_swoop" : "ray_c_swoop"
-		string _dive	= (ecc_setting_rayManiaSounds) ? "ray_dive" : "ray_c_dive"
+		string _swoop	= (setting_rayManiaSounds) ? "ray_swoop" : "ray_c_swoop"
+		string _dive	= (setting_rayManiaSounds) ? "ray_dive" : "ray_c_dive"
 		
-		if (char.double_jump_state == 1 && char.flags & char.flag.IN_AIR)
+		if (char.double_jump_state == 1 && char.flags & char.flag.IN_AIR && (char.flags & char.flag.UNDERWATER) == 0)
 		{
 			if (getPlayerGlobalValue("ray_isGlidingUp"))
 			{

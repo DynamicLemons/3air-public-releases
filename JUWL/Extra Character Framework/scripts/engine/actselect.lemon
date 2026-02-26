@@ -29,7 +29,11 @@ function void ActSelect.DrawMenu(u8 selectedEntry, u8 selectedZone, u8 selectedA
 			{
 				SpriteHandle cspr = Renderer.addSpriteHandle(key, px, 156, 0xf004)
 				cspr.setFlags(0)
-				cspr.setPalette(getECFCharacterPaletteKey(name), 0)
+				string _pal = getECFCharacterPaletteKey(name)
+				if (System.hasExternalPaletteData(_pal, 0))
+					cspr.setPalette(_pal, 0)
+				else
+					cspr.setPalette(key, 0)
 			}
 		}
 		else

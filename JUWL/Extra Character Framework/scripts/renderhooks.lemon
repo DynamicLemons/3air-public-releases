@@ -12,10 +12,25 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	
 	if (ECF_disableBranchBase)
 		return base.Standalone.onWriteToSpriteTable(px, py, renderQueue)
-		
+	
+	// Intro Characters
+	// Sonic
+	if (objA0.update_address == 0x067472) && (global_ExChar_P1)
+	{
+		ECF_drawCharEchoSprite(global_ExChar_P1, objA0.animation.sprite, px, py, flags, 0x40, renderQueue)
+		return true
+	}
+	
+	// Knuckles
+	else if (objA0.update_address == 0x063466 && objA0.value42 == 0x02) && (global_ExChar_P1)
+	{
+		ECF_drawCharEchoSprite(global_ExChar_P1, objA0.animation.sprite, px, py, flags, 0x40, renderQueue)
+		return true
+	}
+	
 	// Monitor icons use character palette line, instead of baking it into the sprite file.
 	// Monitor
-	if (objA0.update_address >= 0x01d566 && objA0.update_address <= 0x01d61e) && (objA0.animation.sprite > 1 && objA0.animation.sprite != 11) && (objA0.subtype2c == 0x01) && (global_ExChar_P1)
+	else if (objA0.update_address >= 0x01d566 && objA0.update_address <= 0x01d61e) && (objA0.animation.sprite > 1 && objA0.animation.sprite != 11) && (objA0.subtype2c == 0x01) && (global_ExChar_P1)
 	{
 		key = Monitor.getECFCharacterLifeIcon(global_ExChar_P1)
 		if (!Renderer.hasCustomSprite(key))
@@ -116,6 +131,23 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		}
 	}
 	
+	// ICZ Snowboarding
+	// Sonic on the snowboard in ICZ 1
+	if (objA0.mapping_offset == 0x347e30 && global_ExChar_P1)
+	{
+		key = stringformat(stringformat("%s_snowboarding_0x%02x", getECFCharacterSpriteKey(global_ExChar_P1, false)), objA0.animation.sprite)
+		if (!Renderer.hasCustomSprite(key))
+		{
+			key = Renderer.setupCustomCharacterSprite(0x345010, 0x347f8a, objA0.mapping_offset, objA0.animation.sprite, 0x00)
+
+			if (ROMDataAnalyser.isEnabled())
+				Renderer.extractCustomSprite(key, stringformat("%s_snowboarding", getECFCharacterSpriteKey(global_ExChar_P1, false)), objA0.animation.sprite, 0x00)
+		}
+
+		Renderer.drawSprite(key, px, py, 0x40 + getMainCharacter() * 0x20, flags, renderQueue)
+		return true
+	}
+
 	// Blue Spheres
 	else if (objA0.update_address == 0x02ea50 || objA0.update_address == 0x02ec1e) && (global_ExChar_P1)
 	{
@@ -224,6 +256,20 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		}
 	}
 
+	// Blue Sphere mini-game Results
+	else if (objA0.update_address == 0x04dfee || objA0.update_address == 0x04dffe || objA0.update_address == 0x04e000)
+	{
+		if (global_ExChar_P1)
+			ECF_drawCharEchoSprite(global_ExChar_P1, objA0.animation.sprite, px, py, flags, 0x40, renderQueue)
+		else if (objA0.update_address == 0x04dfee)
+			Standalone.drawCharacterSpriteDirect(CHARACTER_SONIC, px, py, objA0.animation.sprite, flags, 0x40, renderQueue)
+		else if (objA0.update_address == 0x04dffe)
+			Standalone.drawCharacterSpriteDirect(CHARACTER_TAILS, px, py, objA0.animation.sprite, flags, 0x40, renderQueue)
+		else
+			Standalone.drawCharacterSpriteDirect(CHARACTER_KNUCKLES, px, py, objA0.animation.sprite, flags, 0x40, renderQueue)
+		return true
+	}
+	
 	// Tornado
 	// based on YYWTRRSHYGNDS, but works in vanilla context
 	else if (objA0.update_address == 0x05ebb4) && (global_ExChar_P1)
@@ -231,6 +277,7 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		u8 char = getECFCharacterTornadoPilot(global_ExChar_P1)
 		string pal 
 		
+		// could reference the actual sprite id here, but we need to do some extra work anyway.
 		if (char == 0xff)
 		{
 			key = getECFCharacterSpecialPilotKey(global_ExChar_P1)
@@ -247,21 +294,30 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		}
 
 		key = stringformat("%s_pilot", key)
-		
+
 		if (Renderer.hasCustomSprite(key))
 		{
 			SpriteHandle pilot = Renderer.addSpriteHandle(key, px, py, renderQueue)
 			pilot.setFlags(flags)
 			if (System.hasExternalPaletteData(pal, 0))
+			{
 				pilot.setPalette(pal, 0)
+				pilot.setUseGlobalComponentTint(true)
+			}
 			else
 				pilot.setPaletteOffset(atex)
 			return true
 		}
+		// stops Tails from rendering if you lack a Sonic pilot sprite but have a Tails pilot...
+	#if !LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+		else
+			return false
+	#endif
 	}
 	else if (objA0.mapping_offset == 0x060486 && global_ExChar_P1)
 	{
 		string pal 
+		// stander
 		if (objA0.animation.sprite == 14 || objA0.animation.sprite == 21)
 		{
 			atex = 0x40 + getMainCharacter() * 0x20
@@ -289,10 +345,12 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 			Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
 			return true
 		}
-		else if (objA0.animation.sprite == 18 || objA0.animation.sprite == 12 || objA0.animation.sprite == 19)
+		// pilot
+		else if (objA0.animation.sprite == 13 || objA0.animation.sprite == 13 || objA0.animation.sprite == 18 || objA0.animation.sprite == 19)
 		{
 			u8 char = getECFCharacterTornadoPilot(global_ExChar_P1)
 			
+			// could reference the actual sprite id here, but we need to do some extra work anyway.
 			if (char == 0xff)
 			{
 				key = getECFCharacterSpecialPilotKey(global_ExChar_P1)
@@ -309,7 +367,7 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 			}
 
 			key = stringformat("%s_pilot", key)
-			if (objA0.animation.sprite == 12 || objA0.animation.sprite == 19)
+			if (objA0.animation.sprite == 12 || objA0.animation.sprite == 13 || objA0.animation.sprite == 19)
 				key = stringformat("%s_small", key)
 			
 			if (Renderer.hasCustomSprite(key))
@@ -317,11 +375,19 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 				SpriteHandle pilot = Renderer.addSpriteHandle(key, px, py, renderQueue)
 				pilot.setFlags(flags)
 				if (System.hasExternalPaletteData(pal, 0))
+				{
 					pilot.setPalette(pal, 0)
+					pilot.setUseGlobalComponentTint(true)
+				}
 				else
 					pilot.setPaletteOffset(atex)
 				return true
 			}
+			// stops Tails from rendering if you lack a Sonic pilot sprite but have a Tails pilot...
+		#if !LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
+			else
+				return false
+		#endif
 		}
 		else if (objA0.animation.sprite == 0x5 || objA0.animation.sprite == 0x6 || objA0.animation.sprite == 0x1a)
 		{
@@ -362,7 +428,10 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 			SpriteHandle pilot = Renderer.addSpriteHandle(key, px, py, renderQueue)
 			pilot.setFlags(flags)
 			if (System.hasExternalPaletteData(pal, 0))
+			{
 				pilot.setPalette(pal, 0)
+				pilot.setUseGlobalComponentTint(true)
+			}
 			else
 				pilot.setPaletteOffset(atex)
 			return true
@@ -482,24 +551,8 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	// This 97 year old diner still serves their Coke the old-fashioned way.
 	else if (objA0.update_address == 0x00d30c || objA0.update_address == 0x00d42c)
 	{
-		string name
-		string id
-		if (objA0.update_address == 0x00d30c)
-		{
-			id = noSave_ExChar_P1_id
-			name = getECFCharNameAtId(id)
-		}
-		else
-		{
-			u8 read = (A0.u16 - 0xb0de) / 0x4a
-		#if GAMEAPP >= 0x26012400
-			name = ECF_Save_str[read - 1]
-			id = ECF_Save_num[read - 1]
-		#else
-			name = System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1", read)) 
-			id = System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1_id", read))
-		#endif
-		}
+		string name = ECF_dataselect_getStr()
+		string id = ECF_dataselect_getNum()
 
 		if (name)
 		{
@@ -550,7 +603,9 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	// Best ending congrats character
 	else if (objA0.update_address == addressof(ECF_EndScreen_char))
 	{
-		key = stringformat("%s_ending_%d_%d", getECFCharacterSpriteKey(global_ExChar_P1, Character.getSuperState(0xffffb000)), objA0.state, objA0.animation.frame)
+		string buffer = System.getGlobalVariableValueByName(stringformat("global_ExChar_P%d", objA0.subtype2c + 1))
+		
+		key = stringformat("%s_ending_%d_%d", getECFCharacterSpriteKey(buffer, false), objA0.state, objA0.animation.frame)
 		atex = 0x40 + getECFCharBase(global_ExChar_P1) * 0x20
 		if (Renderer.hasCustomSprite(key))
 			Renderer.drawSprite(key, px, py, atex, SPRITE_FLAG_PRIO, renderQueue)
@@ -879,7 +934,7 @@ function bool Standalone.drawCharacterSprite(u8 character, u8 variant, s16 px, s
 	bool useAfterImages
 	if (isPlayer1)
 	{
-		if (superFlag)
+		if (superFlag == 0xff)
 		{
 			useAfterImages = true
 		}
@@ -950,6 +1005,42 @@ function void ECF_drawCharEchoSprite(string name, u8 animationSprite, s16 px, s1
 	Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
 }
 
+// Cutscene Knuckles in his campaign
+function void Standalone.renderCutsceneKnuckles(u8 variant, s16 px, s16 py, u16 renderQueue)
+{
+	if (global_ExChar_P1 == 0 || !isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		base.Standalone.renderCutsceneKnuckles(variant, px, py, renderQueue)
+		return
+	}
+	
+	u8 flags = ((objA0.render_flags & render_flag.FLIP_X) ? SPRITE_FLAG_FLIP_X : 0) | ((objA0.render_flags & render_flag.FLIP_Y) ? SPRITE_FLAG_FLIP_Y : 0) | ((objA0.sprite_attributes & sprite_attribute.PRIORITY) ? SPRITE_FLAG_PRIO : 0)
+	
+	string key = stringformat("cutscene_%s_%d_0x%02x", global_ExChar_P1, variant, objA0.animation.sprite)
+	if (!Renderer.hasCustomSprite(key))
+	{
+		if (variant == 1) // Sonic 3 (disc 1) zones use a shared resource for its Knuckles cutscene sprites
+			key = Renderer.setupCustomObjectSprite(u32[0x06666a], u32[0x06666a + 4], objA0.mapping_offset, objA0.animation.sprite, 0x00)
+		else if (variant == 2) // HPZ emerald theft scene
+			key = Renderer.setupCustomObjectSprite(u32[0x066682], u32[0x066682 + 4], objA0.mapping_offset, objA0.animation.sprite, 0x00)
+		else if (variant == 3) // Tired panting and shooing in HPZ/SSZ
+			key = Renderer.setupCustomObjectSprite(u32[0x06668a], u32[0x06668a + 4], objA0.mapping_offset, objA0.animation.sprite, 0x00)
+		else if (variant == 4) // Pushing the lever in MHZ 2	
+			key = Renderer.setupCustomObjectSprite(u32[0x066672], u32[0x066672 + 4], objA0.mapping_offset, objA0.animation.sprite, 0x00)
+		else if (variant == 5) // Laying down in intro
+			key = Renderer.setupCustomObjectSprite(u32[0x06667a], u32[0x06667a + 4], objA0.mapping_offset, objA0.animation.sprite, 0x00)
+		else if (variant == 6) // Outro
+			key = Renderer.setupKosinskiCompressedSprite(0x163b9a, objA0.mapping_offset, objA0.animation.sprite, 0x00)
+		else if (variant == 7) // Looking left and right in MHZ 1
+			key = Renderer.setupKosinskiCompressedSprite(0x1695c0, objA0.mapping_offset, objA0.animation.sprite, 0x00)
+	}
+	
+	SpriteHandle spr = Renderer.addSpriteHandle(key, px, py, renderQueue)
+	spr.setFlags(flags)
+	spr.setPaletteOffset(0x80)
+	spr.setUseGlobalComponentTint(false)
+}
+
 // YYWTRRSHYGNDS
 #if LEMONS_IMPROVED_RENDERHOOKS_ACTIVE
 function void LemonsRender_DataSelect_drawCharacterCombo(s16 px, s16 py, u16 renderQueue)
@@ -987,8 +1078,10 @@ function void ECF_drawCharSelectSpr(string name, u16 id, s16 px, s16 py, u16 ren
 			cspr.setTintColor(0, 0, 0, 1)
 			Renderer.drawText("smallfont:outline(0x242424ff,1,true)", px, py, name, 0x486cfcff, 5, 0, renderQueue, false, true)
 		}
-		else
+		else if (System.hasExternalPaletteData(_pal, 0))
 			cspr.setPalette(_pal, 0)
+		else
+			cspr.setPalette(key, 0)
 	}
 	else
 	{
@@ -1007,7 +1100,10 @@ function void ECF_drawCharSelectSprIcons(string name, u16 id, s16 px, s16 py, u1
 
 	SpriteHandle cicons = Renderer.addSpriteHandle(_ico, px - 16, py + 8, renderQueue)
 	cicons.setFlags(SPRITE_FLAG_PRIO)
-	cicons.setPalette(_pal, 0)
+	if (System.hasExternalPaletteData(_pal, 0))
+		cicons.setPalette(_pal, 0)
+	else
+		cicons.setPalette(_ico, 0)
 }
 
 function void ECF_drawCharSelectSprName(string name, s16 px, s16 py, u16 renderQueue)

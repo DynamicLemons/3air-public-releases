@@ -690,6 +690,179 @@ function void fn048dca()
 	}
 }
 
+// dez_centrifugetube
+//# address-hook(0x048fa4) end(0x049068)
+function void fn048fa4()
+{
+	if (u8[A1 + 0x44] <= char.hitbox.y.UPRIGHT)
+	{
+		base.fn048fa4()
+		return
+	}
+	
+	u8 bit = (1 << D6.u8)
+
+	if (u8[A1 + 0x2a] & char.flag.IN_AIR)
+	{
+		objA1.velocity.y = 0
+	}
+	else
+	{
+		D0.u16 = objA1.position.x.u16 - objA0.position.x.u16 + D4.u16
+		if (D0.u16 < D5.u16)
+		{
+			if ((u8[A1 + 0x2a] & char.flag.ON_OBJECT) == 0)
+				return
+
+			D0.u8 = u8[A2]
+			LookupSinCos()
+
+			if (objA0.subtype2c & 0x40)
+			{
+				D0.u16 = 0x5000
+				D3 = 4
+			}
+			else
+			{
+				D0.u16 = 0x1000
+				D3 = 8
+			}
+
+			D1.s32 = s32(D1.s16) * D0.s16
+			D1 = (D1 << 16) + (D1 >> 16)
+			D2.u16 = objA0.position.y.u16 + Math.roundToInt(D1.s16 * 1.0 * char.hitbox.y.UPRIGHT / u8[A1 + 0x44])
+			objA1.position.y.u16 = D2.u16
+			D0.u8 = u8[A2]
+			u8[A1 + 0x27] = D0.u8		// Set x-rotation of character
+			u8[A2] += D3.u8
+			if (u16[A1 + 0x1c] == 0)
+			{
+				u16[A1 + 0x1c] = 1
+				u16[A1 + 0x20] = 1
+			}
+
+			if (global.inv_gravity)
+			{
+				objA1.render_flags ^= render_flag.FLIP_Y
+			}
+
+			if ((level.framecounter.low & 0x0f) == 0)
+			{
+				playSound(0xc3)
+			}
+
+		#if STANDALONE
+			// Decelerate quickly for fast horizontal speeds
+			if (abs(objA1.groundspeed) > 0x1000)
+			{
+				objA1.groundspeed -= objA1.groundspeed / 0x20
+			}
+		#endif
+			return
+		}
+	}
+
+	u8[A1 + 0x2a] &= ~char.flag.ON_OBJECT
+	objA0.flags2a &= ~bit
+	u8[A1 + 0x30] = 0			// "char.rotation.x.count"
+	u8[A1 + 0x31] = 0x04		// "char.rotation.x.speed"
+	u8[A1 + 0x2a] |= char.flag.IN_AIR
+
+	if (global.inv_gravity)
+	{
+		u8[A1 + 0x27] = 0x80 - u8[A1 + 0x27]		// Set x-rotation of character
+		objA1.render_flags ^= render_flag.FLIP_Y
+	}
+}
+
+//# address-hook(0x049090) end(0x0491d4)
+function void fn049090()
+{
+	if (u8[A1 + 0x44] <= char.hitbox.y.UPRIGHT)
+	{
+		base.fn049090()
+		return
+	}
+	
+	u8 bit = (1 << D6.u8)
+
+	if ((objA0.flags2a & bit) == 0)
+	{
+		D0.u16 = objA1.position.x.u16 - objA0.position.x.u16 + 0x20
+		D1.u16 = objA1.position.y.u16 - objA0.position.y.u16 + D4.u16
+		if (D0.u16 >= 0x40 || D1.u16 >= D5.u16)
+			return
+
+		if (u8[A1 + 0x05] >= base_state.DIED || debug_mode.state != 0 || s8[A1 + 0x2e] < 0)
+			return
+
+		u16 backupD0 = D0.u16
+		fn033c34()
+		D1.u16 = backupD0
+
+		D0.s16 = objA1.position.x.u16 - objA0.position.x.u16
+		u8[A2] = (D0.s16 < 0) ? 0x80 : 0
+
+		D0.u16 = objA1.position.y.u16 - objA0.position.y.u16
+		if (D0.s16 < 0)
+		{
+			u8[A1 + 0x26] = 0x40
+			objA1.groundspeed = objA1.velocity.y
+		}
+		else
+		{
+			u8[A1 + 0x26] = 0xc0
+			objA1.groundspeed = -objA1.velocity.y
+		}
+
+		objA1.render_flags &= ~render_flag.FLIP_X
+		u8[A1 + 0x2a] &= ~0x01
+		u8[A1 + 0x2e] |= (control_flag.DISABLE_WALLS | control_flag.DISABLE_ANIMATION)
+		objA1.state.both = char.state.RUNNING2
+		u8[A1 + 0x27] = 0		// Set x-rotation of character
+		u8[A2 + 0x02] = 0
+	}
+
+	D1.u16 = objA1.position.y.u16 - objA0.position.y.u16 + D4.u16
+	if (D1.u16 >= D5.u16)
+	{
+		u8[A1 + 0x2e] = 0
+		u8[A1 + 0x2a] &= ~char.flag.ON_OBJECT
+		objA0.flags2a &= ~bit
+		u8[A1 + 0x27] = 1		// Set x-rotation of character
+		u8[A1 + 0x30] = 0		// "char.rotation.x.count"
+		u8[A1 + 0x31] = 4		// "char.rotation.x.speed"
+		u8[A1 + 0x2a] |= char.flag.IN_AIR
+		return
+	}
+
+	if ((u8[A1 + 0x2a] & char.flag.ON_OBJECT) == 0)
+		return
+
+	if (objA1.velocity.y >= 0)
+		objA1.render_flags |= render_flag.FLIP_Y
+	else
+		objA1.render_flags &= ~render_flag.FLIP_Y
+
+	D0.u8 = u8[A2]
+	LookupSinCos()
+	D1.s32 = s32(D1.s16) * 0x1000
+	D1 = (D1 << 16) + (D1 >> 16)
+	objA1.position.x.u16 = objA0.position.x.u16 + Math.roundToInt(D1.s16 * 1.0 * char.hitbox.y.UPRIGHT / u8[A1 + 0x44])
+	D2 = u8[A2]
+	u8[A2] += 8
+	D2.u16 = D2 / 0x0b
+	objA1.animation.sprite = u8[0x0491da + D2.s16]		// Player characters' corkscrew vertical running sprites
+
+	if ((level.framecounter.low & 0x0f) == 0)
+	{
+		playSound(0xc3)
+	}
+
+	D0 = objA1.animation.sprite
+	SetCharacterSpritePatterns()
+}
+
 // boss_dez_final1
 //# address-hook(0x07fe06) end(0x07fe2a)
 function void fn07fe06()

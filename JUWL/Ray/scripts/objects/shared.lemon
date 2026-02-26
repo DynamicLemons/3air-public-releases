@@ -2,7 +2,7 @@
 //# address-hook(0x01e0a2)
 function void fn01e0a2()
 {
-	if (isECFCharA1("ECC-Ray") && u8[A1 + 0x2f] == 1)
+	if (isECFCharA1("JUWL-Ray") && u8[A1 + 0x2f] == 1)
 	{
 		u8 bit = 1 << (D6.u16 + 2)
 		if (objA0.flags2a & bit)
@@ -16,3 +16,11 @@ function void fn01e0a2()
 		base.fn01e0a2()
 }
 #endif
+
+//# address-hook(0x01e10e)
+function void fn01e10e()
+{
+	base.fn01e10e()
+	if (isECFCharA1("JUWL-Ray") && u8[A1 + 0x2f] == 1)
+		setPlayerGlobalValue(A1, "ray_abilitySpeed", 0)
+}

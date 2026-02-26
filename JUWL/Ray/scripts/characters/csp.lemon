@@ -14,7 +14,7 @@ function void SwapMode_dataSwap_globals()
 function void Character.TailsAI.DKC.translateCharState(u8 i)
 {
 	string trail_name = SwapMode_trail_name[i]
-	if (trail_name == "ECC-Ray" && getECFCharBufferName(A0) != "ECC-Ray" && char.state >= char.state.RAY_GLIDE_U && char.state <= char.state.RAY_HANGING2)
+	if (trail_name == "JUWL-Ray" && getECFCharBufferName(A0) != "JUWL-Ray" && char.state >= char.state.RAY_GLIDE_U && char.state <= char.state.RAY_HANGING2)
 	{
 		char.control_flags &= ~control_flag.DISABLE_ANIMATION
 		if (char.state == char.state.RAY_HEADBUTT)

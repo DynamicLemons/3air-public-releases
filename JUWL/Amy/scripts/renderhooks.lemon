@@ -10,11 +10,11 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	u8 angle = 0
 	u8 alpha = 255
 	
-	if (isECFCharP1("ECC-Amy"))
+	if (isECFCharP1("JUWL-Amy"))
 	{
 		if (objA0.update_address == 0x063466)
 		{
-			key = stringformat("character_ECC-Amy_intro_%d", objA0.animation.sprite)
+			key = stringformat("character_JUWL-Amy_intro_%d", objA0.animation.sprite)
 			atex = 0x40
 			if (Renderer.hasCustomSprite(key))
 				Renderer.drawSprite(key, px, py, atex, flags, renderQueue)

@@ -1,4 +1,5 @@
 {
+	"tornado_ending_16":  { "File": "tornado_ending.bmp", "Rect": "152,64,32,24", "Center": "16,12" },
 	"tornado_ending_17":  { "File": "tornado_ending.bmp", "Rect": "192,64,8,8", "Center": "4,4" },
 	"tornado_tiny":  { "File": "tornado_tiny.bmp", "Rect": "0,0,16,8", "Center": "8,0" },
 	"tornado_sonic_tiny":  { "File": "tornado_tiny.bmp", "Rect": "0,9,3,5", "Center": "-1,4" },

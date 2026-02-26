@@ -29,6 +29,6 @@ global s16 p4_ray_abilityTimer
 global s16 p4_ray_isGlidingUp
 global u8 p4_ray_boostCounter
 
-global bool ecc_setting_rayManiaSounds
-global bool ecc_setting_rayAltPalette
-global bool ecc_setting_rayHeadbutt
+global bool setting_rayManiaSounds
+global bool setting_rayAltPalette
+global bool setting_rayHeadbutt

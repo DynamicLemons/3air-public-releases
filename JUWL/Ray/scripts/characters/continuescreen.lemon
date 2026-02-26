@@ -1,7 +1,7 @@
 //# address-hook(0x05c6b6) end(0x05c6de)
 function void fn05c6b6()
 {
-	if (global_ExChar_P1 != "ECC-Ray")
+	if (global_ExChar_P1 != "JUWL-Ray")
 	{
 		base.fn05c6b6()
 		return

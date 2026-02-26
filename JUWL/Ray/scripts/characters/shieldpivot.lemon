@@ -15,7 +15,7 @@ function void FireShield.Update()
 	base.FireShield.Update()
 	
 	A1 = 0xffff0000 + objA0.shield.character_address
-	if (isECFCharA1("ECC-Ray"))
+	if (isECFCharA1("JUWL-Ray"))
 		objA0.position.x.u16 += Ray_getShieldXPivot()
 }
 
@@ -25,7 +25,7 @@ function void LightningShield.Update()
 	base.LightningShield.Update()
 	
 	A1 = 0xffff0000 + objA0.shield.character_address
-	if (isECFCharA1("ECC-Ray"))
+	if (isECFCharA1("JUWL-Ray"))
 		objA0.position.x.u16 += Ray_getShieldXPivot()
 }
 
@@ -35,7 +35,7 @@ function void BubbleShield.Update()
 	base.BubbleShield.Update()
 	
 	A1 = 0xffff0000 + objA0.shield.character_address
-	if (isECFCharA1("ECC-Ray"))
+	if (isECFCharA1("JUWL-Ray"))
 		objA0.position.x.u16 += Ray_getShieldXPivot()
 }
 
@@ -46,7 +46,7 @@ function void fn01898a()
 	base.fn01898a()
 	
 	// it doesn't really make sense to pivot the sparkle trail like this, but I'm not coding a system just to make sure these are offset right LOL
-	if (isECFCharA1("ECC-Ray"))
+	if (isECFCharA1("JUWL-Ray"))
 		D2.u16 += Ray_getShieldXPivot()
 }
 
@@ -58,7 +58,7 @@ function void fn0193ec()
 	if (objA0.update_address)
 	{
 		A1 = 0xffffb000
-		if (isECFCharA1("ECC-Ray"))
+		if (isECFCharA1("JUWL-Ray"))
 			objA0.position.x.u16 += Ray_getShieldXPivot()
 	}
 }

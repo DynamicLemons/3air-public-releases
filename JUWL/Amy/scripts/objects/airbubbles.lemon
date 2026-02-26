@@ -1,7 +1,7 @@
 //# address-hook(0x02fbb2)
 function void fn02fbb2()
 {
-	if (!isECFCharA1("ECC-Amy"))
+	if (!isECFCharA1("JUWL-Amy"))
 	{
 		base.fn02fbb2()
 		return

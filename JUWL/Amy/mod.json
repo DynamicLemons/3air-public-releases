@@ -6,7 +6,7 @@
 		"UniqueID": "juwl-ecc-amy",
 		"Description": "Adds Amy as an additional character. Features an original moveset inspired by AntonBlast and Pizza Tower.",
 		"URL": "https://x.com/juwlmodding",
-		"ModVersion": "2/2/2026",
+		"ModVersion": "2/26/2026",
 	},
 	"Settings":
 	{
@@ -15,7 +15,7 @@
 			{
 				"InternalName": "audio",
 				"DisplayName": "Sound Effects",
-				"Variable": "ecc_setting_amySuperstarsSounds",
+				"Variable": "setting_amySuperstarsSounds",
 				"DefaultValue": "0",
 				"Category": "Sound Selection",
 				//"Category": "Mod Options",				
@@ -29,7 +29,7 @@
 			{
 				"InternalName": "palette",
 				"DisplayName": "Character Palette",
-				"Variable": "ecc_setting_amyAltPalette",
+				"Variable": "setting_amyAltPalette",
 				"DefaultValue": "0",
 				"Category": "Color Changes",
 				//"Category": "Mod Options",			
@@ -43,7 +43,7 @@
 			{
 				"InternalName": "twinspin",
 				"DisplayName": "Twin Spin",
-				"Variable": "ecc_setting_amyTwinSpin",
+				"Variable": "setting_amyTwinSpin",
 				"DefaultValue": "1",
 				"Category": "Abilities",
 				//"Category": "Mod Options",			
@@ -63,7 +63,7 @@
 			"Priority": "Lower"
 		},
 
-		"dynamic-lemons-extrasaveslots":
+		"dynamic-lemons-extra-save-slots":
 		{
 			"Priority": "Lower"
 		},

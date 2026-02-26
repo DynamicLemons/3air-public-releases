@@ -1,7 +1,7 @@
 // mgz_spinwheeltrigger
 function void MGZ_spinwheelTriggerHandleChar()
 {
-	if (!isECFCharA1("ECC-Amy"))
+	if (!isECFCharA1("JUWL-Amy"))
 	{
 		base.MGZ_spinwheelTriggerHandleChar()
 		return
@@ -24,7 +24,7 @@ function void MGZ_spinwheelTriggerHandleChar()
 function void fn088da6()
 {
 	base.fn088da6()
-	if (isECFCharA1("ECC-Amy") && (objA1.state == char.state.AMY_HAMMERSPIN_N || objA1.state == char.state.AMY_HAMMERSPIN_H || objA1.state == char.state.AMY_TWINSPIN))
+	if (isECFCharA1("JUWL-Amy") && (objA1.state == char.state.AMY_HAMMERSPIN_N || objA1.state == char.state.AMY_HAMMERSPIN_H || objA1.state == char.state.AMY_TWINSPIN))
 	{
 		objA1.state = char.state.ROLLING
 		u8[A1 + 0x2f] = 0
@@ -35,7 +35,7 @@ function void fn088da6()
 //# address-hook(0x0890d8) end(0x089122)
 function void fn0890d8()
 {
-	if (isECFCharA1("ECC-Amy") && (objA1.state == char.state.AMY_HAMMERSPIN_N || objA1.state == char.state.AMY_HAMMERSPIN_H || objA1.state == char.state.AMY_TWINSPIN))
+	if (isECFCharA1("JUWL-Amy") && (objA1.state == char.state.AMY_HAMMERSPIN_N || objA1.state == char.state.AMY_HAMMERSPIN_H || objA1.state == char.state.AMY_TWINSPIN))
 		u8[A1 + 0x2f] = 0
 	base.fn0890d8()
 }
@@ -44,7 +44,7 @@ function void fn0890d8()
 //# address-hook(0x0317ae) end(0x03181c)
 function void fn0317ae()
 {
-	if (!isECFCharA1("ECC-Amy") || u8[A1 + 0x2f] == 0)
+	if (!isECFCharA1("JUWL-Amy") || u8[A1 + 0x2f] == 0)
 	{
 		base.fn0317ae()
 		return
@@ -82,7 +82,7 @@ function void fn0317ae()
 //# address-hook(0x0329b8) end(0x032a72)
 function void fn0329b8()
 {
-	if (isECFCharA1("ECC-Amy") && (objA1.state == char.state.AMY_HAMMERSPIN_N || objA1.state == char.state.AMY_HAMMERSPIN_H || objA1.state == char.state.AMY_TWINSPIN))
+	if (isECFCharA1("JUWL-Amy") && (objA1.state == char.state.AMY_HAMMERSPIN_N || objA1.state == char.state.AMY_HAMMERSPIN_H || objA1.state == char.state.AMY_TWINSPIN))
 	{
 		base.fn0329b8()
 		if (D0.u16 < objA0.value32 && D1.u16 < 0x28 && u8[A1 + 0x05] < base_state.HURT && !debug_mode.state)
@@ -96,7 +96,7 @@ function void fn0329b8()
 //# address-hook(0x032f56) end(0x032fee)
 function void fn032f56()
 {
-	if (isECFCharA1("ECC-Amy") && (objA1.state == char.state.AMY_HAMMERSPIN_N || objA1.state == char.state.AMY_HAMMERSPIN_H || objA1.state == char.state.AMY_TWINSPIN))
+	if (isECFCharA1("JUWL-Amy") && (objA1.state == char.state.AMY_HAMMERSPIN_N || objA1.state == char.state.AMY_HAMMERSPIN_H || objA1.state == char.state.AMY_TWINSPIN))
 	{
 		objA1.state = char.state.ROLLING
 		u8[A1 + 0x2f] = 0
@@ -114,7 +114,7 @@ function void fn07fa7e()
 	D0.u16 = (D0.u16 & 0x03) * 2
 	A1 = 0xffff0000 + u16[0x085890 + D0.u16]
 	
-	if (!isECFCharA1("ECC-Amy"))
+	if (!isECFCharA1("JUWL-Amy"))
 	{
 		base.fn07fa7e()
 		return

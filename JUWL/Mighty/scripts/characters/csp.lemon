@@ -10,4 +10,36 @@ function void SwapMode_dataSwap_globals()
 	SwapMode_handleGlobalSwap("mighty_cling_timer")
 	SwapMode_handleGlobalSwap("mighty_cling_dustcountdown")
 }
+
+function void SwapMode_dataSwap_solo_globals()
+{
+	base.SwapMode_dataSwap_solo_globals()
+	
+	SwapMode_handleGlobalSwap("mighty_shockwave_t")
+	SwapMode_handleGlobalSwap("mighty_shockwave_x")
+	SwapMode_handleGlobalSwap("mighty_shockwave_y")
+}
+
+
+function void Character.TailsAI.DKC.translateCharState(u8 i)
+{
+	string trail_name = SwapMode_trail_name[i]
+	string self_name = Character.TailsAI.DKC.getName()
+	if (trail_name == "JUWL-Mighty" && self_name != "JUWL-Mighty" && char.state == char.state.MIGHTY_UNSPIN)
+	{
+		char.control_flags &= ~control_flag.DISABLE_ANIMATION
+		char.state = Character.TailsAI.DKC.getFallState(self_name)
+		Character.TailsAI.DKC.hitboxFix(i)
+	}
+	else
+		base.Character.TailsAI.DKC.translateCharState(i)
+}
+
+
+function u8 Character.TailsAI.DKC.getFallState(string self_name)
+{
+	if (self_name == "JUWL-Mighty")
+		return char.state.MIGHTY_UNSPIN
+	return base.Character.TailsAI.DKC.getFallState(self_name)
+}
 #endif

@@ -8,6 +8,6 @@ global s16 p2_amy_bounceLoss
 global s16 p3_amy_bounceLoss
 global s16 p3_amy_bounceLoss
 
-global bool ecc_setting_amySuperstarsSounds
-global bool ecc_setting_amyAltPalette
-global bool ecc_setting_amyTwinSpin
+global bool setting_amySuperstarsSounds
+global bool setting_amyAltPalette
+global bool setting_amyTwinSpin

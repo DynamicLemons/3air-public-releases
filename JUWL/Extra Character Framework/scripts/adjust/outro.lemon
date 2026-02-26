@@ -30,10 +30,9 @@ function void fn05eb32()
 function void fn05ecb4()
 {
 	base.fn05ecb4()
-	// force Sonic if he's your small pilot; ...this has the wrong palette line and he's incorrectly pivoted
-	// the sprite is covered by a renderhook instead, but this is a fallback.
+	// force Sonic if he's your small pilot
 	if (objA0.subtype2c == 0 && global_ExChar_P1 && !ECF_disableBranchBase && getECFCharacterTornadoPilot(global_ExChar_P1) == CHARACTER_SONIC)
-		objA0.animation.sprite = 19
+		objA0.animation.sprite = 13
 }
 
 //# address-hook(0x05e412) end(0x05e456)
@@ -64,6 +63,178 @@ function void fn05e412()
 			u16[A1 + 0x1c] = 0x0800
 		}
 	}
+}
+
+// --- palette shenanigans
+//# address-hook(0x05d8bc) end(0x05d9e8)
+function void fn05d8bc()
+{
+	if (!global_ExChar_P1 || ECF_disableBranchBase)
+	{
+		base.fn05d8bc()
+		return
+	}
+	
+	setupObjectAttributesFull(0x0600da)
+
+	objA0.render_flags &= ~render_flag.WORLD
+	objA0.base_state = 0x02
+	fn05fe82()
+
+	player1.camera_lock = 0xff
+	u8[0xfffffab8] = 0
+
+	A1 = 0xffffb000
+	objA1.render_flags &= ~render_flag.WORLD
+	u8[A1 + 0x0a] |= 0x80
+	u16[A1 + 0x1c] = 0x0800
+	objA1.state = char.state.LIFTED
+	u8[A1 + 0x2a] = 0
+	u8[A1 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_UPDATE)
+
+	u32[0xffffb04a] = 0
+	super.ring_dec.frames = 0x7fff
+	hud.dirty.timer = 0x01
+
+	if (outro.ending_type >= 0)
+	{
+		if (outro.ending_type == 0)
+		{
+			if (isMainCharacter(CHARACTER_SONIC))
+			{
+				fn05fc8e()
+				if (allocDynamicObjectStd())
+				{
+					objA1.update_address = 0x05fdd4
+				}
+			}
+		}
+		else
+		{
+			u8[0xffffb000 + 0x20] = 0
+			if (isMainCharacter(CHARACTER_TAILS))
+			{
+				fn05fcb4()
+			}
+			else
+			{
+				fn05fcce()
+			}
+		}
+		
+		if (super.palettefx.state)
+			ECF_outro_initSuperPalette()
+	}
+
+	objA0.position.x.u16 = 0x0100 + getScreenExtend()
+	objA0.position.y.u16 = 0xe0
+
+	// Spawn the Tornado
+	A1 = 0xffffb250
+	u16[A0 + 0x44] = A1.u16
+	objA1.update_address = 0x05ea52
+	u8[A1 + 0x2c] = 0xff
+	u8[A1 + 0x38] |= 0x04
+	u16[A1 + 0x46] = A0.u16
+
+	// Spawn the Master Emerald
+	A1 = 0xffffbde0
+	objA1.update_address = 0x05de60
+	u16[A1 + 0x46] = A0.u16
+	objA1.position.x.u16 = 0x011e + getScreenExtend()
+	objA1.position.y.u16 = 0xcf
+
+	copyMemory(0xfffffcc0, 0x0a97bc, 0x20)
+
+	Kosinski.addToDMAQueue(0x17fcba, 0xa5c0)	// Master Emerald sprite
+	Kosinski.addToDMAQueue(0x163418, 0x3c60)	// Tornado
+	Kosinski.addToDMAQueue(0x162914, 0x4dc0)	// Smaller ending sprites + Sonic pilot head + chain
+
+#if STANDALONE
+	Game.startSkippableCutscene()
+
+	if (Game.isNormalGame())
+		Game.setAchievementComplete(ACHIEVEMENT_LONGPLAY)
+#endif
+}
+
+function void ECF_outro_initSuperPalette()
+{
+	UpdatePaletteEffects.SuperForm()
+}
+
+// SSZK
+//# address-hook(0x05e70e) end(0x05e804)
+function void fn05e70e()
+{
+	if (!global_ExChar_P1 || ECF_disableBranchBase)
+	{
+		base.fn05e70e()
+		return
+	}
+	
+	setupObjectAttributesFull(0x0600c2)
+	objA0.countdown_value = 299
+
+	A1 = 0xffffb000
+	u8[A1 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_ANIMATION | control_flag.DISABLE_UPDATE)
+	u8[A1 + 0x22] = 0
+
+	player1.camera_lock = 0xff
+	u8[0xfffffab8] = 0
+	global.level_started = 0
+	camera.screenshake.state = 0
+	timer.alldata = 0
+
+	objA0.position.x.u16 = camera.position.x.u16 + 0xc0
+	objA0.position.y.u16 = camera.position.y.u16 + 0x0110
+
+	// "spawnChildObjects(0x0601ba)" replaced by:
+	spawnChildObject(0x05ea52, 0x00, -32, 43)
+
+	u32[A0 + 0x30] = 0x060236
+
+	fn05fe82()
+
+	if (outro.ending_type >= 0)
+	{
+		objA0.animation.sprite = 0x04
+		u32[A0 + 0x30] = 0x06023f
+
+		// "spawnChildObjects(0x0601b2)" replaced by:
+		spawnChildObject(0x05ebc6, 0x00, 4, -16)	// The Master Emerald
+
+		Kosinski.addToDMAQueue(0x17fcba, 0xa5c0)	// Master Emerald sprite
+
+		if (outro.ending_type != 0)
+		{
+			hud.dirty.timer = 0x01
+			super.palettefx.state = 0xff
+			super.palettefx.timer = 0x0f
+			super.active = 1
+			super.ring_dec.frames = 0x7fff
+		}
+	}
+
+	copyMemory(0xfffffca0, 0x0a8a3c, 0x20)
+	u32[0xfffffcaa] = 0xee0088
+
+#if STANDALONE
+	loadCharacterPalette(CHARACTER_SONIC,    0x802180, 0)
+	loadCharacterPalette(CHARACTER_TAILS,    0x8021c0, 0)
+	loadECFCharacterPalette(global_ExChar_P1, 0x802200, 0)
+#endif
+
+	Kosinski.addToDMAQueue(0x163b9a, 0x6200)	// Knuckles end pose sprites
+	Kosinski.addToDMAQueue(0x163418, 0x3c60)	// Tornado
+	Kosinski.addToDMAQueue(0x162914, 0x4dc0)	// Smaller ending sprites + Sonic pilot head + chain
+
+#if STANDALONE
+	Game.startSkippableCutscene()
+
+	if (Game.isNormalGame())
+		Game.setAchievementComplete(ACHIEVEMENT_LONGPLAY)
+#endif
 }
 
 // --- follow assurance
@@ -302,10 +473,83 @@ function bool UpdatePaletteEffects.SuperForm.endpose()
 			UpdatePaletteEffects.SuperForm.endpose.smoothedVersion(characterVersion)
 			return true
 		}
+		else
+			return false
 	}
 	return base.UpdatePaletteEffects.SuperForm.endpose()
 }
 
+function void UpdatePaletteEffects.SuperForm.endpose.moddingVersion(u8 characterVersion)
+{
+	if (global_ExChar_P1)
+	{
+		// Update ongoing palette effect
+		u8 character = getMainCharacter()
+		bool isHyperEffect = (character == CHARACTER_TAILS) ? (super.active.tails == 0xff) : (super.active == 0xff)
+		u16 nextFrame = (super.palettefx.frame + 6) % (isHyperEffect ? 108 : 18)
+		u16 blendFactor = super.palettefx.timer * 0x100 / (isHyperEffect ? 0x07 : 0x0f)
+		if (characterVersion == 2)
+		{
+			// Tails
+			nextFrame = (super.palettefx.frame.tails + 6) % (isHyperEffect ? 108 : 18)
+			blendFactor = super.palettefx.timer.tails * 0x100 / (isHyperEffect ? 0x07 : 0x0f)
+		}
+		if (nextFrame % 18 == 0)
+			blendFactor = 0x100 - blendFactor
+		else if (nextFrame % 18 == 12)
+			blendFactor = 0
+
+		u32 offset = character * 0x40
+		u32 source = 0x802180 + offset
+		u32 dest   = 0x802000 + offset
+
+		// Load modded Super palette
+		u8 line = getModdedEndPosePaletteLine(character, isHyperEffect)
+		
+		zeroMemory(dest, 0x40)
+		u16 numColors = System.loadExternalPaletteData(getECFCharacterEndPosePaletteKey(global_ExChar_P1), line, 0x800000, 0x20)
+		for (u16 i = 0; i < numColors; ++i)
+		{
+			u32 rgba = u32[0x800000 + i * 4]
+			u16[dest + i * 2] = (rgba & 0xff000000) ? packColorExt(rgba) : 0
+		}
+
+		for (u8 k = 0; k < 0x40; k += 2)
+		{
+			if (u16[dest + k] == 0)
+			{
+				// Use original color as fallback
+				u16[dest + k] = u16[source + k]
+			}
+			else
+			{
+				// Apply flash effect
+				u16[dest + k] = blendColorsPacked(u16[dest + k], 0x0eee, blendFactor)
+			}
+		}
+
+		if (characterVersion == 2)
+		{
+			// Super/Hyper Tails
+			--super.palettefx.timer.tails
+			if (super.palettefx.timer.tails < 0)
+			{
+				super.palettefx.timer.tails = isHyperEffect ? 0x07 : 0x0f
+				super.palettefx.frame.tails = nextFrame
+			}
+			return
+		}
+
+		--super.palettefx.timer
+		if (super.palettefx.timer < 0)
+		{
+			super.palettefx.timer = isHyperEffect ? 0x07 : 0x0f
+			super.palettefx.frame = nextFrame
+		}
+	}
+	else
+		base.UpdatePaletteEffects.SuperForm.endpose.moddingVersion(characterVersion)
+}
 
 function u8 getModdedEndPosePaletteLine(u8 character, bool isHyperEffect)
 {
@@ -326,6 +570,50 @@ function u8 getModdedEndPosePaletteLine(u8 character, bool isHyperEffect)
 	}
 	return base.getModdedEndPosePaletteLine(character, isHyperEffect)
 }
+
+// fade out
+//# address-hook(0x08555e) end(0x08558e)
+function void fn08555e()
+{
+	--objA0.countdown_value
+	if (objA0.countdown_value >= 0)
+		return
+
+	objA0.countdown_value = u16[A0 + 0x3a]
+	A1 = 0xffff0000 + u16[A0 + 0x30]
+	D0.u16 = u16[A0 + 0x3c]
+	D1 = 0x0e
+	D2 = -0x20
+	for (u8 i = 0; i <= D0.s16; ++i)
+	{
+		FadeOutColorUniform()
+	}
+
+#if STANDALONE
+	A1 = 0x802000
+	D0.u16 = 0xbf
+	D1 = 0x0e
+	D2 = -0x20
+	for (u8 i = 0; i <= D0.s16; ++i)
+	{
+		FadeOutColorUniform()
+	}
+#endif
+	
+	// ... adds these 3 lines. that's it.
+	// necessary for pilots
+	globalComponentAddedColorR = max(globalComponentAddedColorR - 0x25, -255)
+	globalComponentAddedColorG = max(globalComponentAddedColorG - 0x25, -255)
+	globalComponentAddedColorB = max(globalComponentAddedColorB - 0x25, -255)
+
+	--objA0.value39
+	if (s8(objA0.value39) < 0)
+	{
+		u8[0xfffffabf] = 0
+		Object.TriggerUnloading()
+	}
+}
+
 
 // --- best end congrats screen
 
@@ -402,8 +690,9 @@ function void ECF_EndScreen_char_init()
 	fn05fefe()
 
 	copyMemory(0xfffffc80, 0x0a8a3c, 0x20)
-
-	loadECFCharacterPalette(global_ExChar_P1, 0x802180 + u32(getECFCharBase(global_ExChar_P1)) * 0x40, 0)
+	
+	string buffer = System.getGlobalVariableValueByName(stringformat("global_ExChar_P%d", objA0.subtype2c + 1))
+	loadECFCharacterPalette(buffer, 0x802180 + u32(getECFCharBase(buffer)) * 0x40, 0)
 
 	if (allocDynamicObjectStd())
 	{
@@ -416,7 +705,8 @@ function void ECF_EndScreen_char_init()
 
 function void ECF_EndScreen_char_ani()
 {
-	string key = getECFCharacterSpriteKey(global_ExChar_P1, false)
+	string buffer = System.getGlobalVariableValueByName(stringformat("global_ExChar_P%d", objA0.subtype2c + 1))
+	string key = getECFCharacterSpriteKey(buffer, false)
 	if (objA0.state == 0 && u8[0xfffffab8] & 0x04 && Renderer.hasCustomSprite(stringformat("%s_ending_1_1", key)))
 	{
 		objA0.state = 1

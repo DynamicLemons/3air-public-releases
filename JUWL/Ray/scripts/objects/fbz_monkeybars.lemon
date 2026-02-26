@@ -1,7 +1,7 @@
 //# address-hook(0x03a8b8) end(0x03aa58)
 function void fn03a8b8()
 {
-	if (!isECFCharA1("ECC-Ray"))
+	if (!isECFCharA1("JUWL-Ray"))
 	{
 		base.fn03a8b8()
 		return
@@ -132,7 +132,7 @@ function void fn03a8b8()
 //# address-hook(0x03aa7e) end(0x03ac36)
 function void fn03aa7e()
 {
-	if (!isECFCharA1("ECC-Ray"))
+	if (!isECFCharA1("JUWL-Ray"))
 	{
 		base.fn03aa7e()
 		return

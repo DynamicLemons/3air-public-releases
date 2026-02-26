@@ -1,7 +1,7 @@
 //# address-hook(0x067472) end(0x06748a)
 function void fn067472()
 {
-	if (isECFCharP1("ECC-Ray"))
+	if (isECFCharP1("JUWL-Ray"))
 	{
 		A1 = 0xffffb000
 		System.callFunctionByName(stringformat("AizIntro_Ray_state%d", objA0.base_state))

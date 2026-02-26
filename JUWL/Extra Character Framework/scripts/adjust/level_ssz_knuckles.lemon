@@ -1,0 +1,101 @@
+//# address-hook(0x07cd82) end(0x07ce18)
+function void fn07cd82()
+{
+	base.fn07cd82()
+	if (getECFCharBufferName(0xffffb000) && objA0.update_address == 0x07ce1e)
+	{
+		A1 = 0xffffb000
+		u8[A1 + 0x2e] &= ~control_flag.DISABLE_ANIMATION
+		objA1.state = char.state.GRABBED
+		objA1.flags2a &= ~char.flag.FACING_LEFT
+	}
+}
+
+//# address-hook(0x07ce42) end(0x07ce66)
+function void fn07ce42()
+{
+	if (getECFCharBufferName(0xffffb000) == 0)
+	{
+		base.fn07ce42()
+		return
+	}
+	
+	MoveAndFlipWithParent()
+	if ((u8[0xfffffab8] & 0x20) == 0)
+	{
+		A1 = 0xffffb000
+		objA1.position.x.u16 = objA0.position.x.u16
+		D0.u16 = objA0.position.y.u16 + 12
+		objA1.position.y.u16 = D0.u16
+	}
+	Child.DrawSprite()
+}
+
+//# address-hook(0x07cc3a) end(0x07cc62)
+function void fn07cc3a()
+{
+	if (getECFCharBufferName(0xffffb000) == 0)
+	{
+		base.fn07cc3a()
+		return
+	}
+	
+	objA0.update_address = 0x07cc68
+
+	A1 = 0xffffb000
+	objA0.position.x.u16 = objA1.position.x.u16
+	objA0.position.y.u16 = objA1.position.y.u16
+	
+	objA1.velocity.x = Math.roundToInt(0x01c0 * (getScreenWidth() / 400.0))
+	objA1.velocity.y = -0x680
+	objA1.state = char.state.ROLLING
+	objA1.flags2a = (char.flag.ROLLING | char.flag.IN_AIR)
+	objA1.hitbox_extends.x = ECF_getCharRollWidth(A1)
+	objA1.hitbox_extends.y = ECF_getCharRollHeight(A1)
+	
+	player1.control_override = 0xff
+	control.player1.pressed = 0
+	control.player1.state = CONTROL_RIGHT
+	
+	u8[A1 + 0x2e] = 0
+	
+	playSound(SFX_JUMP)
+	
+	UpdatePlayer1SpritePatterns()
+}
+
+//# address-hook(0x07cc68) end(0x07ccaa)
+function void fn07cc68()
+{
+	if (getECFCharBufferName(0xffffb000) == 0)
+	{
+		base.fn07cc68()
+		return
+	}
+	
+	A1 = 0xffffb000
+	if ((objA1.flags2a & char.flag.IN_AIR) == 0)
+	{
+		control.player1.state = CONTROL_LEFT
+		
+		objA0.update_address = 0x07ccb0
+		objA0.countdown_value = 0
+	}
+}
+
+//# address-hook(0x07ccb0) end(0x07ccf8)
+function void fn07ccb0()
+{
+	if (getECFCharBufferName(0xffffb000) == 0)
+	{
+		base.fn07ccb0()
+		return
+	}
+	
+	++objA0.countdown_value
+	if (objA0.countdown_value == 22)
+	{
+		player1.control_override = 0
+		UnloadObject()
+	}
+}

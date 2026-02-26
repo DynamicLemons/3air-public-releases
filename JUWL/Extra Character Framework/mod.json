@@ -5,13 +5,13 @@
 		"UniqueID": "extra-character-framework",
 		"Author": "Dynamic Lemons",
 		"Description": "Allows more characters to be added.",
-		"ModVersion": "2/2/2026",
+		"ModVersion": "2/26/2026",
 		"GameVersion": "25.12.31.0"
 	},
 	
 	"OtherMods":
 	{
-		"dynamic-lemons-extrasaveslots":
+		"dynamic-lemons-extra-save-slots":
 		{
 			"Priority": "Higher"
 		},

@@ -31,7 +31,7 @@ global u8 p4_mighty_cam_vlock
 global u8 p4_mighty_cling_timer
 global s8 p4_mighty_cling_dustcountdown
 
-global bool ecc_setting_mightyManiaSounds
-global bool ecc_setting_mightyAltPalette
-global bool ecc_setting_mightyWallJump
-global bool ecc_setting_mightyWallJumpControls
+global bool setting_mightyManiaSounds
+global bool setting_mightyAltPalette
+global bool setting_mightyWallJump
+global bool setting_mightyWallJumpControls

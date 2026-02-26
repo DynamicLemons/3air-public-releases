@@ -1,0 +1,4 @@
+{
+	"tornado_knuckles_pilot": { "File": "tornado_knuckles.bmp", "Rect": "8,8,32,16", "Center": "20,8" },
+	"tornado_knuckles_pilot_small": { "File": "tornado_knuckles.bmp", "Rect": "48,8,16,8", "Center": "8,4" }
+}

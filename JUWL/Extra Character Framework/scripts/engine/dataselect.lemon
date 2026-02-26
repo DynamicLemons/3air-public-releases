@@ -144,7 +144,7 @@ function void fn00d6d0()
 //# address-hook(0x00d30c) end(0x00d39a)
 function void fn00d30c()
 {
-	if (!ECF_charList_length || !noSave_ExChar_P1_id && !noSave_ExChar_P2_id)
+	if (!ECF_charList_length)
 	{
 		base.fn00d30c()
 		return
@@ -191,9 +191,6 @@ function void fn00d30c()
 
 function bool fn00d458()
 {
-	if (!ECF_charList_length)
-		return base.fn00d458()
-	
 	// mostly unchanged, but some character stuff needs to be accounted for here.
 	
 	// Result values:
@@ -240,10 +237,15 @@ function bool fn00d458()
 			}
 		}
 
-		u8 read = (A0.u16 - 0xb0de) / 0x4a
-		
 		string name = ECF_dataselect_getStr()
 		string id = ECF_dataselect_getNum()
+
+		if (name && id == 0)
+		{
+			if (control.pad1.pressed & DataSelect.CONTROLS_ACCEPT)
+				playSound(0xb2)
+			return 2
+		}
 		
 		if (u16[A0 + 0x38] == 0 && objA0.value3b == 0)
 		{
@@ -300,19 +302,9 @@ function bool fn00d458()
 
 		objA0.compound.count = 2
 		if (u16[0xffffeee4] != 0)
-		{
 			return 2
-		}
 		if ((control.pad1.pressed & DataSelect.CONTROLS_ACCEPT) == 0)
-		{
 			return 2
-		}
-		
-		if (name && id == 0)
-		{
-			playSound(0xb2)
-			return 2
-		}
 		
 		level.giantrings_clear.u16 = u16[A1 + 0x04]
 		if (objA0.value3b == 0)
@@ -336,7 +328,7 @@ function bool fn00d458()
 		levelselect_ExChar_P1_id = id
 		if (name)
 			u8[A1 + 0x02] = getECFGlobalCharId(getECFCharNameAtId(levelselect_ExChar_P1_id)) << 4
-		debugLog(u8[A1 + 0x02])
+		//debugLog(u8[A1 + 0x02])
 		global.next_bluespheres = (u8[A1 + 0x02] & 0x0f)
 
 		D0 = u16[A1 + 0x06]

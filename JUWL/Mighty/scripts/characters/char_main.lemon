@@ -1,7 +1,6 @@
-//# address-hook(0x010afa) end(0x010bb8)
-function void Character.Initialization.Sonic()
+function void Character.Initialization.shared(u8 character)
 {
-	base.Character.Initialization.Sonic()
+	base.Character.Initialization.shared(character)
 	setPlayerGlobalValue("mighty_shockwave_t", 0)
 	setPlayerGlobalValue("mighty_cam_vlock", 0)
 }
@@ -9,7 +8,7 @@ function void Character.Initialization.Sonic()
 //# address-hook(0x010bba) end(0x010c8e)
 function void Character.UpdateNormalState.Sonic()
 {
-	if (isECFCharA0("ECC-Mighty"))
+	if (isECFCharA0("JUWL-Mighty"))
 	{
 		base.Character.UpdateNormalState.Sonic()
 		
@@ -24,7 +23,7 @@ function void Character.UpdateNormalState.Sonic()
 
 function void Character.updateJumpMoves()
 {
-	if (!isECFCharA0("ECC-Mighty"))
+	if (!isECFCharA0("JUWL-Mighty"))
 	{
 		base.Character.updateJumpMoves()
 		return
@@ -35,7 +34,7 @@ function void Character.updateJumpMoves()
 	bool isSuperActive = Character.getSuperState()
 	
 #if CHARACTER_SELECTION_PLUS_ACTIVE
-	bool secondaryMode = (A0 != 0xffffb000 && tails.ai_routine != pAiRoutine_flyInExit && tails.control_counter == 0 && (isSoloMode || !csp_set_fourPlayer))
+	bool secondaryMode = (A0 != 0xffffb000 && isSoloMode)
 #else
 	bool secondaryMode = false
 #endif
@@ -107,7 +106,7 @@ function void Character.updateJumpMoves()
 		}
 	}
 	// Allow for Hammer Drop to cancel into Wall Cling
-	else if (char.double_jump_state == 1 && input_pressed & CONTROL_ABC && ecc_setting_mightyWallJump && !secondaryMode)
+	else if (char.double_jump_state == 1 && input_pressed & CONTROL_ABC && setting_mightyWallJump && !secondaryMode)
 	{
 		Character_checkWallInFront()
 		if (D1.s16 <= 10 && (input_state & CONTROL_LEFT && char.flags & char.flag.FACING_LEFT || input_state & CONTROL_RIGHT && (char.flags & char.flag.FACING_LEFT) == 0))
@@ -116,13 +115,8 @@ function void Character.updateJumpMoves()
 			return
 		}
 	}
-#if !LEMONS_TWEAKS_ACTIVE
 	else
-	{
-		if (char.spindash == 0)
-			char.velocity.y = max(char.velocity.y, -0x0fc0)
-	}
-#endif
+		base.Character.updateJumpMoves()
 }
 
 function void MightyPressedJumpInMidAir()
@@ -130,7 +124,7 @@ function void MightyPressedJumpInMidAir()
 	u8 input_state     = Character.getControlVariable(0)
 	u8 input_pressed   = Character.getControlVariable(1)
 	
-	if (ecc_setting_mightyWallJump)
+	if (setting_mightyWallJump)
 	{
 		Character_checkWallInFront()
 		if (D1.s16 <= 10 && (input_state & CONTROL_LEFT && char.flags & char.flag.FACING_LEFT || input_state & CONTROL_RIGHT && (char.flags & char.flag.FACING_LEFT) == 0))
@@ -163,7 +157,7 @@ function void MightyPressedJumpInMidAir()
 	setPlayerGlobalValue("mighty_cam_vlock", 8)
 	
 	playSound(SFX_SPINDASH_RELEASE) // actually plays in Mania, gives the HD a bit more oomph to it
-	Audio.playOverride((ecc_setting_mightyManiaSounds) ? "mighty_drill" : "mighty_c_drill", AudioContext.CONTEXT_SOUND, Character.getCharAudioChannelA(), 1)
+	Audio.playOverride((setting_mightyManiaSounds) ? "mighty_drill" : "mighty_c_drill", AudioContext.CONTEXT_SOUND, Character.getCharAudioChannelA(), 1)
 }
 
 #if !LEMONS_TWEAKS_ACTIVE
@@ -172,7 +166,7 @@ function void Character.UpdateMovement()
 {
 	// hard lock Mighty's hammer drop fall speed
 	// during playtesting we had quite a bit of noclipping issues that I couldn't recreate.
-	if (isECFCharA0("ECC-Mighty") && char.double_jump_state == 1)
+	if (isECFCharA0("JUWL-Mighty") && char.double_jump_state == 1)
 	{
 		UpdateMovementStraight()
 		if (char.velocity.y < 0x1000)
@@ -208,35 +202,9 @@ function void Mighty_startWallCling()
 	char.double_jump_state = 2
 }
 
-function bool Character_checkWallInFront()
-{	
-	pushA456()
-
-	u32[0xfffff796] = (char.layer_flags1 == 0x0c) ? u32[0xfffff7b4] : u32[0xfffff7b8]
-	D5.u8 = char.layer_flags2
-	
-	u8 result
-	if (char.flags & char.flag.FACING_LEFT)
-	{
-		Character.CheckLeftWallCollision()
-		if (D1.s16 <= 0)
-			result = true
-	}
-	else
-	{
-		Character.CheckRightWallCollision()
-		if (D1.s16 <= 0)
-			result = true
-	}
-	
-	popA456()
-	
-	return result
-}
-
 function void Character.LandingOnGroundResetState()
 {
-	if (!isECFCharA0("ECC-Mighty"))
+	if (!isECFCharA0("JUWL-Mighty"))
 	{
 		base.Character.LandingOnGroundResetState()
 		return
@@ -246,7 +214,10 @@ function void Character.LandingOnGroundResetState()
 	char.flags &= ~char.flag.PUSHING
 	char.flags &= ~char.flag.CONTROL_LOCK
 	char.jumping = 0
-	score.bonus_counter = 0		// No more increasing bonusses after hitting the ground
+#if LEMONS_TWEAKS_ACTIVE
+	if (A0 == 0xffffb000)
+#endif
+		score.bonus_counter = 0		// No more increasing bonusses after hitting the ground
 	char.rotation.x = 0
 	u8[A0 + 0x2d] = 0
 	u8[A0 + 0x30] = 0
@@ -257,7 +228,7 @@ function void Character.LandingOnGroundResetState()
 	{
 		if (char.double_jump_state == 1)
 		{
-			if (MightyInteraction_cancelLand())
+			if (Character_interaction_cancelAbilityLanding())
 			{
 				char.double_jump_state = 0
 				char.state = char.state.MIGHTY_HAMMERDROP
@@ -286,44 +257,6 @@ function void Character.LandingOnGroundResetState()
 #endif
 }
 
-function bool MightyInteraction_cancelLand()
-{
-	bool result = false
-	u32 A1_o = A1
-	A1 = 0xffff0000 + u32(char.object_standing_on)
-		
-	if (char.flags & char.flag.ON_OBJECT && char.object_standing_on)
-	{
-		// not entirely necessary in most cases here, but felt fitting to exclude them.
-		
-		// spikes and harmful floors
-		if ((char.bonus_effect & char.bonus.INVINCIBLE) == 0 && char.invuln.countdown == 0 && (objA1.update_address == 0x024090 || objA1.update_address == 0x01f4c4))
-			result = true
-		// springs
-		else if (objA1.update_address == 0x022ef4 || objA1.update_address == 0x023490)
-			result = true
-		// breakable floors
-		else if (objA1.update_address == 0x01faf2 && objA1.subtype2c & 0x01 || objA1.update_address == 0x02a502 || objA1.update_address == 0x04172e || objA1.update_address == 0x08b384)
-			result = true
-		// hcz spinning pillar
-		else if (objA1.update_address == 0x0326b6)
-			result = true
-		// cnz barrel
-		else if (objA1.update_address == 0x032188)
-			result = true
-		// cnz cannon
-		else if (objA1.update_address == 0x0318f2)
-			result = true
-		// ssz shell platform
-		else if (objA1.update_address == 0x0462b6)
-			result = true
-	}
-	
-	A1 = A1_o
-	
-	return result
-}
-
 #if !LEMONS_TWEAKS_ACTIVE
 //# address-hook(0x011eec) end(0x011fd4)
 //# translated(0x012012) end(0x01209c)
@@ -332,7 +265,7 @@ function bool MightyInteraction_cancelLand()
 //# address-hook(0x0153c2) end(0x01560a)
 function void Character.CheckCollision()
 {
-	if (!isECFCharA0("ECC-Mighty") || char.double_jump_state != 1)
+	if (!isECFCharA0("JUWL-Mighty") || char.double_jump_state != 1)
 	{
 		base.Character.CheckCollision()
 		return
@@ -348,7 +281,11 @@ function void Character.CheckCollision()
 	}
 #endif
 
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	bool someFlag = getPData("level.HCZ_water_current_flags")
+#else
 	bool someFlag = (char.character == CHARACTER_TAILS) ? level.HCZ_water_current_flags.tails : level.HCZ_water_current_flags.player1
+#endif
 
 	u32[0xfffff796] = (char.layer_flags1 == 0x0c) ? u32[0xfffff7b4] : u32[0xfffff7b8]
 
@@ -584,7 +521,7 @@ function void MightyHammerDropBounce()
 	A1 = pop()
 	
 	camera.hyper_knux_shake = 0x0114
-	Audio.playOverride((ecc_setting_mightyManiaSounds) ? "mighty_land" : "mighty_c_land", AudioContext.CONTEXT_SOUND, Character.getCharAudioChannelA(), 1)
+	Audio.playOverride((setting_mightyManiaSounds) ? "mighty_land" : "mighty_c_land", AudioContext.CONTEXT_SOUND, Character.getCharAudioChannelA(), 1)
 	
 	u8 pId = ((A0.u16 - 0xb000) / 0x4a) + 1
 	setPlayerGlobalValue("mighty_shockwave_t", 2)
@@ -594,14 +531,17 @@ function void MightyHammerDropBounce()
 	setPlayerGlobalValue("mighty_cam_vlock", 0)
 	
 	if (Character.getSuperState() & 0x80)
+	{
 		Character.ClearEnemiesOnScreen()
+		playSound(0x49)
+	}
 	Input.setControllerRumbleByAddress(A0, 0.5f, 1.0f, 200)
 }
 
 //# address-hook(0x011036) end(0x01105e)
 function void Character.UpdateSonicRollingInAir()
 {
-	if (!isECFCharA0("ECC-Mighty"))
+	if (!isECFCharA0("JUWL-Mighty"))
 	{
 		base.Character.UpdateSonicRollingInAir()
 		return
@@ -626,7 +566,7 @@ function void Character.UpdateSonicRollingInAir()
 		if (clingtime >= slideMax)
 			power = Math.roundToInt(0.8 * power)
 		
-		bool jumpCond = (!ecc_setting_mightyWallJumpControls) ? ((input_state & CONTROL_ABC) == 0) : (input_pressed & CONTROL_ABC)
+		bool jumpCond = (!setting_mightyWallJumpControls) ? ((input_state & CONTROL_ABC) == 0) : (input_pressed & CONTROL_ABC)
 		// holding too long or mighty isnt touching a wall? exit cling state and enter a roll
 		if (clingtime > maxTime || !Character_checkWallInFront())
 		{
@@ -758,7 +698,7 @@ function void Character.UpdateSonicRollingInAir()
 //# address-hook(0x017680) end(0x01770e)
 function void Character.UpdateControlInAir()
 {
-	if (!isECFCharA0("ECC-Mighty") || char.state != char.state.MIGHTY_WALLJUMP)
+	if (!isECFCharA0("JUWL-Mighty") || char.state != char.state.MIGHTY_WALLJUMP)
 	{
 		base.Character.UpdateControlInAir()
 		return
@@ -818,64 +758,27 @@ function void Character.UpdateControlInAir()
 //# address-hook(0x00ff06) end(0x00ff5e)
 function void Character.CheckCollisionsWithDynamicObjects_partial()
 {
-	if (!isECFCharA0("ECC-Mighty") || getPlayerGlobalValue("mighty_shockwave_t") == 0)
+	if (!isECFCharA0("JUWL-Mighty") || getPlayerGlobalValue("mighty_shockwave_t") == 0)
 	{
 		base.Character.CheckCollisionsWithDynamicObjects_partial()
 		return
 	}
+	
+	// The way this has been done technically allows Mighty to get a collision in on himself and THEN another on his shockwave, which would be innaccurate behavior to base game... but surely no one is enough of a nerd to care about that, right?
+	
+	base.Character.CheckCollisionsWithDynamicObjects_partial()
+	Character.MightyShockwaveDynamic()
+	Character.MightyShockwaveExtraCollision()
+}
 
+function void Character.MightyShockwaveDynamic()
+{
 	s16 waveX = getPlayerGlobalValue("mighty_shockwave_x")
 	s16 waveY = getPlayerGlobalValue("mighty_shockwave_y")
 	
 #if LEMONS_TWEAKS_ACTIVE
-	if (set_lt_fixedHitboxes)
-	{
-		u8 quart = getRotationQuarter(char.rotation)
-		s16 x = D2.s16 - s16(char.position.x.u16)
-		s16 y = D3.s16 - s16(char.position.y.u16)
-		s16 w = D4.s16
-		s16 h = D5.s16
-		
-		if (quart == 0xc0)
-		{
-			D2.u16 = char.position.x.u16 + y
-			D3.u16 = char.position.y.u16 - w - x
-			D4.u16 = h
-			D5.u16 = w
-		}
-		else if (quart == 0x80)
-		{
-			D2.u16 = char.position.x.u16 - w - x
-			D3.u16 = char.position.y.u16 - h - y
-		}
-		else if (quart == 0x40)
-		{
-			D2.u16 = char.position.x.u16 - h - y
-			D3.u16 = char.position.y.u16 + x
-			D4.u16 = h
-			D5.u16 = w
-		}
-	}
-	
-	// Bounding box of player
-	if (debugDrawFlag == 2)
-	{
-		Renderer.drawRect(D2.u16, D3.u16, D4.u16, D5.u16, 0x00ff0080, 0xfff5, true)
-		u16 a = System.getGlobalVariableValueByName(stringformat("p%d_hbox_x", (A0.u16 - 0xb000) / 0x4a + 1))
-		u16 b = System.getGlobalVariableValueByName(stringformat("p%d_hbox_y", (A0.u16 - 0xb000) / 0x4a + 1))
-		u16 c = System.getGlobalVariableValueByName(stringformat("p%d_hbox_h", (A0.u16 - 0xb000) / 0x4a + 1))
-		u16 d = System.getGlobalVariableValueByName(stringformat("p%d_hbox_w", (A0.u16 - 0xb000) / 0x4a + 1))
-		if (D2.u16 != a || D3.u16 != b || D4.u16 != c || D5.u16 != d)
-			Renderer.drawRect(a, b, c, d, 0xff00ffa0, 0xfff0, true)
-			
-		Renderer.drawRect(waveX- 48, waveY, 96, char.hitbox.y.ROLLING + 16, 0x00ff0080, 0xfff5, true)
-	}
-	
-	bool extraInstance
-#else 
-	// Bounding box of player
-	if (DEBUG_DYNAMIC_COLLISIONS)
-		debugDrawRect(D2.u16, D3.u16, D4.u16, D5.u16, 0x8000ff00)
+	if (debugDrawFlag == dev_view_dynamic)
+		Renderer.drawRect(waveX- 48, waveY, 96, char.hitbox.y.ROLLING + 16, dev_color_dyn_playerSpecial, 0xfff5, true)
 #endif
 
 	u16 numObjects = global.dynamic_objects.size		// Actually it's twice the number of dynamic objects
@@ -899,64 +802,7 @@ function void Character.CheckCollisionsWithDynamicObjects_partial()
 			u16 sx = hitbox.x * 2
 			u16 sy = hitbox.y * 2
 
-		#if LEMONS_TWEAKS_ACTIVE
-			if (debugDrawFlag == 2)
-		#elif STANDALONE
-			if (DEBUG_DYNAMIC_COLLISIONS)
-		#endif
-			{
-				if ((offset & collision_attributes.flags) == collision.flag.ITEM)
-					debugDrawRect(px, py, sx, sy, 0x8000ff00)
-				else if ((offset & collision_attributes.flags) == collision.flag.SPECIAL)
-					debugDrawRect(px, py, sx, sy, 0x80ff0000)
-				else if ((offset & collision_attributes.flags) == collision.flag.THREAT)
-					debugDrawRect(px, py, sx, sy, 0x800000ff)
-				else
-					debugDrawRect(px, py, sx, sy, 0x80ff00ff)
-			}
-
-			if (checkBoxOverlap(D2.u16, D3.u16, D4.u16, D5.u16, px, py, sx, sy))
-			{
-			#if LEMONS_TWEAKS_ACTIVE
-				s16 oldVX = char.velocity.x
-				s16 oldVY = char.velocity.y
-				
-				bool boss = false
-				if ((offset & collision_attributes.flags) == collision.flag.DESTRUCTIBLE)
-					boss = (u8[A1 + 0x29] != 0)
-					
-				// Collision found
-				bool ignore 
-				if ((offset & collision_attributes.flags) == collision.flag.THREAT)
-				{
-					ignore = (u32[0xffff0000 + u32(u16[A1 + 0x46])] == addressof(SmallExplosion.BaseUpdate))
-				}
-				
-				if (!ignore)
-				{
-					Character.OnCollisionWithDynamicObject()
-					
-					if (extraInstance)
-					{
-						if (char.velocity.x == -oldVX)
-							char.velocity.x = oldVX
-						if (char.velocity.y == -oldVY)
-							char.velocity.y = oldVY
-					}
-					else
-						extraInstance = true
-				}
-				
-				if (char.base_state != 2 || boss)
-					return
-			#else
-				// Collision found
-				Character.OnCollisionWithDynamicObject()
-				return
-			#endif
-			}
-			// shockwave
-			else if ((offset & collision_attributes.flags) == collision.flag.DESTRUCTIBLE || (offset & collision_attributes.flags) == collision.flag.ITEM && (offset & collision_attributes.size) == collision.size.16x16) && (checkBoxOverlap(waveX - 48, waveY, 96, char.hitbox.y.ROLLING + 16, px, py, sx, sy))
+			if ((offset & collision_attributes.flags) == collision.flag.DESTRUCTIBLE || (offset & collision_attributes.flags) == collision.flag.ITEM && (offset & collision_attributes.size) == collision.size.16x16) && (checkBoxOverlap(waveX - 48, waveY, 96, char.hitbox.y.ROLLING + 16, px, py, sx, sy))
 			{
 				if ((offset & collision_attributes.flags) == collision.flag.DESTRUCTIBLE)
 				{
@@ -993,9 +839,7 @@ function void Character.CheckCollisionsWithDynamicObjects_partial()
 					objA1.base_state = 0x04		// Set monitor state to broken
 					objA1.monitor.character_address = A0.u16		// RAM address of character
 				}
-			#if LEMONS_TWEAKS_ACTIVE
-				extraInstance = true
-			#else
+			#if !LEMONS_TWEAKS_ACTIVE
 				return
 			#endif
 			}
@@ -1003,37 +847,39 @@ function void Character.CheckCollisionsWithDynamicObjects_partial()
 
 		numObjects -= 2
 	}
-	
-	Character.MightyShockwaveExtraCollision(waveX, waveY)
 }
 
-function void Character.MightyShockwaveExtraCollision(s16 waveX, s16 waveY)
+function void Character.MightyShockwaveExtraCollision()
 {
 	// all this does is check for mines... so not really worth much
 	if (global.zone != 0x4)
 		return
 	
 	for (A1 = 0xffffb128; A1 < 0xffffcb2c; A1 += 0x4a)
+		Character.MightyShockwaveExtraCollisionInner()
+}
+
+
+function void Character.MightyShockwaveExtraCollisionInner()
+{
+	if (objA1.update_address == 0x03c972)
 	{
-		if (objA1.update_address == 0x03c972)
-		{
-			u16 px = objA1.position.x.u16 - objA1.box_size.x
-			u16 py = objA1.position.y.u16 - objA1.box_size.y
-			u16 sx = objA1.box_size.x * 2
-			u16 sy = objA1.box_size.y * 2
-			
-			if (debugDrawFlag == 2)
-				debugDrawRect(px, py, sx, sy, 0x800080ff)
-			
-			if (checkBoxOverlap(waveX - 48, waveY, 96, char.hitbox.y.ROLLING + 16, px, py, sx, sy))
-				objA1.update_address = 0x03c9bc
-		}
+		u16 px = objA1.position.x.u16 - objA1.box_size.x
+		u16 py = objA1.position.y.u16 - objA1.box_size.y
+		u16 sx = objA1.box_size.x * 2
+		u16 sy = objA1.box_size.y * 2
+		
+		if (debugDrawFlag == 2)
+			debugDrawRect(px, py, sx, sy, 0x800080ff)
+		
+		if (checkBoxOverlap(getPlayerGlobalValue("mighty_shockwave_x") - 48, getPlayerGlobalValue("mighty_shockwave_y"), 96, char.hitbox.y.ROLLING + 16, px, py, sx, sy))
+			objA1.update_address = 0x03c9bc
 	}
 }
 
 function void Character.OnHitBoss()
 {
-	if (isECFCharA0("ECC-Mighty") && char.state == char.state.MIGHTY_HAMMERDROP)
+	if (isECFCharA0("JUWL-Mighty") && char.state == char.state.MIGHTY_HAMMERDROP)
 	{
 		char.double_jump_state = 2
 		char.state = char.state.ROLLING
@@ -1045,41 +891,12 @@ function void Character.OnHitBoss()
 
 function void Character.OnHitBadnik()
 {
-	if (!isECFCharA0("ECC-Mighty") || char.state != char.state.MIGHTY_HAMMERDROP)
+	if (!isECFCharA0("JUWL-Mighty") || char.state != char.state.MIGHTY_HAMMERDROP)
 		base.Character.OnHitBadnik()
 }
 
 function void Character.OnHitMonitor()
 {
-	if (!isECFCharA0("ECC-Mighty") || char.state != char.state.MIGHTY_HAMMERDROP)
+	if (!isECFCharA0("JUWL-Mighty") || char.state != char.state.MIGHTY_HAMMERDROP)
 		base.Character.OnHitMonitor()
-}
-
-//# address-hook(0x085732) end(0x08575e)
-function void fn085732()
-{
-	if (!isECFCharAt(u32(0xffff0000 + u16[A0 + 0x44]), "ECC-Mighty"))
-	{
-		base.fn085732()
-		return
-	}
-	
-	fn085760()
-		
-	A1 = 0xffff0000 + u16[A0 + 0x44]
-	if (objA1.state == char.state.MIGHTY_HAMMERDROP)
-		return
-		
-	if (objA1.velocity.y < 0)
-	{
-		objA1.velocity.y += 0x0100
-	}
-	else if (objA1.position.y.u16 >= objA0.position.y.u16)
-	{
-		objA1.velocity.y -= 0x0100
-	}
-	else
-	{
-		objA1.velocity.y = -objA1.velocity.y
-	}
 }

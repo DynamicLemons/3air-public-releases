@@ -2,5 +2,9 @@
 	"mighty_dust_1":  { "File": "dust.bmp", "Rect": "0,0,16,16", "Center": "8,8" },
 	"mighty_dust_2":  { "File": "dust.bmp", "Rect": "16,0,16,16", "Center": "8,8" },
 	"mighty_dust_3":  { "File": "dust.bmp", "Rect": "32,0,16,16", "Center": "8,8" },
-	"mighty_dust_4":  { "File": "dust.bmp", "Rect": "48,0,16,16", "Center": "8,8" }
+	"mighty_dust_4":  { "File": "dust.bmp", "Rect": "48,0,16,16", "Center": "8,8" },
+	"mighty_hyperdust_1":  { "File": "dust.bmp", "Rect": "0,16,24,24", "Center": "12,12" },
+	"mighty_hyperdust_2":  { "File": "dust.bmp", "Rect": "24,16,24,24", "Center": "12,12" },
+	"mighty_hyperdust_3":  { "File": "dust.bmp", "Rect": "48,16,24,24", "Center": "12,12" },
+	"mighty_hyperdust_4":  { "File": "dust.bmp", "Rect": "72,16,24,24", "Center": "12,12" }
 }

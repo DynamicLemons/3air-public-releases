@@ -1,7 +1,7 @@
 //# address-hook(0x01c9e0) end(0x01c9f8)
 function void fn01c9e0()
 {
-	if (!isECFCharP1("ECC-Mighty"))
+	if (!isECFCharP1("JUWL-Mighty"))
 	{
 		base.fn01c9e0()
 		return
@@ -19,7 +19,7 @@ function void fn01c9e0()
 //# address-hook(0x01c9fa) end(0x01ca0a)
 function void fn01c9fa()
 {
-	if (!isECFCharP1("ECC-Mighty"))
+	if (!isECFCharP1("JUWL-Mighty"))
 	{
 		base.fn01c9fa()
 		return

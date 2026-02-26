@@ -38,6 +38,14 @@ function void ECF_loadIdValues()
 					for (u32 offset = 0; offset < u32[0x800000]; ++offset)
 						name = stringformat("%s%s", name, getStringFromCharacter(u8[0x800004 + offset]))
 					
+					string nameConv = ECF_legacyNameConversion(name)
+					bool hasConv = (nameConv != 0 && nameConv != name)
+					if (hasConv)
+					{
+						//debugLog(stringformat("%s -> %s", name, nameConv))
+						name = nameConv
+					}
+						
 					u16 id = getCharId(name)
 			
 				#if GAMEAPP >= 0x26012400
@@ -47,6 +55,9 @@ function void ECF_loadIdValues()
 					System.setGlobalVariableValueByName(stringformat("ECF_Save%d_P1", slotIndex), name)
 					System.setGlobalVariableValueByName(stringformat("ECF_Save%d_P1_id", slotIndex), id)
 				#endif
+				
+					if (hasConv)
+						ECF_saveIdValues(slotIndex, name)
 				}
 			}
 		}
@@ -54,12 +65,15 @@ function void ECF_loadIdValues()
 }
 
 // save our char strs individually.
-	
 function void ECF_saveIdValues(u8 slotIndex)
+{
+	ECF_saveIdValues(slotIndex, getECFCharNameAtId(levelselect_ExChar_P1_id))
+}
+
+function void ECF_saveIdValues(u8 slotIndex, string name)
 {
 	if (slotIndex)
 	{
-		string name = getECFCharNameAtId(levelselect_ExChar_P1_id)
 		if (name)
 		{
 			// manually build an ASCII table and then save that in temporary memory
@@ -100,6 +114,10 @@ function void ECF_saveIdValuesAll()
 	}
 }
 
+function string ECF_legacyNameConversion(string name)
+{
+	return 0
+}
 
 //# address-hook(0x00c434) end(0x00c4d0)
 function void SaveGameOnLevelFinished()

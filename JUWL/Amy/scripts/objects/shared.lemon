@@ -1,7 +1,7 @@
 //# address-hook(0x01e042)
 function void fn01e042()
 {
-	if (!isECFCharA1("ECC-Amy") || !ecc_setting_amyTwinSpin || u8[A1 + 0x2f] != 2 && u8[A1 + 0x2f] != 4 || Amy_wallJumpObjectFilter())
+	if (!isECFCharA1("JUWL-Amy") || !setting_amyTwinSpin || u8[A1 + 0x2f] != 2 && u8[A1 + 0x2f] != 4 || Amy_wallJumpObjectFilter())
 	{
 		base.fn01e042()
 		return
@@ -51,18 +51,5 @@ function void fn01e042()
 
 function bool Amy_wallJumpObjectFilter()
 {
-	// invisible solid collision
-	if (objA0.update_address == 0x01ec6c || objA0.update_address == 0x01f4c4 || objA0.update_address == 0x01f528 || objA0.update_address == 0x01f45e)
-		return true
-	// cnz 2 invisible wall during knuckles event
-	else if (objA0.update_address == 0x062458)
-		return true
-	// lbz 1 falling building
-	else if (objA0.update_address == 0x054164)
-		return true
-	// ballshooter invisible wall
-	else if (objA0.update_address == 0x073eb4)
-		return true
-	
-	return false
+	return (!ECF_isObjectInvisibleCollision() && ECF_isObjectBreakableWall() == 1)
 }

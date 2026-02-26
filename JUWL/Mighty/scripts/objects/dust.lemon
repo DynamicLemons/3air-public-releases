@@ -27,6 +27,8 @@ function bool Mighty_spawnDust(s16 veloc)
 		objA1.groundspeed = veloc
 		objA1.velocity.x = (s32(lookupCos(char.rotation)) * objA1.groundspeed) >> 8
 		objA1.velocity.y = (s32(lookupSin(char.rotation)) * objA1.groundspeed) >> 8
+		
+		objA1.subtype2c = (Character.getSuperState() == 0xff)
 		return true
 	}
 	return false

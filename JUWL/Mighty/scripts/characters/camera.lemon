@@ -1,7 +1,7 @@
 //# address-hook(0x01c11e) end(0x01c236)
 function void UpdateCameraPositionY()
 {
-	if (isECFCharA0("ECC-Mighty"))
+	if (isECFCharA0("JUWL-Mighty"))
 	{
 		u16 locktime = getPlayerGlobalValue("mighty_cam_vlock")
 		if (locktime)

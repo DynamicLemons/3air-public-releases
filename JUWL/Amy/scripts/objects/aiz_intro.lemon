@@ -1,11 +1,6 @@
-function string getZoneRawdataVariant()
-{
-	return base.getZoneRawdataVariant()
-}
-
 function void ECF_introMusicAndTitlecardStuff()
 {
-	if (!isECFCharP1("ECC-Amy") || global.zone_act != 0x0000 || checkpoint.number != 0)
+	if (!isECFCharP1("JUWL-Amy") || global.zone_act != 0x0000 || checkpoint.number != 0)
 	{
 		base.ECF_introMusicAndTitlecardStuff()
 		return
@@ -31,45 +26,6 @@ function void ECF_introMusicAndTitlecardStuff()
 	Nemesis.loadDataToVRAM(0x193308, 0xb240)
 
 	level.skip_titlecard = false
-}
-
-//# address-hook(0x01be46) end(0x01bfae)
-function void SetupCharacterAtStartPosition()
-{
-	if (checkpoint.number == 0 && global.zone_act == 0x0000 && isECFCharP1("ECC-Amy") && getZoneRawdataVariant() == "")
-	{
-		A1 = isMainCharacter(CHARACTER_KNUCKLES) ? 0x1e3cd8 : 0x1e3c18		// Get starting positions from respective tables
-		A1 += global.zone * 8 + global.act * 4
-		D1 = u16[A1]		// Get x-position
-		D0 = u16[A1+2]		// Get y-position
-		u16[0xffffb000 + 0x10] = D1.u16		// Set Player 1 x-position
-		u16[0xffffb000 + 0x14] = D0.u16		// Set Player 1 y-position
-
-		D1.u16 += getScreenWidth() / 2
-		D0.u16 += 96
-
-		D1.s16 = max(D1.s16 - getScreenWidth() / 2, 0)
-		if (competition_mode.active == 0)
-		{
-		#if STANDALONE
-			// Avoid exact tile edges
-			//  -> This was particularly added in to avoid glitches in first pixel row after exiting first Giant Ring in AIZ 2
-			//     (There's probably a better solution, that generally solves this type of glitches when going left in AIZ 2)
-			if ((D1.u16 & 0x0f) == 0)
-				++D1.u16
-		#endif
-			D1.u16 = min(D1.u16, move_area.right)
-		}
-
-		camera.position.x.u16 = D1.u16
-		camera.position.x.u16.player2 = D1.u16
-
-		D0.s16 = clamp(D0.s16 - 96, 0, s16(move_area.bottom.current))
-		camera.position.y.u16 = D0.u16
-		camera.position.y.u16.player2 = D0.u16
-	}
-	else
-		base.SetupCharacterAtStartPosition()
 }
 
 function void AizIntro_Amy_aniAnimals()
@@ -110,7 +66,7 @@ function void AizIntro_Amy_aniAnimals()
 //# address-hook(0x063446) end(0x063460)
 function void fn063446()
 {
-	if (isECFCharP1("ECC-Amy"))
+	if (isECFCharP1("JUWL-Amy"))
 	{
 		objA0.update_address = 0x063466
 		
@@ -123,7 +79,7 @@ function void fn063446()
 //# address-hook(0x063466) end(0x063480)
 function void fn063466()
 {
-	if (!isECFCharP1("ECC-Amy"))
+	if (!isECFCharP1("JUWL-Amy"))
 	{
 		base.fn063466()
 		return
@@ -265,7 +221,7 @@ function void AizIntro_Amy_state3()
 //# address-hook(0x06364e) end(0x06367c)
 function void fn06364e()
 {
-	if (!isECFCharP1("ECC-Amy"))
+	if (!isECFCharP1("JUWL-Amy"))
 	{
 		base.fn06364e()
 		return
@@ -345,7 +301,7 @@ function void fn06364e()
 //# address-hook(0x065e02) end(0x065e4a)
 function void fn065e02()
 {
-	if (u8[0xfffffab8] & 0x04 && isECFCharP1("ECC-Amy"))
+	if (u8[0xfffffab8] & 0x04 && isECFCharP1("JUWL-Amy"))
 	{
 		GetRandomNumber()
 		D0.u16 = -(D0.u16 & 0x01ff) - 0x0100
@@ -366,7 +322,7 @@ function void fn065e02()
 //# address-hook(0x063790) end(0x0637e6)
 function void fn063790()
 {
-	if (isECFCharP1("ECC-Amy"))
+	if (isECFCharP1("JUWL-Amy"))
 	{
 		A1 = 0xffffb000
 		System.callFunctionByName(stringformat("AizIntro_Amy_STK_state%d", objA0.base_state))

@@ -8,6 +8,6 @@ function void SwapMode_dataSwap_globals()
 
 function bool SwapMode_abilityFreeSwap()
 {
-	return (isECFCharA1("ECC-Amy")) ? true : base.SwapMode_abilityFreeSwap()
+	return (isECFCharA1("JUWL-Amy")) ? true : base.SwapMode_abilityFreeSwap()
 }
 #endif

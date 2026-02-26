@@ -1,7 +1,7 @@
 //# address-hook(0x067472) end(0x06748a)
 function void fn067472()
 {
-	if (isECFCharP1("ECC-Mighty"))
+	if (isECFCharP1("JUWL-Mighty"))
 	{
 		A1 = 0xffffb000
 		System.callFunctionByName(stringformat("AizIntro_Mighty_state%d", objA0.base_state))
@@ -273,7 +273,7 @@ function void AizIntro_Mighty_state7()
 //# address-hook(0x06777a) end(0x0677c8)
 function void fn06777a()
 {
-	if (!isECFCharP1("ECC-Mighty"))
+	if (!isECFCharP1("JUWL-Mighty"))
 	{
 		base.fn06777a()
 		return
@@ -306,7 +306,7 @@ function void fn06777a()
 //# address-hook(0x0677ce) end(0x0677fa)
 function void fn0677ce()
 {
-	if (!isECFCharP1("ECC-Mighty"))
+	if (!isECFCharP1("JUWL-Mighty"))
 	{
 		base.fn0677ce()
 		return
@@ -352,7 +352,7 @@ function void fn0677ce()
 function void fn018cb6()
 {
 	A2 = 0xffff0000 + objA0.dustcloud.character_address
-	if (!isECFCharAt(A2, "ECC-Mighty") || u8[A2 + 0x20] != char.state.MIGHTY_INTRO_SLIDE)
+	if (!isECFCharAt(A2, "JUWL-Mighty") || u8[A2 + 0x20] != char.state.MIGHTY_INTRO_SLIDE)
 	{
 		base.fn018cb6()
 		return

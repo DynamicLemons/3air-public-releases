@@ -165,7 +165,7 @@ function void loadECFCharacterPalette(string name, u32 targetAddress, u8 palette
 	}
 }
 
-// totally not from lemons tweaks
+// totally not from lemons tweaks and/or cs+ 
 function u8 getPId()
 {
 	return getPId(A0)
@@ -247,6 +247,36 @@ function void setPlayerGlobalValue(u32 address, string value, s64 input)
 	System.setGlobalVariableValueByName(stringformat("p%d_%s", getPId(address) + 1, value), input)
 }
 
+function void setPlayerGlobalValue(string value, float input)
+{
+	setPlayerGlobalValue(A0, value, input)
+}
+
+function void setPlayerGlobalValue(u32 address, string value, float input)
+{
+	System.setGlobalVariableValueByName(stringformat("p%d_%s", getPId(address) + 1, value), input)
+}
+
+function void setPlayerGlobalValue(string value, double input)
+{
+	setPlayerGlobalValue(A0, value, input)
+}
+
+function void setPlayerGlobalValue(u32 address, string value, double input)
+{
+	System.setGlobalVariableValueByName(stringformat("p%d_%s", getPId(address) + 1, value), input)
+}
+
+function void setPlayerGlobalValue(string value, string input)
+{
+	setPlayerGlobalValue(A0, value, input)
+}
+
+function void setPlayerGlobalValue(u32 address, string value, string input)
+{
+	System.setGlobalVariableValueByName(stringformat("p%d_%s", getPId(address) + 1, value), input)
+}
+
 function u8 Character.getControlVariable(u8 usePress)
 {
 	u8 held
@@ -286,6 +316,8 @@ function u32 Character.getLocationOfSpeedCap(u32 address)
 	return (u8[address + 0x38] == CHARACTER_TAILS) ? 0xfffffec0 : 0xfffff760
 }
 
+// sound syst
+
 function u8 Character.getCharAudioChannelA()
 {
 	return Character.getCharAudioChannelA(A0)
@@ -305,6 +337,8 @@ function u8 Character.getCharAudioChannelB(u32 address)
 {
 	return 108 + getPId(address)
 }
+
+// utils
 
 function void characterSetHitbox(u8 width, u8 height)
 {
@@ -329,6 +363,46 @@ function void characterSetHitboxAngled(u8 width, u8 height)
 		char.position.y.u16 += diff
 	char.hitbox_extends.x = width
 	char.hitbox_extends.y = height
+}
+
+function bool Character_checkWallInFront()
+{	
+	pushA456()
+
+	u32[0xfffff796] = (char.layer_flags1 == 0x0c) ? u32[0xfffff7b4] : u32[0xfffff7b8]
+	D5.u8 = char.layer_flags2
+	
+	u8 result
+	if (char.flags & char.flag.FACING_LEFT)
+	{
+		Character.CheckLeftWallCollision()
+		if (D1.s16 <= 0)
+			result = true
+	}
+	else
+	{
+		Character.CheckRightWallCollision()
+		if (D1.s16 <= 0)
+			result = true
+	}
+	
+	popA456()
+	
+	return result
+}
+
+function bool Character_interaction_cancelAbilityLanding()
+{
+	bool result = false
+	u32 A1_o = A1
+	A1 = 0xffff0000 + u32(char.object_standing_on)
+		
+	if (char.flags & char.flag.ON_OBJECT && char.object_standing_on)
+		result =  Character_doesLandedObjectCancelAbility()
+	
+	A1 = A1_o
+	
+	return result
 }
 
 // --- Configuration ---
@@ -436,11 +510,18 @@ function u32 ECF_getLedColor(string name)
 
 function bool ECF_enableBossTop()
 {
-	return (ExChar_P1 && (ExChar_P2 == 0 || !isSecondCharacter(CHARACTER_TAILS)))
+	return (ExChar_P1 && !isSecondCharacter(CHARACTER_TAILS))
 }
 
 function u8 ECF_AIZ_introBase(string name)
 {
+	return CHARACTER_TAILS
+}
+
+function u8 ECF_ICZ_introBase(string name)
+{
+	if (level.start_location != 1 && getECFCharBase(name) == CHARACTER_KNUCKLES)
+		return CHARACTER_KNUCKLES
 	return CHARACTER_TAILS
 }
 

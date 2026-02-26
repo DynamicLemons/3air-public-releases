@@ -4,7 +4,7 @@ function void fn018b54()
 {
 	base.fn018b54()
 	u32 slot = 0xffff0000 + u32(objA0.dustcloud.character_address)
-	if (isECFCharAt(slot, "ECC-Amy"))
+	if (isECFCharAt(slot, "JUWL-Amy"))
 		objA0.flags38 = 1
 }
 #endif

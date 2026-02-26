@@ -5,7 +5,7 @@ function void fn009488()
 	bool parentIsP1 = (objA1.update_address == 0x00903e)
 	string name = (parentIsP1) ? global_ExChar_P1 : global_ExChar_P2
 	
-	if (name != "ECC-Ray")
+	if (name != "JUWL-Ray")
 	{
 		base.fn009488()
 		return

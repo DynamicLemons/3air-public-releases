@@ -1,7 +1,7 @@
 function string Standalone.getModdedAnimationSpriteKey(u8 character, u16 animationSpriteEx)
 {
-	if (isECFCharA0("ECC-Mighty") && animationSpriteEx >= 0x21 && animationSpriteEx <= 0x30 && (global.zone == 0x0c || global.zone == 0x0d))
-		return stringformat("character_ECC-Mighty_superfly_%d", ((animationSpriteEx - 0x21) % 2) + ((animationSpriteEx - 0x21) / 4) * 2)
+	if (isECFCharA0("JUWL-Mighty") && animationSpriteEx >= 0x21 && animationSpriteEx <= 0x30 && (global.zone == 0x0c || global.zone == 0x0d))
+		return stringformat("character_JUWL-Mighty_superfly_%d", ((animationSpriteEx - 0x21) % 2) + ((animationSpriteEx - 0x21) / 4) * 2)
 	return base.Standalone.getModdedAnimationSpriteKey(character, animationSpriteEx)
 }
 
@@ -9,12 +9,12 @@ function string Standalone.getModdedAnimationSpriteKey(u8 character, u16 animati
 
 function bool Lemons.afterImage_forceVisibility()
 {
-	return (isECFCharA0("ECC-Mighty")) ? (char.double_jump_state == 1) : base.Lemons.afterImage_forceVisibility()
+	return (isECFCharA0("JUWL-Mighty")) ? (char.double_jump_state == 1) : base.Lemons.afterImage_forceVisibility()
 }
 
 function bool Lemons_showAfterImagesClassic()
 {
-	return (ECF_cRenderGetName() == "ECC-Mighty" && char.double_jump_state == 1) ? true : base.Lemons_showAfterImagesClassic()
+	return (ECF_cRenderGetName() == "JUWL-Mighty" && char.double_jump_state == 1) ? true : base.Lemons_showAfterImagesClassic()
 }
 
 #else
@@ -23,7 +23,7 @@ function bool Standalone.drawCharacterSprite(u8 character, u8 variant, s16 px, s
 {
 	string name = ECF_cRenderGetName()
 
-	if (name != "ECC-Mighty")
+	if (name != "JUWL-Mighty")
 		return base.Standalone.drawCharacterSprite(character, variant, px, py, asSmallGhost)
 		
 	bool isPlayer1 = (variant == 0)
@@ -300,7 +300,7 @@ function bool Standalone.drawCharacterSprite(u8 character, u8 variant, s16 px, s
 	bool useAfterImages
 	if (isPlayer1)
 	{
-		if (superFlag)
+		if (superFlag == 0xff)
 			useAfterImages = true
 		else if (char.double_jump_state == 1)
 			useAfterImages = 2 - Game.getSetting(SETTING_SPEEDUP_AFTERIMGS)
