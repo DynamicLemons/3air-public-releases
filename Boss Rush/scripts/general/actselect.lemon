@@ -244,7 +244,7 @@ function string ActSelect.BossTitles(u8 act)
 		"Big Icedus",
 		"Egg Froster",
 		"Twin Hammer",
-		"Egg Cannon, Egg Rocket, & Big Arms",
+		"Egg Cannon & Egg Rocket",
 		"Hey Ho",
 		"Egg Scrambler",
 		"Gapsule",
@@ -261,12 +261,18 @@ function string ActSelect.BossTitles(u8 act)
 		"Final Weapon",
 	}
 
-#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-	if (act == 11 && (levelselect.characters == CHARS_KNUCKLES_ALONE || levelselect.characters == CHARS_KNUCKLES_AND_TAILS || levelselect.characters > CHARS_KNUCKLES_AND_TAILS && getECFCharBase(getECFCharNameAtId(levelselect.characters -CHARS_KNUCKLES_AND_TAILS)) == CHARACTER_KNUCKLES))
-#else
-	if (act == 11 && levelselect.characters >= CHARS_KNUCKLES_ALONE)
-#endif
-		return "Egg Rocket & Big Arms"
+	if (act == 11)
+	{
+	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+		bool knucklesVer = ((levelselect.characters == CHARS_KNUCKLES_ALONE || levelselect.characters == CHARS_KNUCKLES_AND_TAILS || levelselect.characters > CHARS_KNUCKLES_AND_TAILS && getECFCharBase(getECFCharNameAtId(levelselect.characters -CHARS_KNUCKLES_AND_TAILS)) == CHARACTER_KNUCKLES))
+	#else
+		bool knucklesVer = (levelselect.characters >= CHARS_KNUCKLES_ALONE)
+	#endif
+		if (knucklesVer)
+			return "Egg Rocket & Big Arms"
+		else if (Game.getSetting(SETTING_LBZ_BIGARMS))
+			return "Egg Cannon, Egg Rocket, & Big Arms"
+	}
 
 	return names[act]
 }

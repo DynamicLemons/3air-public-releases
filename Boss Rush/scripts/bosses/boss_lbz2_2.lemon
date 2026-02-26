@@ -1,0 +1,17 @@
+//# address-hook(0x072b18) end(0x072b44)
+function void fn072b18()
+{
+	D0.u16 = objA0.position.y.u16 + 1
+	D1.u16 = camera.position.y.u16 + 0x0140
+	if (D0.u16 < D1.u16)
+	{
+		objA0.position.y.u16 = D0.u16
+		DrawObject()
+	}
+	else
+	{
+		TriggerNextZone(0x0700)
+		UnloadObject()
+		bossRush_bossProgress = 0
+	}
+}

@@ -35,7 +35,7 @@ function void fn086540()
 // Jank.
 function void Standalone.onLevelStart()
 {
-	if (!isBossRushMode)
+	if (!isBossRushMode || global.zone_act != 0x0000 && global.zone_act != 0x0500 && global.zone_act.apparent != 0x0000 && global.zone_act.apparent != 0x0500)
 	{
 		base.Standalone.onLevelStart()
 		return
@@ -64,8 +64,12 @@ function void Standalone.onLevelStart()
 		// Intentionally not using the (more deterministic) "getRandomNumber" here
 		global.level_random_base = 1 + (System.rand() % 0xff)		// Avoid the 0 value
 	}
-
-#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	CSP_setControllerColors()
+	Game.onLevelStart()
+	CSP_setRPC()
+#else if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
 	ECF_setControllerColors()
 	Game.onLevelStart()
 	ECF_setRPC()

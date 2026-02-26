@@ -1,3 +1,8 @@
+function string getZoneRawdataVariant()
+{
+	return (isBossRushMode) ? "boss_rush" : base.getZoneRawdataVariant()
+}
+
 function u32 Standalone.loadRawLevelData(string format, u16 zoneAndAct, u32 targetAddress)
 {
 	if (!isBossRushMode || global.zone_act.apparent == 0x0d01)
