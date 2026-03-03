@@ -18,7 +18,11 @@ function void fn05ecb4()
 	}
 
 	objA0.update_address = 0x05ed18
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	if (objA1.render_flags & render_flag.FLIP_X && !global_ExChar_P1)
+#else
 	if (objA1.render_flags & render_flag.FLIP_X)
+#endif
 		objA0.animation.sprite = 0
 	else
 	{
@@ -34,7 +38,11 @@ function void fn05ecb4()
 //# address-hook(0x05d8bc) end(0x05d9e8)
 function void fn05d8bc()
 {
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES) || global_ExChar_P1)
+#else
 	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
+#endif
 	{
 		base.fn05d8bc()
 		return
@@ -100,6 +108,12 @@ function void fn05d8bc()
 function void fn05e1c2()
 {
 	base.fn05e1c2()
+	
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	if (global_ExChar_P1)
+		return
+#endif
+
 	if (isBossRushMode && isMainCharacter(CHARACTER_KNUCKLES))
 		u8[0xffffb022] = 0
 }
@@ -107,7 +121,11 @@ function void fn05e1c2()
 //# address-hook(0x05e288) end(0x05e2bc)
 function void fn05e288()
 {
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES) || global_ExChar_P1)
+#else
 	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
+#endif
 	{
 		base.fn05e288()
 		return
@@ -151,7 +169,11 @@ function void fn05ef68()
 //# address-hook(0x05e2c2) end(0x05e322)
 function void fn05e2c2()
 {
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES) || global_ExChar_P1)
+#else
 	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
+#endif
 	{
 		base.fn05e2c2()
 		return
@@ -166,7 +188,7 @@ function void fn05e2c2()
 	}
 }
 
-// hide knuckles when the island flashes
+// init data properly when island has emerald deposited
 //# address-hook(0x05dd6a) end(0x05ddd0)
 function void fn05dd6a()
 {
@@ -181,7 +203,10 @@ function void fn05dd6a()
 	{
 		objA0.base_state = 0x1e
 		u8[0xffffeec4] = 0xff
-		objA0.animation.sprite = 0x1a
+	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+		if (!global_ExChar_P1) // hide knuckles when the island flashes
+	#endif	
+			objA0.animation.sprite = 0x1a
 		if (outro.ending_type >= 0)
 		{
 			A2 = 0x05ddd2
@@ -249,7 +274,11 @@ function void fn05b1a2()
 //# address-hook(0x05e170) end(0x05e186)
 function void fn05e170()
 {
+#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES) || global_ExChar_P1)
+#else
 	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
+#endif
 	{
 		base.fn05e170()
 		return

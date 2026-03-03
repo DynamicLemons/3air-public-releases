@@ -42,14 +42,41 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 			return true
 		}
 		
+		// Knuckles Ending
 		if (objA0.update_address == 0x07c864 && global.zone_act == 0x0a00)
 		{
 			Renderer.drawSprite("br_sm_master_emerald_g", px, py, 0x20, flags, renderQueue)
-			key = stringformat("br_sm_master_emerald_%d", objA0.animation.sprite)
-			Renderer.drawSprite(key, px, py, atex, flags, renderQueue)
+			Renderer.drawSprite(stringformat("br_sm_master_emerald_%d", objA0.animation.sprite), px, py, atex, flags, renderQueue)
 		}
 
-		// Knuckles Ending
+	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+		if (global_ExChar_P1)
+		{
+			if (objA0.update_address == 0x05e0d6 && isMainCharacter(CHARACTER_KNUCKLES))
+			{
+				key = stringformat(stringformat("%s_0x%02x", getCharacterSpriteKey(CHARACTER_KNUCKLES, false)), objA0.animation.sprite)
+				if (!Renderer.hasCustomSprite(key))
+					key = Renderer.setupCustomCharacterSprite(0x1200e0, 0x14bd0a, 0x14a8d6, objA0.animation.sprite, 0x00)
+
+				if (!Renderer.hasCustomSprite(key))
+					key = Renderer.setupCustomCharacterSprite(0x1200e0, 0x14bd0a, 0x14a8d6, objA0.animation.sprite, 0x00)
+
+				SpriteHandle spr = Renderer.addSpriteHandle(key, px, py, renderQueue)
+				spr.setFlags(flags)
+
+				string pal = getCharacterPaletteKey(CHARACTER_KNUCKLES)
+				if (System.hasExternalPaletteData(pal, 0))
+					spr.setPalette(pal, 0)
+				else
+					spr.setPalette(key, 0)
+				return true
+			}
+
+
+			return base.Standalone.onWriteToSpriteTable(px, py, renderQueue)
+		}
+	#endif
+	
 		if (objA0.mapping_offset == 0x060a4c && objA0.update_address == 0x05e0d6)
 		{
 			key = stringformat("%s_0x%02x", getCharacterEndPoseSpriteKey(CHARACTER_KNUCKLES, false), objA0.animation.sprite)
