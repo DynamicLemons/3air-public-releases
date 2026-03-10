@@ -170,14 +170,14 @@ function void fn04cf82()
 		if (levelselect.characters <= CHARACTER_KNUCKLES)
 		{
 			global.characters = levelselect.characters + 1
-			global_ExChar_P1_id = 0
-			global_ExChar_P1 = 0
+			global_ExChar_num[0] = 0
+			global_ExChar_str[0] = 0
 		}
 		else
 		{
-			global_ExChar_P1_id = levelselect.characters - 2
-			global_ExChar_P1 = getECFCharNameAtId(global_ExChar_P1_id)
-			global.characters = getECFGlobalCharId(global_ExChar_P1)
+			global_ExChar_num[0] = levelselect.characters - 2
+			global_ExChar_str[0] = getECFCharNameAtId(global_ExChar_num[0])
+			global.characters = getECFGlobalCharId(global_ExChar_str[0])
 		}
 	}
 }
@@ -233,7 +233,7 @@ function void fn04da7e()
 	{
 		u8 character = getPlayerCharacter(player)
 		string paletteKey
-		string var = System.getGlobalVariableValueByName(stringformat("global_ExChar_P%d", player + 1))
+		string var = global_ExChar_str[player]
 		if (var)
 			paletteKey = getECFCharacterPaletteKey(var)
 		else

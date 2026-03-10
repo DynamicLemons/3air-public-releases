@@ -1,13 +1,13 @@
 //# address-hook(0x053608) end(0x05365e)
 function void InitLevelTiles.ICZ1()
 {
-	if (global_ExChar_P1 == 0 || ECF_disableBranchBase)
+	if (global_ExChar_str[0] == 0 || ECF_disableBranchBase)
 	{
 		base.InitLevelTiles.ICZ1()
 		return
 	}
 	
-	if (checkpoint.number == 0 && ECF_ICZ_introBase(global_ExChar_P1) == CHARACTER_KNUCKLES)
+	if (checkpoint.number == 0 && ECF_ICZ_introBase(global_ExChar_str[0]) == CHARACTER_KNUCKLES)
 	{
 		// Spawn transporter
 		if (allocDynamicObjectStd())
@@ -33,7 +33,7 @@ function void InitLevelTiles.ICZ1()
 //# address-hook(0x053744) end(0x05377e)
 function void fn053744()
 {
-	if (global_ExChar_P1 == 0 || ECF_disableBranchBase)
+	if (global_ExChar_str[0] == 0 || ECF_disableBranchBase)
 	{
 		base.fn053744()
 		return
@@ -43,7 +43,7 @@ function void fn053744()
 	{
 		u16[0xffffeec6] = 0
 
-		if (ECF_ICZ_introBase(global_ExChar_P1) == CHARACTER_KNUCKLES)
+		if (ECF_ICZ_introBase(global_ExChar_str[0]) == CHARACTER_KNUCKLES)
 		{
 			level.scrolling_routine += 4
 		}
@@ -72,7 +72,7 @@ function void fn053744()
 //# address-hook(0x0537a8) end(0x0537d6)
 function void fn0537a8()
 {
-	if (global_ExChar_P1 == 0 || ECF_disableBranchBase)
+	if (global_ExChar_str[0] == 0 || ECF_disableBranchBase)
 	{
 		base.fn0537a8()
 		return
@@ -80,7 +80,7 @@ function void fn0537a8()
 	
 	if (u16[0xffffeec6] == 0)
 	{
-		if (ECF_ICZ_introBase(global_ExChar_P1) == CHARACTER_KNUCKLES)
+		if (ECF_ICZ_introBase(global_ExChar_str[0]) == CHARACTER_KNUCKLES)
 		{
 			fn053780()
 		}

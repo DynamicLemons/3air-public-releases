@@ -2,22 +2,42 @@
 function void SwapMode_dataSwap_globals()
 {
 	base.SwapMode_dataSwap_globals()
-	
-	SwapMode_handleGlobalSwap("mighty_shockwave_t")
-	SwapMode_handleGlobalSwap("mighty_shockwave_x")
-	SwapMode_handleGlobalSwap("mighty_shockwave_y")
-	SwapMode_handleGlobalSwap("mighty_cam_vlock")
-	SwapMode_handleGlobalSwap("mighty_cling_timer")
-	SwapMode_handleGlobalSwap("mighty_cling_dustcountdown")
+
+	u8 _1 = mighty_shockwave_t[0]
+	u16 _2 = mighty_shockwave_x[0]
+	u16 _3 = mighty_shockwave_y[0]
+	u8 _4 = mighty_cam_vlock[0]
+	u8 _5 = mighty_cling_timer[0]
+	s8 _6 = mighty_cling_dustcountdown[0]
+	for (u8 i < 0; i < csp_playerCount; ++i)
+	{
+		mighty_shockwave_t[i] = mighty_shockwave_t[i + 1]
+		mighty_shockwave_x[i] = mighty_shockwave_x[i + 1]
+		mighty_shockwave_y[i] = mighty_shockwave_y[i + 1]
+		mighty_cam_vlock[i] = mighty_cam_vlock[i + 1]
+		mighty_cling_timer[i] = mighty_cling_timer[i + 1]
+		mighty_cling_dustcountdown[i] = mighty_cling_dustcountdown[i + 1]
+	}
+	mighty_shockwave_t[csp_playerCount] = _1
+	mighty_shockwave_x[csp_playerCount] = _2
+	mighty_shockwave_y[csp_playerCount] = _3
+	mighty_cam_vlock[csp_playerCount] = _4
+	mighty_cling_timer[csp_playerCount] = _5
+	mighty_cling_dustcountdown[csp_playerCount] = _6
 }
 
-function void SwapMode_dataSwap_solo_globals()
+function void SwapMode_onHotSwap()
 {
-	base.SwapMode_dataSwap_solo_globals()
+	base.SwapMode_onHotSwap()
 	
-	SwapMode_handleGlobalSwap("mighty_shockwave_t")
-	SwapMode_handleGlobalSwap("mighty_shockwave_x")
-	SwapMode_handleGlobalSwap("mighty_shockwave_y")
+	mighty_shockwave_t[0] = 0
+	mighty_shockwave_t[1] = 0
+	mighty_shockwave_t[2] = 0
+	mighty_shockwave_t[3] = 0
+	mighty_cam_vlock[0] = 0
+	mighty_cam_vlock[1] = 0
+	mighty_cam_vlock[2] = 0
+	mighty_cam_vlock[3] = 0
 }
 
 

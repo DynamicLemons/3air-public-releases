@@ -1,7 +1,7 @@
 //# address-hook(0x00db44) end(0x00dbb2)
 function void RenderHUD()
 {
-	if (!global_ExChar_P1 || debug_mode.state)
+	if (!global_ExChar_str[0] || debug_mode.state)
 	{
 		base.RenderHUD()
 		return
@@ -105,10 +105,10 @@ function void RenderHUD()
 	if (!Game.isTimeAttack() && !Game.getSetting(SETTING_INFINITE_LIVES))
 	{
 		bool useMobilePosition = HUD.useMobileLivesDisplay()
-		u16 px = useMobilePosition ? (getScreenWidth() - baseX - 0x30 + ECF_getLivesIconMobileXPivot(global_ExChar_P1)) : baseX
+		u16 px = useMobilePosition ? (getScreenWidth() - baseX - 0x30 + ECF_getLivesIconMobileXPivot(global_ExChar_str[0])) : baseX
 		u16 py = useMobilePosition ? baseY : 200
 
-		HUD.drawSprite(getECFCharacterLivesIcon(global_ExChar_P1), px, py, renderQueue)
+		HUD.drawSprite(getECFCharacterLivesIcon(global_ExChar_str[0]), px, py, renderQueue)
 		++renderQueue
 
 		if (lives_counter >= 10)

@@ -3,7 +3,11 @@ function void SwapMode_dataSwap_globals()
 {
 	base.SwapMode_dataSwap_globals()
 	
-	SwapMode_handleGlobalSwap("amy_bounceLoss")
+	u8 _ = amy_bounceLoss[0]
+	for (u8 i < 0; i < csp_playerCount; ++i)
+		amy_bounceLoss[i] = amy_bounceLoss[i + 1]
+	amy_bounceLoss[csp_playerCount] = _
+
 }
 
 function bool SwapMode_abilityFreeSwap()

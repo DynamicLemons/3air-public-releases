@@ -12,11 +12,7 @@ function u16 getCharId(string name)
 
 function string getECFCharNameAtId(u16 i)
 {
-#if GAMEAPP >= 0x26012400
 	return ECF_charList[i]
-#else
-	return System.getGlobalVariableValueByName(stringformat("ECF_charList_%d", i))
-#endif
 }
 
 function u8 isECFCharAt(u32 address, string name)
@@ -29,12 +25,12 @@ function u8 isECFCharAt(u32 address, string name)
 
 function u8 isECFCharP1(string name)
 {
-	return (global_ExChar_P1 == name && isMainCharacter(getECFCharBase(name)))
+	return (global_ExChar_str[0] == name && isMainCharacter(getECFCharBase(name)))
 }
 
 function u8 isECFCharP2(string name)
 {
-	return (global_ExChar_P2 == name && isMainCharacter(getECFCharBase(name)))
+	return (global_ExChar_str[1] == name && isMainCharacter(getECFCharBase(name)))
 }
 
 function u8 isECFCharA0(string name)
@@ -54,7 +50,7 @@ function s16 getECFCharBufferId()
 
 function s16 getECFCharBufferId(u32 address)
 {
-	return (address == 0xffffb04a) ? ExChar_P2_id : (address == 0xffffb000) ? ExChar_P1_id : 0
+	return (address == 0xffffb04a) ? ExChar_num[1] : (address == 0xffffb000) ? ExChar_num[0] : 0
 }
 
 function string getECFCharBufferName()
@@ -64,7 +60,7 @@ function string getECFCharBufferName()
 
 function string getECFCharBufferName(u32 address)
 {
-	return (address == 0xffffb04a) ? ExChar_P2 : (address == 0xffffb000) ? ExChar_P1 : 0
+	return (address == 0xffffb04a) ? ExChar_str[1] : (address == 0xffffb000) ? ExChar_str[0] : 0
 }
 
 function string ECF_ExtraCheckBaseMatch(u8 character)
@@ -73,10 +69,10 @@ function string ECF_ExtraCheckBaseMatch(u8 character)
 		return 0
 		
 	string name
-	if (ExChar_P1 && character == getECFCharBase(ExChar_P1))
-		name = ExChar_P1
-	else if (ExChar_P2 && character == getECFCharBase(ExChar_P2))
-		name = ExChar_P2
+	if (ExChar_str[0] && character == getECFCharBase(ExChar_str[0]))
+		name = ExChar_str[0]
+	else if (ExChar_str[1] && character == getECFCharBase(ExChar_str[1]))
+		name = ExChar_str[1]
 		
 	return name
 }
@@ -87,24 +83,12 @@ function string ECF_ExtraCheckBaseMatchGlobal(u8 character)
 		return 0
 		
 	string name
-	if (global_ExChar_P1 && character == getECFCharBase(global_ExChar_P1))
-		name = global_ExChar_P1
-	else if (global_ExChar_P2 && character == getECFCharBase(global_ExChar_P2))
-		name = global_ExChar_P2
+	if (global_ExChar_str[0] && character == getECFCharBase(global_ExChar_str[0]))
+		name = global_ExChar_str[0]
+	else if (global_ExChar_str[1] && character == getECFCharBase(global_ExChar_str[1]))
+		name = global_ExChar_str[1]
 		
 	return name
-}
-
-function bool isCharValid(string name)
-{
-	for (u16 i = 1; i <= ECF_charList_length; ++i)
-	{
-		if (System.getGlobalVariableValueByName(stringformat("ECF_charList_%d", i)) == name)
-		{
-			return true
-		}
-	}
-	return false
 }
 
 function void loadECFCharacterPalette(string name, u32 targetAddress, u8 paletteVariant)
@@ -510,7 +494,7 @@ function u32 ECF_getLedColor(string name)
 
 function bool ECF_enableBossTop()
 {
-	return (ExChar_P1 && !isSecondCharacter(CHARACTER_TAILS))
+	return (global_ExChar_str[0] && !isSecondCharacter(CHARACTER_TAILS))
 }
 
 function u8 ECF_AIZ_introBase(string name)

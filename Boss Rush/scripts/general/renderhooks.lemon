@@ -50,7 +50,7 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		}
 
 	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-		if (global_ExChar_P1)
+		if (global_ExChar_str[0])
 		{
 			if (objA0.update_address == 0x05e0d6 && isMainCharacter(CHARACTER_KNUCKLES))
 			{

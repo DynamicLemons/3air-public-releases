@@ -1,7 +1,7 @@
 function void Character.Initialization.shared(u8 character)
 {
 	base.Character.Initialization.shared(character)
-	setPlayerGlobalValue("ray_boostCounter", 1)
+	ray_boostCounter[getPId()] = 1
 }
 
 //# address-hook(0x010bba) end(0x010c8e)
@@ -14,18 +14,12 @@ function void Character.UpdateNormalState.Sonic()
 	}
 	
 	if (char.control_flags & 0x01)
-		setPlayerGlobalValue("ray_boostCounter", 1)
+		ray_boostCounter[getPId()] = 1
 	
 	base.Character.UpdateNormalState.Sonic()
 	
 #if LEMONS_TWEAKS_ACTIVE
-	#if CHARACTER_SELECTION_PLUS_ACTIVE
-		A2 = getPAddress("follow")
-	#else
-		A2 = 0xffffcc0a
-	#endif
-	Ray_getTailAnimState()
-	setPlayerGlobalValue("follow_expectedSprite", objA0.animation.sprite)
+	Lemons_charFollowObjSetup(Ray_getTailAnimState())
 #endif
 }
 
@@ -49,14 +43,14 @@ function void TailsTails.Update()
 	objA0.sprite_attributes = (objA0.sprite_attributes & ~sprite_attribute.PRIORITY) | (u16[A2 + 0x0a] & sprite_attribute.PRIORITY)
 
 #if LEMONS_TWEAKS_ACTIVE
-	if (getPlayerGlobalValue(A2, "follow_expectedSprite") != u8[A2 + 0x22])
+	if (Lemons_followObject_reUpdateState())
 #endif
 	{
 		u32 A0_o = A0
 		u32 A2_o = A2
 		A0 = A2_o
 		A2 = A0_o
-		Ray_getTailAnimState()
+		u8[A2 + 0x20] = Ray_getTailAnimState()
 		A0 = A0_o
 		A2 = A2_o
 	}
@@ -90,7 +84,10 @@ function void TailsTails.Update()
 			objA0.render_flags ^= render_flag.FLIP_Y
 		}
 
-		DrawObject()
+	#if LEMONS_TWEAKS_ACTIVE
+		if (!p_invulFlash[getPId(A2)])
+	#endif
+			DrawObject()
 	}
 	else
 	{
@@ -100,22 +97,22 @@ function void TailsTails.Update()
 	}
 }
 
-function void Ray_getTailAnimState()
+function u8 Ray_getTailAnimState()
 {
 	if (char.animation.sprite == 0x8f)
-		u8[A2 + 0x20] = 0
+		return 0
 #if LEMONS_TWEAKS_ACTIVE
 	else if (char.state == char.state.STANDING || char.state == char.state.COWERING || char.state == char.state.LOOKING_UP || char.state == char.state.COWERING_END || char.state == char.state.LOOKING_UP_END || char.animation.sprite >= 0xb6 && char.animation.sprite <= 0xb9)
 #else
 	else if (char.state == char.state.STANDING || char.state == char.state.COWERING || char.state == char.state.LOOKING_UP || char.animation.sprite >= 0xb6 && char.animation.sprite <= 0xb9)
 #endif
-		u8[A2 + 0x20] = 1
+		return 1
 	else if (char.state == char.state.BALANCING1 || char.state == char.state.BALANCING2)
-		u8[A2 + 0x20] = 3
+		return 3
 	else if (char.animation.sprite >= 0x8f && char.animation.sprite <= 0x93)
-		u8[A2 + 0x20] = 2
+		return 2
 	else
-		u8[A2 + 0x20] = 0
+		return 0
 }
 
 function void Character.updateJumpMoves()
@@ -216,10 +213,12 @@ function void RayPressedJumpInMidAir()
 	u8 input_state	 = Character.getControlVariable(0)
 	u8 input_pressed   = Character.getControlVariable(1)
 	
+	u8 pId = getPId()
+	
 	if (char.double_jump_state != 4)
 	{
 		// handle an airboost
-		if (setting_rayHeadbutt) && (input_state & CONTROL_UP && char.double_jump_state == 0 || input_pressed & CONTROL_UP) && (getPlayerGlobalValue("ray_boostCounter") > 0)
+		if (setting_rayHeadbutt) && (input_state & CONTROL_UP && char.double_jump_state == 0 || input_pressed & CONTROL_UP) && (ray_boostCounter[pId] > 0)
 		{
 			Ray_headButt()
 			return
@@ -239,14 +238,14 @@ function void RayPressedJumpInMidAir()
 	{
 		char.state = char.state.RAY_GLIDE_D
 		
-		setPlayerGlobalValue("ray_isGlidingUp", false)
-		setPlayerGlobalValue("ray_abilitySpeed", 0)
+		ray_isGlidingUp[pId] = false
+		ray_abilitySpeed[pId] = 0
 	}
 	// start swooping
 	else 
 	{
 		char.state = char.state.RAY_GLIDE_U
-		setPlayerGlobalValue("ray_isGlidingUp", true)
+		ray_isGlidingUp[pId] = true
 
 		if (char.double_jump_state == 4)
 			char.velocity.x -= char.velocity.x >> 2
@@ -254,7 +253,7 @@ function void RayPressedJumpInMidAir()
 			char.velocity.x >>= 1
 		s32 vel = abs(char.velocity.x) << 8 
 		s32 speed = -((vel >> 1) + (vel >> 2) + (vel >> 4)) >> (char.flags & char.flag.UNDERWATER)
-		setPlayerGlobalValue("ray_abilitySpeed", min(speed, 0x400))
+		ray_abilitySpeed[pId] = min(speed, 0x400)
 	}
 	
 	if (char.double_jump_state != 4)
@@ -269,12 +268,12 @@ function void RayPressedJumpInMidAir()
 	s32 vy = char.velocity.y << 8
 	vy >>= 1
 	char.velocity.y = vy >> 8
-	setPlayerGlobalValue("ray_glideAngle", 0x40)
+	ray_glideAngle[pId] = 0x40
 	
 	D0 = abs(char.velocity.x) << 8
-	setPlayerGlobalValue("ray_storedSpeed", D0)
+	ray_storedSpeed[pId] = D0
 	if (char.double_jump_state != 2)
-		setPlayerGlobalValue("ray_abilityTimer", 256)
+		ray_abilityTimer[pId] = 256
 		
 	char.double_jump_state = 1
 	
@@ -287,8 +286,9 @@ function void Ray_headButt()
 {
 	char.state = char.state.RAY_HEADBUTT
 
-	setPlayerGlobalValue("ray_boostCounter", getPlayerGlobalValue("ray_boostCounter") - 1)
-	setPlayerGlobalValue("ray_isGlidingUp", true)
+	u8 pId = getPId()
+	--ray_boostCounter[pId]
+	ray_isGlidingUp[pId] = true
 	
 	char.double_jump_state = 3
 
@@ -364,9 +364,9 @@ function void Character.UpdateSonicUprightInAir()
 			RayPressedJumpInMidAir()
 			if (char.state == char.state.RAY_GLIDE_U && exit == 1)
 			{
-				u8 pId = ((A0.u16 - 0xb000) / 0x4a) + 1
-				setPlayerGlobalValue("ray_glideAngle", 0x70)
-				setPlayerGlobalValue("ray_abilitySpeed", 0)
+				u8 pId = getPId()
+				ray_glideAngle[pId] = 0x70
+				ray_abilitySpeed[pId] = 0
 				
 				char.animation.sprite = 0xd0
 				char.animation.frame = 5
@@ -435,13 +435,10 @@ function void Player_State_RayGlide()
 	u8 input_state	 = Character.getControlVariable(0)
 	u8 input_pressed   = Character.getControlVariable(1)
 	
-	s32 ray_abilitySpeed = getPlayerGlobalValue("ray_abilitySpeed")
-	s32 ray_storedSpeed = getPlayerGlobalValue("ray_storedSpeed")
-	s16 ray_glideAngle = getPlayerGlobalValue("ray_glideAngle")
-	s16 ray_isGlidingUp = getPlayerGlobalValue("ray_isGlidingUp")
+	u8 pId = getPId()
 	
 	s32 gravityStrength = (char.flags & char.flag.UNDERWATER) ? 0x10 : 0x38
-	gravityStrength = Math.roundToInt(float(gravityStrength) * (ray_isGlidingUp ? 2 : 1.9))
+	gravityStrength = Math.roundToInt(float(gravityStrength) * (ray_isGlidingUp[pId] ? 2 : 1.9))
 	gravityStrength <<= 8
 	
 	// replicating mania behavior, when ray lands, reduce his speed
@@ -453,22 +450,22 @@ function void Player_State_RayGlide()
 		return
 	}
 	
-	if (setting_rayHeadbutt) && (input_pressed & CONTROL_UP) && (getPlayerGlobalValue("ray_boostCounter") > 0 && ray_isGlidingUp)
+	if (setting_rayHeadbutt) && (input_pressed & CONTROL_UP) && (ray_boostCounter[pId] > 0 && ray_isGlidingUp[pId])
 	{
 		Ray_headButt()
 		return
 	}
 	
 	// set ray's "glide angle" based on his facing direction
-	if (ray_isGlidingUp)
+	if (ray_isGlidingUp[pId])
 	{
-		if (ray_glideAngle < 0x70)
-			ray_glideAngle += 8
+		if (ray_glideAngle[pId] < 0x70)
+			ray_glideAngle[pId] += 8
 	}
 	else
 	{
-		if (ray_glideAngle > 0x10)
-			ray_glideAngle -= 8
+		if (ray_glideAngle[pId] > 0x10)
+			ray_glideAngle[pId] -= 8
 	}
 	
 	// NOTE: velocity values are bitshifted to emulate rsdk's value format, which is neccessary for this math to work the same
@@ -480,20 +477,20 @@ function void Player_State_RayGlide()
 	
 	// apply gravity to ray and control his swooping
 	s32 vy = char.velocity.y << 8
-	if (ray_abilitySpeed)
+	if (ray_abilitySpeed[pId])
 	{
-		vy += ray_abilitySpeed >> (2 - ((char.flags & char.flag.UNDERWATER) == 0))
-		if (vy < ray_abilitySpeed)
+		vy += ray_abilitySpeed[pId] >> (2 - ((char.flags & char.flag.UNDERWATER) == 0))
+		if (vy < ray_abilitySpeed[pId])
 		{
-			vy = ray_abilitySpeed
-			ray_abilitySpeed = 0
+			vy = ray_abilitySpeed[pId]
+			ray_abilitySpeed[pId] = 0
 		}
 	}
 	else
-		vy += (gravityStrength * lookupCos(ray_glideAngle/2)) >> 9
+		vy += (gravityStrength * lookupCos(ray_glideAngle[pId]/2)) >> 9
 
 	// Ray has a -0x600 speed cap here in Mania, but it's been removed for sucking ass. 
-	if (ray_isGlidingUp)
+	if (ray_isGlidingUp[pId])
 	{
 		if (vy > 0x10000)
 			vy -= vy >> 2
@@ -501,12 +498,12 @@ function void Player_State_RayGlide()
 
 	if (vy <= 0)
 	{
-		ray_storedSpeed -= 22 * lookupSin(0x50 - ray_glideAngle)
-		if (ray_storedSpeed < 0x40000)
-			ray_storedSpeed = 0x40000
+		ray_storedSpeed[pId] -= 22 * lookupSin(0x50 - ray_glideAngle[pId])
+		if (ray_storedSpeed[pId] < 0x40000)
+			ray_storedSpeed[pId] = 0x40000
 	}
-	else if (vy > ray_storedSpeed)
-		ray_storedSpeed = vy - (vy >> 6)
+	else if (vy > ray_storedSpeed[pId])
+		ray_storedSpeed[pId] = vy - (vy >> 6)
 	
 	char.velocity.y = vy >> 8
 	
@@ -516,75 +513,72 @@ function void Player_State_RayGlide()
 	{
 		s32 bitshift = (char.flags & char.flag.UNDERWATER) ? 3 : 2
 		s32 factor = 22
-		if (!ray_isGlidingUp)
+		if (!ray_isGlidingUp[pId])
 			--bitshift
-		if (char.bonus_effect & char.bonus.SPEED_UP && !ray_isGlidingUp)
+		if (char.bonus_effect & char.bonus.SPEED_UP && !ray_isGlidingUp[pId])
 			factor *= 3
 			
 		if (char.flags & char.flag.FACING_LEFT)
 		{
-			vx -= (factor * lookupSin(0x50 - ray_glideAngle)) >> bitshift
+			vx -= (factor * lookupSin(0x50 - ray_glideAngle[pId])) >> bitshift
 
 			if (vx > -0x10000)
 				vx = -0x10000
 
-			if (vx < -ray_storedSpeed)
-				vx = -ray_storedSpeed
+			if (vx < -ray_storedSpeed[pId])
+				vx = -ray_storedSpeed[pId]
 		}
 		else
 		{
-			vx += (factor * lookupSin(0x50 - ray_glideAngle)) >> bitshift
+			vx += (factor * lookupSin(0x50 - ray_glideAngle[pId])) >> bitshift
 
 			if (vx < 0x10000)
 				vx = 0x10000
 			
-			if (vx > ray_storedSpeed) 
-				vx = ray_storedSpeed
+			if (vx > ray_storedSpeed[pId]) 
+				vx = ray_storedSpeed[pId]
 		}
 		
 		char.velocity.x = vx >> 8
 	}
 	
 	// handle ray's switching between glide directions
-	if (char.flags & char.flag.FACING_LEFT && ((input_state & CONTROL_RIGHT) == 0 || ray_glideAngle != 0x10))
+	if (char.flags & char.flag.FACING_LEFT && ((input_state & CONTROL_RIGHT) == 0 || ray_glideAngle[pId] != 0x10))
 	{
-		if (input_state & CONTROL_LEFT && ray_glideAngle == 0x70 && ray_isGlidingUp) 
+		if (input_state & CONTROL_LEFT && ray_glideAngle[pId] == 0x70 && ray_isGlidingUp[pId]) 
 		{
-			ray_abilitySpeed = 0
-			ray_isGlidingUp	= false
+			ray_abilitySpeed[pId] = 0
+			ray_isGlidingUp[pId]	= false
 			char.state = char.state.RAY_GLIDE_D
 		}
 	}
-	else if ((char.flags & char.flag.FACING_LEFT) == 0 && ((input_state & CONTROL_LEFT) == 0 || ray_glideAngle != 0x10)) 
+	else if ((char.flags & char.flag.FACING_LEFT) == 0 && ((input_state & CONTROL_LEFT) == 0 || ray_glideAngle[pId] != 0x10)) 
 	{
-		if (input_state & CONTROL_RIGHT && ray_glideAngle == 0x70 && ray_isGlidingUp) 
+		if (input_state & CONTROL_RIGHT && ray_glideAngle[pId] == 0x70 && ray_isGlidingUp[pId]) 
 		{
-			ray_abilitySpeed = 0
-			ray_isGlidingUp = false
+			ray_abilitySpeed[pId] = 0
+			ray_isGlidingUp[pId] = false
 			char.state = char.state.RAY_GLIDE_D
 		}
 	}
-	else if (!ray_isGlidingUp) 
+	else if (!ray_isGlidingUp[pId]) 
 	{
-		ray_isGlidingUp = true
+		ray_isGlidingUp[pId] = true
 	
-		s16 ray_abilityTimer = getPlayerGlobalValue("ray_abilityTimer")
 		// store ray's velocity for swooping
-		if (char.velocity.y > 0x280 || ray_abilityTimer == 256 || (char.flags & char.flag.UNDERWATER && char.velocity.y > 0x180))
+		if (char.velocity.y > 0x280 || ray_abilityTimer[pId] == 256 || (char.flags & char.flag.UNDERWATER && char.velocity.y > 0x180))
 		{
 			s32 xVel = abs(char.velocity.x) << 8 
 	
-			ray_abilitySpeed = -((ray_abilityTimer * ((xVel >> 1) + (xVel >> 2) + (xVel >> 4))) >> 8) 
+			ray_abilitySpeed[pId] = -((ray_abilityTimer[pId] * ((xVel >> 1) + (xVel >> 2) + (xVel >> 4))) >> 8) 
 			if (char.flags & char.flag.UNDERWATER)
-				ray_abilitySpeed = (ray_abilitySpeed >> 1) + (ray_abilitySpeed >> 3)
+				ray_abilitySpeed[pId] = (ray_abilitySpeed[pId] >> 1) + (ray_abilitySpeed[pId] >> 3)
 
-			if (ray_abilityTimer > 16)
-				ray_abilityTimer -= 32
+			if (ray_abilityTimer[pId] > 16)
+				ray_abilityTimer[pId] -= 32
 
-			if (ray_abilitySpeed < -0x60000)
-				ray_abilitySpeed = -0x60000
-				
-			setPlayerGlobalValue("ray_abilityTimer", ray_abilityTimer)
+			if (ray_abilitySpeed[pId] < -0x60000)
+				ray_abilitySpeed[pId] = -0x60000
 		}
 
 		char.state = char.state.RAY_GLIDE_U
@@ -606,12 +600,7 @@ function void Player_State_RayGlide()
 	// crashing into a roof kills all stored speed
 	Character.CheckCeilingCollision()
 	if (D1.s16 <= 0)
-		ray_abilitySpeed = 0
-		
-	setPlayerGlobalValue("ray_abilitySpeed", ray_abilitySpeed)
-	setPlayerGlobalValue("ray_storedSpeed", ray_storedSpeed)
-	setPlayerGlobalValue("ray_glideAngle", ray_glideAngle)
-	setPlayerGlobalValue("ray_isGlidingUp", ray_isGlidingUp)
+		ray_abilitySpeed[pId] = 0
 }
 
 function void Character.checkForWaterSurface()
@@ -635,7 +624,7 @@ function void Character.checkForWaterSurface()
 
 function void Character.LandingOnGroundResetState()
 {
-	setPlayerGlobalValue("ray_boostCounter", 1)
+	ray_boostCounter[getPId()] = 1
 	
 	if (!isECFCharA0("JUWL-Ray"))
 	{
@@ -717,7 +706,7 @@ function void ECF_characterSoundUpdate()
 		
 		if (char.double_jump_state == 1 && char.flags & char.flag.IN_AIR && (char.flags & char.flag.UNDERWATER) == 0)
 		{
-			if (getPlayerGlobalValue("ray_isGlidingUp"))
+			if (ray_isGlidingUp[getPId()])
 			{
 				if (!Audio.isPlayingAudio(_swoop))
 					Audio.playOverride(_swoop, AudioContext.CONTEXT_SOUND, channelA, 1)

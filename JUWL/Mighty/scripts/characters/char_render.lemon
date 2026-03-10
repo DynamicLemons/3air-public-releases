@@ -267,9 +267,13 @@ function bool Standalone.drawCharacterSprite(u8 character, u8 variant, s16 px, s
 	}
 
 	u16 renderQueue = 0xa000 - char.sprite_priority
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	u16 atex = getPId(characterAddress) * 0x20 + 0x40
+#else
 	u8 atex = (char.sprite_attributes >> 9) & 0x30
 	if (EXTENDED_CHARACTER_PALETTES)
 		atex = 0x40 + character * 0x20
+#endif
 
 	if (char.sprite_attributes & sprite_attribute.PRIORITY)
 		flags |= SPRITE_FLAG_PRIO

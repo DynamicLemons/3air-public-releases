@@ -62,7 +62,7 @@ function void SpecialStage()
 	{
 		u8 character = getPlayerCharacter(player)
 		string paletteKey
-		string var = System.getGlobalVariableValueByName(stringformat("global_ExChar_P%d", player + 1))
+		string var = global_ExChar_str[player]
 		if (var)
 			paletteKey = getECFCharacterBluespherePaletteKey(var)
 		else
@@ -282,8 +282,8 @@ function void fn008faa()
 	
 	// Spawn Tails' tails object
 	u32 follow
-	if (global_ExChar_P1)
-		follow = ECF_getFollowBluespheresInitRoutine(global_ExChar_P1)
+	if (global_ExChar_str[0])
+		follow = ECF_getFollowBluespheresInitRoutine(global_ExChar_str[0])
 	else
 	{
 		if (isMainCharacter(CHARACTER_TAILS))
@@ -328,9 +328,9 @@ function void fn009212()
 	fn0093e2()
 
 	// Spawn Tails' tails object
-	if (global_ExChar_P2)
+	if (global_ExChar_str[1])
 	{
-		u32 follow = ECF_getFollowBluespheresInitRoutine(global_ExChar_P2)
+		u32 follow = ECF_getFollowBluespheresInitRoutine(global_ExChar_str[1])
 		if (follow && BlueSpheres.allocDynamicObjectAfterA0())
 		{
 			objA1.update_address = follow

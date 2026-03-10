@@ -6,7 +6,7 @@ function void ECF_introMusicAndTitlecardStuff()
 		return
 	}
 	
-	bool isKnucklesIntro = (Game.getSetting(SETTING_AIZ_INTRO_KNUCKLES) != 0 && global.zone_act == 0x0000 && ECF_AIZ_introBase(global_ExChar_P1) == CHARACTER_KNUCKLES && checkpoint.number == 0 && !Game.isTimeAttack())
+	bool isKnucklesIntro = (Game.getSetting(SETTING_AIZ_INTRO_KNUCKLES) != 0 && global.zone_act == 0x0000 && ECF_AIZ_introBase(global_ExChar_str[0]) == CHARACTER_KNUCKLES && checkpoint.number == 0 && !Game.isTimeAttack())
 	
 	u8 musicId = u8[0x005f82 + global.zone * 2 + global.act]
 	level.default_music = musicId

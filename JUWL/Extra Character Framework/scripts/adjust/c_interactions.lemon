@@ -613,8 +613,11 @@ function void fn021818()
 	A1 = 0xffffb000
 	bool canBreakWall = (u8[A1 + 0x38] == CHARACTER_KNUCKLES)
 	if (getECFCharBufferName(A1))
-		canBreakWall = (ECF_canCharBreakWall(A1, A0) != 0)
-			
+	{
+		D1.s16 = s16[A0 + 0x30]
+		canBreakWall = (ECF_canCharBreakWall(A1, A0) == 2)
+	}
+
 	D1.u16 = u16[A0 + 0x30]
 	if ((D6.u16 & 0x01) && canBreakWall)
 	{
@@ -638,7 +641,15 @@ function void fn021818()
 	{
 		A1 = 0xffffb04a
 		D1.u16 = objA0.value32
-		if ((objA0.flags2a & object.flag.P2_PUSHING) == 0 || u8[A1 + 0x38] != CHARACTER_KNUCKLES)
+		
+		canBreakWall = (u8[A1 + 0x38] == CHARACTER_KNUCKLES)
+		if (getECFCharBufferName(A1))
+		{
+			D1.s16 = s16[A0 + 0x32]
+			canBreakWall = (ECF_canCharBreakWall(A1, A0) == 2)
+		}
+		
+		if ((objA0.flags2a & object.flag.P2_PUSHING) == 0 || !canBreakWall)
 		{
 			DrawOrUnloadObject()
 			return

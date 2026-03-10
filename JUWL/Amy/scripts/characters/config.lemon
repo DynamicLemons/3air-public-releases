@@ -35,7 +35,7 @@ function u8 ECF_canCharBreakFloor()
 function u8 ECF_canCharBreakWall()
 {
 	if (isECFCharA0("JUWL-Amy") && (char.state == char.state.AMY_HAMMERSPIN_N || char.state == char.state.AMY_HAMMERSPIN_H || char.state == char.state.AMY_TWINSPIN))
-		return true
+		return 1
 	return base.ECF_canCharBreakWall()
 }
 
@@ -107,7 +107,7 @@ function string getECFCharacterResultsNameplate(string name)
 
 function string Lemons_getSlotIcon(u8 i)
 {
-	if (global_ExChar_P1 == "JUWL-Amy" && i == 3)
+	if (global_ExChar_str[0] == "JUWL-Amy" && i == 3)
 	{
 		string key = "sloticon_amy"
 	#if LEMONS_IMPROVED_RENDERHOOKS_ACTIVE

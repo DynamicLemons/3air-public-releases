@@ -89,18 +89,14 @@ function void DataSelect.setup()
 	}
 	
 #if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-	ExChar_P1 = 0
-	ExChar_P1_id = 0
-	ExChar_P2 = 0
-	ExChar_P2_id = 0
-	global_ExChar_P1 = 0
-	global_ExChar_P1_id = 0
-	global_ExChar_P2 = 0
-	global_ExChar_P2_id = 0
-	levelselect_ExChar_P1_id = 0
-	levelselect_ExChar_P2_id = 0
+	for (u8 i = 0; i < 4; ++i)
+	{
+		ExChar_str[i] = 0
+		ExChar_num[i] = 0
+		global_ExChar_str[i] = 0
+		global_ExChar_num[i] = 0
+	}
 	noSave_ExChar_P1_id = 0
-	noSave_ExChar_P2_id = 0
 	
 	System.callFunctionByName("ECF_loadIdValues")
 #endif
@@ -322,17 +318,14 @@ function void fn00d30c()
 		{
 			levelselect.characters = dataselect.nosave_characters
 		#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-			levelselect_ExChar_P1_id = noSave_ExChar_P1_id
-			levelselect_ExChar_P2_id = noSave_ExChar_P2_id
-			levelselect_ExChar_P3_id = noSave_ExChar_P3_id
-			levelselect_ExChar_P4_id = noSave_ExChar_P4_id
+			global_ExChar_num[0] = ECF_dataselect_getNum()
+			global_ExChar_str[0] = getECFCharNameAtId(global_ExChar_num[0])
 		#endif
 		
 			global.active_saveslot = 0
 			DataSelect.sharedNewGameStartup()
 			DataSelect.SharedGameSlotContinue()
 			
-			System.setGlobalVariableValueByName("ccp_subway_tempZoneVal", ESS_devModeNSZone * 0x0100 + ESS_devModeNSAct)
 			global.zone_act = ESS_devModeNSZone * 0x0100 + ESS_devModeNSAct
 			global.zone_act.apparent = global.zone_act
 		}
@@ -348,12 +341,10 @@ function void fn00d30c()
 		{
 			levelselect.characters = dataselect.nosave_characters
 		#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-			levelselect_ExChar_P1_id = noSave_ExChar_P1_id
-			levelselect_ExChar_P2_id = noSave_ExChar_P2_id
-			levelselect_ExChar_P3_id = noSave_ExChar_P3_id
-			levelselect_ExChar_P4_id = noSave_ExChar_P4_id
+			global_ExChar_num[0] = ECF_dataselect_getNum()
+			global_ExChar_str[0] = getECFCharNameAtId(global_ExChar_num[0])
 		#endif
-				
+		
 			global.active_saveslot = 0
 			DataSelect.sharedNewGameStartup()
 			DataSelect.SharedGameSlotContinue()
@@ -614,14 +605,15 @@ function void fn00d42c()
 			{
 				levelselect.characters = u16[A0 + 0x34]
 			#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-				levelselect_ExChar_P1_id = ECF_dataselect_getNum()
+				global_ExChar_num[0] = ECF_dataselect_getNum()
+				global_ExChar_str[0] = getECFCharNameAtId(global_ExChar_num[0])
 			#endif
 			
 				// Initialize the new save state
 				u32[A1] = 0
 			#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
 				if (u16[A0 + 0x34] == 5)
-					u8[A1 + 0x02] = u16(getECFGlobalCharId(getECFCharNameAtId(levelselect_ExChar_P1_id))) << 4
+					u8[A1 + 0x02] = u16(getECFGlobalCharId(global_ExChar_str[0])) << 4
 				else
 			#endif
 					u8[A1 + 0x02] = (levelselect.characters << 4)
@@ -1360,14 +1352,8 @@ function void ESS_saveBoxGetColors(u8 num)
 	{
 		u8 saveChar = (num == 0) ? dataselect.nosave_characters : u16[temp0 + 0x34]
 	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-		#if GAMEAPP >= 0x26012400
-			u16 e_id = (num >= 9) ? ESS_tempECFChar_id : (num == 0) ? noSave_ExChar_P1_id : ECF_Save_num[num - 1]
-			string e_name = (num >= 9) ? ESS_tempECFChar_name : (num == 0) ? getECFCharNameAtId(noSave_ExChar_P1_id) : ECF_Save_str[num - 1]
-		#else
-			u16 e_id = (num >= 9) ? ESS_tempECFChar_id : (num == 0) ? noSave_ExChar_P1_id : System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1_id", num)) 
-			string e_name = (num >= 9) ? ESS_tempECFChar_name : (num == 0) ? getECFCharNameAtId(noSave_ExChar_P1_id) : System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1", num))
-		#endif
-		
+		u16 e_id = (num >= 9) ? ESS_tempECFChar_id : (num == 0) ? noSave_ExChar_P1_id : ECF_Save_num[num - 1]
+		string e_name = (num >= 9) ? ESS_tempECFChar_name : (num == 0) ? getECFCharNameAtId(noSave_ExChar_P1_id) : ECF_Save_str[num - 1]
 		if (e_name)
 		{
 			if (e_id)
@@ -1425,13 +1411,8 @@ function void ESS_drawCharIcons(u8 combo, s16 px, s16 py, u16 num)
 	string lives
 	string conts
 #if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-	#if GAMEAPP >= 0x26012400
-		string name = ECF_Save_str[num]
-		string id = ECF_Save_num[num]
-	#else
-		string name = System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1", num + 1))
-		string id = System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1_id", num + 1))
-	#endif
+	string name = ECF_Save_str[num]
+	string id = ECF_Save_num[num]
 	
 	if (name)
 	{
@@ -2376,9 +2357,10 @@ function bool fn00d458()
 			global.zone_act.apparent = D0.u16
 			levelselect.characters  = (u8[A1 + 0x02] >> 4)
 		#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-			levelselect_ExChar_P1_id = id
+			global_ExChar_num[0] = id
+			global_ExChar_str[0] = getECFCharNameAtId(global_ExChar_num[0])
 			if (name)
-				u8[A1 + 0x02] = getECFGlobalCharId(getECFCharNameAtId(id)) << 4
+				u8[A1 + 0x02] = getECFGlobalCharId(global_ExChar_str[0]) << 4
 		#endif
 			global.next_bluespheres = (u8[A1 + 0x02] & 0x0f)
 				

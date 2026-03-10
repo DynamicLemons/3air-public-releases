@@ -2,7 +2,7 @@ function void Character.Initialization.shared(u8 character)
 {
 	base.Character.Initialization.shared(character)
 	
-	setPlayerGlobalValue("amy_bounceLoss", 0)
+	amy_bounceLoss[getPId()] = 0
 	if (isECFCharA0("JUWL-Amy"))
 	{
 		char.hitbox_extends.y = char.hitbox.y.UPRIGHT_TAILS
@@ -20,18 +20,12 @@ function void Character.UpdateNormalState.Sonic()
 	}
 
 	if (char.control_flags & 0x01)
-		setPlayerGlobalValue("amy_bounceLoss", 0)
+		amy_bounceLoss[getPId()] = 0
 	
 	base.Character.UpdateNormalState.Sonic()
 	
 #if LEMONS_TWEAKS_ACTIVE
-	#if CHARACTER_SELECTION_PLUS_ACTIVE
-		A2 = getPAddress("follow")
-	#else
-		A2 = 0xffffcc0a
-	#endif
-	Amy_getHammerLayerState()
-	setPlayerGlobalValue("follow_expectedSprite", objA0.animation.sprite)
+	Lemons_charFollowObjSetup(Amy_getHammerLayerState())
 #endif
 }
 
@@ -54,14 +48,14 @@ function void TailsTails.Update()
 	objA0.sprite_attributes = (objA0.sprite_attributes & ~sprite_attribute.PRIORITY) | (u16[A2 + 0x0a] & sprite_attribute.PRIORITY)
 
 #if LEMONS_TWEAKS_ACTIVE
-	if (getPlayerGlobalValue(A2, "follow_expectedSprite") != u8[A2 + 0x22])
+	if (Lemons_followObject_reUpdateState())
 #endif
 	{
 		u32 A0_o = A0
 		u32 A2_o = A2
 		A0 = A2_o
 		A2 = A0_o
-		Amy_getHammerLayerState()
+		u8[A2 + 0x20] = Amy_getHammerLayerState()
 		A0 = A0_o
 		A2 = A2_o
 	}
@@ -103,8 +97,11 @@ function void TailsTails.Update()
 		
 		if (global.inv_gravity)
 			objA0.render_flags ^= render_flag.FLIP_Y
-
-		DrawObject()
+			
+	#if LEMONS_TWEAKS_ACTIVE
+		if (!p_invulFlash[getPId(A2)])
+	#endif
+			DrawObject()
 	}
 	else
 	{
@@ -115,14 +112,14 @@ function void TailsTails.Update()
 	}
 }
 
-function void Amy_getHammerLayerState()
+function u8 Amy_getHammerLayerState()
 {
 	if (char.state == char.state.AMY_HAMMERSPIN_N)
-		u8[A2 + 0x20] = 1
+		return 1
 	else if (char.state == char.state.AMY_HAMMERSPIN_H)
-		u8[A2 + 0x20] = 2
+		return 2
 	else
-		u8[A2 + 0x20] = 0
+		return 0
 }
 
 constant u8 Amy_minHoldTime = 5
@@ -138,12 +135,6 @@ function void Character.updateJumpMoves()
 	u8 input_state     = Character.getControlVariable(0)
 	u8 input_pressed   = Character.getControlVariable(1)
 	bool isSuperActive = Character.getSuperState()
-
-#if CHARACTER_SELECTION_PLUS_ACTIVE
-	bool secondaryMode = (A0 != 0xffffb000 && isSoloMode)
-#else
-	bool secondaryMode = false
-#endif
 
 	if (char.jumping)
 	{
@@ -162,9 +153,11 @@ function void Character.updateJumpMoves()
 		else
 	#endif
 		{
-			if (secondaryMode) 
+		#if CHARACTER_SELECTION_PLUS_ACTIVE
+			if (A0 != 0xffffb000 && isSoloMode) 
 				return
-				
+		#endif
+
 			if (char.double_jump_state == 0)
 			{
 				#if STANDALONE
@@ -247,7 +240,7 @@ function void Character.updateJumpMoves()
 						if (input_state & CONTROL_LEFT)
 							--dir
 						
-						s16 loss = getPlayerGlobalValue("amy_bounceLoss")
+						s16 loss = amy_bounceLoss[getPId()]
 						
 						s16 storedSpeed = Math.roundToInt(char.velocity.y * 0.8)
 						if (char.velocity.x < 0)
@@ -334,11 +327,9 @@ function void Amy_wallJump()
 	char.state = char.state.AMY_HAMMERSPIN_N
 	char.velocity.y = -max(abs(char.velocity.x), (char.flags & char.flag.UNDERWATER) ? 0x400 : 0x700)
 
-	u8 pId = ((A0.u16 - 0xb000) / 0x4a) + 1
-	s16 bounces = getPlayerGlobalValue("amy_bounceLoss")
-	char.velocity.y += (bounces - 1) * 0x120
-	if (bounces < 20)
-		setPlayerGlobalValue("amy_bounceLoss", bounces + 1)
+	u8 pId = getPId()
+	char.velocity.y += (amy_bounceLoss[pId] - 1) * 0x120
+	amy_bounceLoss[pId] = min(amy_bounceLoss[pId] + 1, 20)
 	char.velocity.x = (char.flags & char.flag.FACING_LEFT) ? 0x100 : -0x100
 	
 	playSound(0x98)
@@ -346,7 +337,7 @@ function void Amy_wallJump()
 
 function void Character.LandingOnGroundResetState()
 {
-	setPlayerGlobalValue("amy_bounceLoss", 0)
+	amy_bounceLoss[getPId()] = 0
 	
 	if (!isECFCharA0("JUWL-Amy"))
 	{
@@ -392,7 +383,11 @@ function void Character.CheckCollision()
 	}
 	
 	// reorders two landing calls to be done after velocities are set.
-#if STANDALONE
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	u8 pId = getPId()
+	p_groundhit_velocity_x[pId] = char.velocity.x
+	p_groundhit_velocity_y[pId] = char.velocity.y
+#else
 	if (A0 == 0xffffb000)
 	{
 		// Needed only for bubble shield bounce
@@ -593,8 +588,13 @@ function void Character.CheckCollision()
 function void AmyLandedWithAirAbility()
 {
 #if LEMONS_TWEAKS_ACTIVE
-	s16 oldVX = getPlayerGlobalValue("groundhit_velocity_x")
-	s16 oldVY = getPlayerGlobalValue("groundhit_velocity_y")
+	u8 pId = getPId()
+	s16 oldVX = p_groundhit_velocity_x[pId]
+	s16 oldVY = p_groundhit_velocity_y[pId]
+#elif CHARACTER_SELECTION_PLUS_ACTIVE
+	u8 pId = getPId()
+	s16 oldVX = p_groundhit_velocity_x[pId]
+	s16 oldVY = p_groundhit_velocity_y[pId]
 #else
 	s16 oldVX = mainchar.groundhit.velocity.x
 	s16 oldVY = mainchar.groundhit.velocity.y
@@ -625,7 +625,7 @@ function void AmyLandedWithAirAbility()
 		u8 groundAngle = char.rotation
 		u8 reflectedAngle = groundAngle * 2 - moveAngle
 		
-		force = max(force, mainchar.groundhit.velocity.y)
+		force = max(force, oldVY)
 		char.velocity.x = (s32(lookupCos(reflectedAngle)) * force) >> 8
 		char.velocity.y = (s32(lookupSin(reflectedAngle)) * force) >> 8
 	}

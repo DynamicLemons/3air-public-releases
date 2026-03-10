@@ -24,10 +24,8 @@ function void LevelSelect_drawECFIcons()
 	s16 px = getScreenWidth() / 2 + 16
 	s16 py = getScreenHeight() - 10
 	u16 renderQueue = 0xe000
-	if (levelselect.characters == 5)
-	{
-		Renderer.drawSprite(getECFCharacterContinueIcon(getECFCharNameAtId(levelselect_ExChar_P1_id)), px, py, 0, 0, renderQueue)
-	}
+	if (levelselect.characters > CHARS_KNUCKLES_AND_TAILS)
+		Renderer.drawSprite(getECFCharacterContinueIcon(global_ExChar_str[0]), px, py, 0, 0, renderQueue)
 	else
 	{
 		Renderer.drawSprite(getCharacterContinueIcon(clamp(s16(levelselect.characters) - 1, CHARACTER_SONIC, CHARACTER_KNUCKLES)), px, py, 0, 0, renderQueue)
@@ -49,37 +47,19 @@ function void fn007e64()
 	// this is kind of weird to do it like this, but we really don't need to touch the rest of the function...
 	if (levelselect.selection != 0x20)
 	{
-		// don't really like including this entire function, but I perfer it to some awkard base-calls.
 		if (control.pad1.pressed & CONTROL_C)
 		{
-			u8 maxCharacterSelection = 3
-		#if STANDALONE
-			// Knuckles & Tails
-			if (Game.isSecretUnlocked(SECRET_KNUX_AND_TAILS))
-				maxCharacterSelection = 4
-		#endif
-			
-			if (levelselect.characters == 5)
+			levelselect.characters = (levelselect.characters + 1) % (CHARS_KNUCKLES_AND_TAILS + ECF_charList_length + 1)
+			if (levelselect.characters > CHARS_KNUCKLES_AND_TAILS)
 			{
-				if (levelselect_ExChar_P1_id == ECF_charList_length)
-				{
-					levelselect.characters = CHARS_SONIC_AND_TAILS
-					levelselect_ExChar_P1_id = 0
-				}
-				else
-					++levelselect_ExChar_P1_id
+				global_ExChar_num[0] = levelselect.characters - CHARS_KNUCKLES_AND_TAILS
+				global_ExChar_str[0] = getECFCharNameAtId(global_ExChar_num[0])
 			}
 			else
 			{
-				if (levelselect.characters == maxCharacterSelection)
-				{
-					levelselect.characters = 5
-					levelselect_ExChar_P1_id = 1
-				}
-				else
-					++levelselect.characters
+				global_ExChar_num[0] = 0
+				global_ExChar_str[0] = 0
 			}
-			
 			control.pad1.pressed &= ~CONTROL_C
 		}
 	}

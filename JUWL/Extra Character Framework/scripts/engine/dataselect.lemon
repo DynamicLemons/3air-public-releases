@@ -8,30 +8,13 @@ function void DataSelect.setup()
 
 function void ECFmenus_globalVarReset()
 {
-	ExChar_P1 = 0
-	ExChar_P1_id = 0
-	ExChar_P2 = 0
-	ExChar_P2_id = 0
-	ExChar_P3 = 0
-	ExChar_P3_id = 0
-	ExChar_P4 = 0
-	ExChar_P4_id = 0
-	global_ExChar_P1 = 0
-	global_ExChar_P1_id = 0
-	global_ExChar_P2 = 0
-	global_ExChar_P2_id = 0
-	global_ExChar_P3 = 0
-	global_ExChar_P3_id = 0
-	global_ExChar_P4 = 0
-	global_ExChar_P4_id = 0
-	levelselect_ExChar_P1_id = 0
-	levelselect_ExChar_P2_id = 0
-	levelselect_ExChar_P3_id = 0
-	levelselect_ExChar_P4_id = 0
-	noSave_ExChar_P1_id = 0
-	noSave_ExChar_P2_id = 0
-	noSave_ExChar_P3_id = 0
-	noSave_ExChar_P4_id = 0
+	for (u8 i = 0; i < 4; ++i)
+	{
+		ExChar_str[i] = 0
+		ExChar_num[i] = 0
+		global_ExChar_str[i] = 0
+		global_ExChar_num[i] = 0
+	}
 }
 
 function string ECF_dataselect_getNum()
@@ -42,11 +25,7 @@ function string ECF_dataselect_getNum()
 function string ECF_dataselect_getNum(u32 address)
 {
 	u8 read = (u16(address) - 0xb0de) / 0x4a
-#if GAMEAPP >= 0x26012400
-	return (read) ? ECF_Save_num[read - 1] : noSave_ExChar_P1_id
-#else
-	return (read) ? System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1_id", read)) : noSave_ExChar_P1_id
-#endif
+	return (read) ? ECF_Save_num[read - 1] : ECF_NoSave_num
 }
 
 function string ECF_dataselect_getStr()
@@ -57,11 +36,7 @@ function string ECF_dataselect_getStr()
 function string ECF_dataselect_getStr(u32 address)
 {
 	u8 read = (u16(address) - 0xb0de) / 0x4a
-#if GAMEAPP >= 0x26012400
-	return (read) ? ECF_Save_str[read - 1] : getECFCharNameAtId(noSave_ExChar_P1_id)
-#else
-	return (read) ? System.getGlobalVariableValueByName(stringformat("ECF_Save%d_P1", read)) : getECFCharNameAtId(noSave_ExChar_P1_id)
-#endif
+	return (read) ? ECF_Save_str[read - 1] : getECFCharNameAtId(ECF_NoSave_num)
 }
 
 //# address-hook(0x00d6d0) end(0x00d70a)
@@ -124,18 +99,12 @@ function void fn00d6d0()
 		
 		if (objA0.update_address == 0x00d42c)
 		{
-		#if GAMEAPP >= 0x26012400
 			u8 read = (A0.u16 - 0xb128) / 0x4a
 			ECF_Save_str[read] = getECFCharNameAtId(id)
 			ECF_Save_num[read] = id
-		#else
-			u8 read = (A0.u16 - 0xb0de) / 0x4a
-			System.setGlobalVariableValueByName(stringformat("ECF_Save%d_P1_id", read), id)
-			System.setGlobalVariableValueByName(stringformat("ECF_Save%d_P1", read), getECFCharNameAtId(id))
-		#endif
 		}
 		else
-			noSave_ExChar_P1_id = id
+			ECF_NoSave_num = id
 	}
 	D0 = character
 }
@@ -158,10 +127,8 @@ function void fn00d30c()
 		if (control.pad1.pressed & DataSelect.CONTROLS_ACCEPT)
 		{
 			levelselect.characters = dataselect.nosave_characters
-			levelselect_ExChar_P1_id = noSave_ExChar_P1_id
-			levelselect_ExChar_P2_id = noSave_ExChar_P2_id
-			levelselect_ExChar_P3_id = noSave_ExChar_P3_id
-			levelselect_ExChar_P4_id = noSave_ExChar_P4_id
+			global_ExChar_num[0] = ECF_dataselect_getNum()
+			global_ExChar_str[0] = getECFCharNameAtId(global_ExChar_num[0])
 			
 			DataSelect.sharedNewGameStartup()
 
@@ -325,9 +292,10 @@ function bool fn00d458()
 		global.zone_act = D0.u16
 		global.zone_act.apparent = D0.u16
 		levelselect.characters  = (u8[A1 + 0x02] >> 4)
-		levelselect_ExChar_P1_id = id
+		global_ExChar_num[0] = id
+		global_ExChar_str[0] = getECFCharNameAtId(global_ExChar_num[0])
 		if (name)
-			u8[A1 + 0x02] = getECFGlobalCharId(getECFCharNameAtId(levelselect_ExChar_P1_id)) << 4
+			u8[A1 + 0x02] = getECFGlobalCharId(global_ExChar_str[0]) << 4
 		//debugLog(u8[A1 + 0x02])
 		global.next_bluespheres = (u8[A1 + 0x02] & 0x0f)
 
@@ -414,12 +382,13 @@ function void fn00d42c()
 			if (control.pad1.pressed & DataSelect.CONTROLS_ACCEPT)
 			{
 				levelselect.characters = u16[A0 + 0x34]
-				levelselect_ExChar_P1_id = ECF_dataselect_getNum()
-
+				global_ExChar_num[0] = ECF_dataselect_getNum()
+				global_ExChar_str[0] = getECFCharNameAtId(global_ExChar_num[0])
+				
 				// Initialize the new save state
 				u32[A1] = 0
 				if (u16[A0 + 0x34] == 5)
-					u8[A1 + 0x02] = u16(getECFGlobalCharId(getECFCharNameAtId(levelselect_ExChar_P1_id))) << 4
+					u8[A1 + 0x02] = u16(getECFGlobalCharId(global_ExChar_str[0])) << 4
 				else
 					u8[A1 + 0x02] = (levelselect.characters << 4)
 				u32[A1 + 0x04] = 0

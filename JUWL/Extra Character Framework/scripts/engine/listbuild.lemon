@@ -25,9 +25,9 @@ function void ECF_allocChar(string name)
 	}
 	
 	// name cannot be present on char list more than once, as this would create issues
-	for (u8 i = 1; i < ECF_charList_length; ++i)
+	for (u8 i = 0; i < ECF_charList_length; ++i)
 	{
-		if (System.getGlobalVariableValueByName(stringformat("ECF_charList_%d", ECF_charList_length)) == name)
+		if (ECF_charList[i] == name)
 		{
 			assert(false, stringformat("'%s' already present in ECF char list", name))
 			return
@@ -35,11 +35,7 @@ function void ECF_allocChar(string name)
 	}
 
 	++ECF_charList_length
-#if GAMEAPP >= 0x26012400
 	ECF_charList[ECF_charList_length] = name
-#else
-	System.setGlobalVariableValueByName(stringformat("ECF_charList_%d", ECF_charList_length), name)
-#endif
 	
 	if (!ECF_isSelectionHidden(name))
 	{

@@ -15,24 +15,24 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	
 	// Intro Characters
 	// Sonic
-	if (objA0.update_address == 0x067472) && (global_ExChar_P1)
+	if (objA0.update_address == 0x067472) && (global_ExChar_str[0])
 	{
-		ECF_drawCharEchoSprite(global_ExChar_P1, objA0.animation.sprite, px, py, flags, 0x40, renderQueue)
+		ECF_drawCharEchoSprite(global_ExChar_str[0], objA0.animation.sprite, px, py, flags, 0x40, renderQueue)
 		return true
 	}
 	
 	// Knuckles
-	else if (objA0.update_address == 0x063466 && objA0.value42 == 0x02) && (global_ExChar_P1)
+	else if (objA0.update_address == 0x063466 && objA0.value42 == 0x02) && (global_ExChar_str[0])
 	{
-		ECF_drawCharEchoSprite(global_ExChar_P1, objA0.animation.sprite, px, py, flags, 0x40, renderQueue)
+		ECF_drawCharEchoSprite(global_ExChar_str[0], objA0.animation.sprite, px, py, flags, 0x40, renderQueue)
 		return true
 	}
 	
 	// Monitor icons use character palette line, instead of baking it into the sprite file.
 	// Monitor
-	else if (objA0.update_address >= 0x01d566 && objA0.update_address <= 0x01d61e) && (objA0.animation.sprite > 1 && objA0.animation.sprite != 11) && (objA0.subtype2c == 0x01) && (global_ExChar_P1)
+	else if (objA0.update_address >= 0x01d566 && objA0.update_address <= 0x01d61e) && (objA0.animation.sprite > 1 && objA0.animation.sprite != 11) && (objA0.subtype2c == 0x01) && (global_ExChar_str[0])
 	{
-		key = Monitor.getECFCharacterLifeIcon(global_ExChar_P1)
+		key = Monitor.getECFCharacterLifeIcon(global_ExChar_str[0])
 		if (!Renderer.hasCustomSprite(key))
 			key = "monitor_unknown"
 			
@@ -48,15 +48,15 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 			py += (objA0.render_flags & render_flag.FLIP_Y) ? 5 : -5
 		}
 		
-		atex = 0x40 + 0x20 * getECFCharBase(global_ExChar_P1)
+		atex = 0x40 + 0x20 * getECFCharBase(global_ExChar_str[0])
 		Renderer.drawSprite(key, px, py, atex, flags, renderQueue + 1)
 		return true
 	}
 
 	// Monitor item effect
-	else if (objA0.update_address == 0x01d7ba) && (objA0.state == 0x01) && (global_ExChar_P1)
+	else if (objA0.update_address == 0x01d7ba) && (objA0.state == 0x01) && (global_ExChar_str[0])
 	{
-		key = Monitor.getECFCharacterLifeIcon(global_ExChar_P1)
+		key = Monitor.getECFCharacterLifeIcon(global_ExChar_str[0])
 		if (!Renderer.hasCustomSprite(key))
 			key = "monitor_unknown"
 			
@@ -67,18 +67,18 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	#endif
 			alpha = (s16[A0 + 0x24] > 0) ? min(255, s16[A0 + 0x24] * 32) : 0
 			
-		atex = 0x40 + 0x20 * getECFCharBase(global_ExChar_P1)
+		atex = 0x40 + 0x20 * getECFCharBase(global_ExChar_str[0])
 		Renderer.drawSprite(key, px, py, atex, flags, renderQueue, 0, alpha)
 		return true
 	}
 
 	// Signpost
-	else if (objA0.update_address == 0x0837b2) && (global_ExChar_P1)
+	else if (objA0.update_address == 0x0837b2) && (global_ExChar_str[0])
 	{
-		key = getECFCharacterSignpostSpriteKey(global_ExChar_P1)
+		key = getECFCharacterSignpostSpriteKey(global_ExChar_str[0])
 		atex = 0x40 + getMainCharacter() * 0x20
 		
-		if (objA0.animation.sprite == getECFCharBase(global_ExChar_P1))
+		if (objA0.animation.sprite == getECFCharBase(global_ExChar_str[0]))
 		{
 			if (!Renderer.hasCustomSprite(key))
 				key = "signpost_unknown"
@@ -100,9 +100,9 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	
 	// Results
 	// Level results
-	else if (objA0.update_address == 0x02dd98) && (global_ExChar_P1)
+	else if (objA0.update_address == 0x02dd98) && (global_ExChar_str[0])
 	{
-		key = getECFCharacterBonusTextIcon(global_ExChar_P1)
+		key = getECFCharacterBonusTextIcon(global_ExChar_str[0])
 		if (!Renderer.hasCustomSprite(key))
 			key = getCharacterBonusTextIcon(getMainCharacter())
 			
@@ -121,7 +121,7 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		else if (objA0.animation.sprite >= 0x13 && objA0.animation.sprite <= 0x16)
 		{
 			u8 character = getMainCharacter()
-			key = getECFCharacterResultsNameplate(global_ExChar_P1)
+			key = getECFCharacterResultsNameplate(global_ExChar_str[0])
 			atex = 0x40 + character * 0x20
 			if (Renderer.hasCustomSprite(key))
 			{
@@ -133,15 +133,15 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	
 	// ICZ Snowboarding
 	// Sonic on the snowboard in ICZ 1
-	if (objA0.mapping_offset == 0x347e30 && global_ExChar_P1)
+	if (objA0.mapping_offset == 0x347e30 && global_ExChar_str[0])
 	{
-		key = stringformat(stringformat("%s_snowboarding_0x%02x", getECFCharacterSpriteKey(global_ExChar_P1, false)), objA0.animation.sprite)
+		key = stringformat(stringformat("%s_snowboarding_0x%02x", getECFCharacterSpriteKey(global_ExChar_str[0], false)), objA0.animation.sprite)
 		if (!Renderer.hasCustomSprite(key))
 		{
 			key = Renderer.setupCustomCharacterSprite(0x345010, 0x347f8a, objA0.mapping_offset, objA0.animation.sprite, 0x00)
 
 			if (ROMDataAnalyser.isEnabled())
-				Renderer.extractCustomSprite(key, stringformat("%s_snowboarding", getECFCharacterSpriteKey(global_ExChar_P1, false)), objA0.animation.sprite, 0x00)
+				Renderer.extractCustomSprite(key, stringformat("%s_snowboarding", getECFCharacterSpriteKey(global_ExChar_str[0], false)), objA0.animation.sprite, 0x00)
 		}
 
 		Renderer.drawSprite(key, px, py, 0x40 + getMainCharacter() * 0x20, flags, renderQueue)
@@ -149,10 +149,10 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	}
 
 	// Blue Spheres
-	else if (objA0.update_address == 0x02ea50 || objA0.update_address == 0x02ec1e) && (global_ExChar_P1)
+	else if (objA0.update_address == 0x02ea50 || objA0.update_address == 0x02ec1e) && (global_ExChar_str[0])
 	{
 		bool isSKStage = (global.lock_on_state == 0 && global.sk_bluespheres)
-		key = getECFCharacterBonusTextIcon(global_ExChar_P1)
+		key = getECFCharacterBonusTextIcon(global_ExChar_str[0])
 		if (!Renderer.hasCustomSprite(key))
 			key = getCharacterBonusTextIcon(getMainCharacter())
 			
@@ -187,7 +187,7 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		else if (objA0.animation.sprite >= 0x12 && objA0.animation.sprite <= 0x16)
 		{
 			u8 character = getMainCharacter()
-			key = getECFCharacterResultsNameplate(global_ExChar_P1)
+			key = getECFCharacterResultsNameplate(global_ExChar_str[0])
 			atex = 0x40 + character * 0x20
 			if (objA0.animation.sprite == 0x12)
 				key = stringformat((global.super_emeralds < 7) ? "%s_super" : "%s_hyper", key)
@@ -201,13 +201,13 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	}
 	
 	// Continue icon
-	else if ((objA0.update_address == 0x02ebe8 || objA0.update_address == 0x02ec4a) && objA0.animation.sprite >= 0x29 && objA0.animation.sprite <= 0x2b) && (global_ExChar_P1)
+	else if ((objA0.update_address == 0x02ebe8 || objA0.update_address == 0x02ec4a) && objA0.animation.sprite >= 0x29 && objA0.animation.sprite <= 0x2b) && (global_ExChar_str[0])
 	{
 		// Enforce priority flag in special stage results screen for Super Emeralds, as it's supposed to be set, but is not part of "objA0.sprite_attributes"
 		if (global.game_mode == 0x48 && global.traded_emeralds)
 			flags |= SPRITE_FLAG_PRIO
 				
-		key = getECFCharacterContinueIcon(global_ExChar_P1)
+		key = getECFCharacterContinueIcon(global_ExChar_str[0])
 		if (Renderer.hasCustomSprite(key))
 		{
 			Renderer.drawSprite(key, px, py, 0x00, flags, renderQueue)
@@ -216,10 +216,10 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	}
 
 	// Blue Spheres
-	else if (objA0.update_address == 0x00903e && global_ExChar_P1)
+	else if (objA0.update_address == 0x00903e && global_ExChar_str[0])
 	{
 		atex = 0x40 + getMainCharacter() * 0x20
-		key = stringformat(stringformat("%s_0x%02x", getECFCharacterBluesphereSpriteKey(global_ExChar_P1)), objA0.animation.sprite)
+		key = stringformat(stringformat("%s_0x%02x", getECFCharacterBluesphereSpriteKey(global_ExChar_str[0])), objA0.animation.sprite)
 		if (Renderer.hasCustomSprite(key))
 		{
 			Renderer.drawCustomSprite(key, px, py, atex, flags, renderQueue)
@@ -227,10 +227,10 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		}
 	}
 
-	else if (objA0.update_address == 0x00927a && global_ExChar_P2)
+	else if (objA0.update_address == 0x00927a && global_ExChar_str[1])
 	{
 		atex = 0x40 + getSecondCharacter() * 0x20
-		key = stringformat(stringformat("%s_0x%02x", getECFCharacterBluesphereSpriteKey(global_ExChar_P2)), objA0.animation.sprite)
+		key = stringformat(stringformat("%s_0x%02x", getECFCharacterBluesphereSpriteKey(global_ExChar_str[1])), objA0.animation.sprite)
 		if (Renderer.hasCustomSprite(key))
 		{
 			Renderer.drawCustomSprite(key, px, py, atex, flags, renderQueue)
@@ -241,7 +241,7 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	else if (objA0.update_address == 0x009488)
 	{
 		bool parentIsP1 = (u32[0xffff0000 + u32(u16[A0 + 0x3e])] == 0x00903e)
-		string name = (parentIsP1) ? global_ExChar_P1 : global_ExChar_P2
+		string name = (parentIsP1) ? global_ExChar_str[0] : global_ExChar_str[1]
 
 		if (name)
 		{
@@ -259,8 +259,8 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	// Blue Sphere mini-game Results
 	else if (objA0.update_address == 0x04dfee || objA0.update_address == 0x04dffe || objA0.update_address == 0x04e000)
 	{
-		if (global_ExChar_P1)
-			ECF_drawCharEchoSprite(global_ExChar_P1, objA0.animation.sprite, px, py, flags, 0x40, renderQueue)
+		if (global_ExChar_str[0])
+			ECF_drawCharEchoSprite(global_ExChar_str[0], objA0.animation.sprite, px, py, flags, 0x40, renderQueue)
 		else if (objA0.update_address == 0x04dfee)
 			Standalone.drawCharacterSpriteDirect(CHARACTER_SONIC, px, py, objA0.animation.sprite, flags, 0x40, renderQueue)
 		else if (objA0.update_address == 0x04dffe)
@@ -272,16 +272,16 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	
 	// Tornado
 	// based on YYWTRRSHYGNDS, but works in vanilla context
-	else if (objA0.update_address == 0x05ebb4) && (global_ExChar_P1)
+	else if (objA0.update_address == 0x05ebb4) && (global_ExChar_str[0])
 	{
-		u8 char = getECFCharacterTornadoPilot(global_ExChar_P1)
+		u8 char = getECFCharacterTornadoPilot(global_ExChar_str[0])
 		string pal 
 		
 		// could reference the actual sprite id here, but we need to do some extra work anyway.
 		if (char == 0xff)
 		{
-			key = getECFCharacterSpecialPilotKey(global_ExChar_P1)
-			pal = getECFCharacterSpecialPilotPalette(global_ExChar_P1)
+			key = getECFCharacterSpecialPilotKey(global_ExChar_str[0])
+			pal = getECFCharacterSpecialPilotPalette(global_ExChar_str[0])
 			atex = 0x40 + getMainCharacter() * 0x20
 		}
 		else
@@ -289,8 +289,7 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 			key = getCharacterTornadoSpriteKey(char)
 			if (char == getMainCharacter())
 				pal = getCharacterPaletteKey(char)
-			else
-				atex = 0x40 + char * 0x20
+			atex = 0x40 + char * 0x20
 		}
 
 		key = stringformat("%s_pilot", key)
@@ -304,6 +303,8 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 				pilot.setPalette(pal, 0)
 				pilot.setUseGlobalComponentTint(true)
 			}
+			else if (pal && char != 0xff)
+				pilot.setPalette(key, 0)
 			else
 				pilot.setPaletteOffset(atex)
 			return true
@@ -314,14 +315,14 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 			return false
 	#endif
 	}
-	else if (objA0.mapping_offset == 0x060486 && global_ExChar_P1)
+	else if (objA0.mapping_offset == 0x060486 && global_ExChar_str[0])
 	{
 		string pal 
 		// stander
 		if (objA0.animation.sprite == 14 || objA0.animation.sprite == 21)
 		{
 			atex = 0x40 + getMainCharacter() * 0x20
-			key = stringformat("%s_small", getECFCharacterTornadoSpriteKey(global_ExChar_P1))
+			key = stringformat("%s_small", getECFCharacterTornadoSpriteKey(global_ExChar_str[0]))
 			
 			// handle Knuckles' variations
 			if (Renderer.hasCustomSprite(key) && global.zone_act == 0x0a01)
@@ -348,13 +349,13 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		// pilot
 		else if (objA0.animation.sprite == 13 || objA0.animation.sprite == 13 || objA0.animation.sprite == 18 || objA0.animation.sprite == 19)
 		{
-			u8 char = getECFCharacterTornadoPilot(global_ExChar_P1)
+			u8 char = getECFCharacterTornadoPilot(global_ExChar_str[0])
 			
 			// could reference the actual sprite id here, but we need to do some extra work anyway.
 			if (char == 0xff)
 			{
-				key = getECFCharacterSpecialPilotKey(global_ExChar_P1)
-				pal = getECFCharacterSpecialPilotPalette(global_ExChar_P1)
+				key = getECFCharacterSpecialPilotKey(global_ExChar_str[0])
+				pal = getECFCharacterSpecialPilotPalette(global_ExChar_str[0])
 				atex = 0x40 + getMainCharacter() * 0x20
 			}
 			else
@@ -379,6 +380,8 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 					pilot.setPalette(pal, 0)
 					pilot.setUseGlobalComponentTint(true)
 				}
+				else if (pal && char != 0xff)
+					pilot.setPalette(key, 0)
 				else
 					pilot.setPaletteOffset(atex)
 				return true
@@ -397,7 +400,7 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 			// dork on the plane
 			if (objA0.animation.sprite != 0x1a)
 			{
-				key = stringformat("%s_tiny", getECFCharacterTornadoSpriteKey(global_ExChar_P1))
+				key = stringformat("%s_tiny", getECFCharacterTornadoSpriteKey(global_ExChar_str[0]))
 				if (!Renderer.hasCustomSprite(key))
 					key = stringformat("%s_tiny", getCharacterTornadoSpriteKey(getMainCharacter()))
 				
@@ -407,12 +410,13 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 					Renderer.drawSprite("tornado_ending_17", px + 5, py - 3, 0, flags, renderQueue)
 			}
 			
+			atex = 0
 			// trusty pilot
-			char = getECFCharacterTornadoPilot(global_ExChar_P1)
+			char = getECFCharacterTornadoPilot(global_ExChar_str[0])
 			if (char == 0xff)
 			{
-				key = getECFCharacterSpecialPilotKey(global_ExChar_P1)
-				pal = getECFCharacterSpecialPilotPalette(global_ExChar_P1)
+				key = getECFCharacterSpecialPilotKey(global_ExChar_str[0])
+				pal = getECFCharacterSpecialPilotPalette(global_ExChar_str[0])
 				atex = 0x40 + getMainCharacter() * 0x20
 			}
 			else
@@ -432,6 +436,8 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 				pilot.setPalette(pal, 0)
 				pilot.setUseGlobalComponentTint(true)
 			}
+			else if (isMainCharacter(CHARACTER_KNUCKLES) && char == CHARACTER_KNUCKLES)
+				pilot.setPalette("tornado_knuckles_pilot", 0)
 			else
 				pilot.setPaletteOffset(atex)
 			return true
@@ -440,21 +446,21 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	
 	// Continue Screen
 	// Sonic
-	else if (objA0.update_address == 0x05c588 || objA0.update_address == 0x05c660) && (global_ExChar_P1 && isMainCharacter(CHARACTER_SONIC))
+	else if (objA0.update_address == 0x05c588 || objA0.update_address == 0x05c660) && (global_ExChar_str[0] && isMainCharacter(CHARACTER_SONIC))
 	{
 		if (objA0.subtype2c)
 		{
-			key = stringformat("%s_continue_0x%02x", getECFCharacterSpriteKey(global_ExChar_P1, false), objA0.animation.sprite)
+			key = stringformat("%s_continue_0x%02x", getECFCharacterSpriteKey(global_ExChar_str[0], false), objA0.animation.sprite)
 			if (Renderer.hasCustomSprite(key))
 				Renderer.drawSprite(key, px, py, 0x40, flags, renderQueue)
 		}
 		else
-			ECF_drawCharEchoSprite(global_ExChar_P1, objA0.animation.sprite, px, py, flags, 0x40, renderQueue)
+			ECF_drawCharEchoSprite(global_ExChar_str[0], objA0.animation.sprite, px, py, flags, 0x40, renderQueue)
 		return true
 	}
-	else if (objA0.update_address == 0x05c55c && global_ExChar_P1) && (global_ExChar_P1 && isMainCharacter(CHARACTER_SONIC))
+	else if (objA0.update_address == 0x05c55c && global_ExChar_str[0]) && (global_ExChar_str[0] && isMainCharacter(CHARACTER_SONIC))
 	{
-		key = stringformat("%s_continue_0x%02x", getECFCharacterSpriteKey(global_ExChar_P1, false), objA0.animation.sprite)
+		key = stringformat("%s_continue_0x%02x", getECFCharacterSpriteKey(global_ExChar_str[0], false), objA0.animation.sprite)
 		if (Renderer.hasCustomSprite(key))
 		{
 			Renderer.drawSprite(key, px, py, 0x40, flags, renderQueue)
@@ -462,14 +468,14 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		}
 	}
 	// Tails
-	else if (objA0.update_address == 0x05c790 && global_ExChar_P1 && isMainCharacter(CHARACTER_TAILS))
+	else if (objA0.update_address == 0x05c790 && global_ExChar_str[0] && isMainCharacter(CHARACTER_TAILS))
 	{
-		ECF_drawCharEchoSprite(global_ExChar_P1, objA0.animation.sprite, px, py, flags, 0x60, renderQueue)
+		ECF_drawCharEchoSprite(global_ExChar_str[0], objA0.animation.sprite, px, py, flags, 0x60, renderQueue)
 		return true
 	}
-	else if (objA0.update_address == 0x05c74a && global_ExChar_P1 && isMainCharacter(CHARACTER_TAILS))
+	else if (objA0.update_address == 0x05c74a && global_ExChar_str[0] && isMainCharacter(CHARACTER_TAILS))
 	{
-		key = stringformat("%s_continue_0x%02x", getECFCharacterSpriteKey(global_ExChar_P1, false), objA0.animation.sprite - 5)
+		key = stringformat("%s_continue_0x%02x", getECFCharacterSpriteKey(global_ExChar_str[0], false), objA0.animation.sprite - 5)
 		if (Renderer.hasCustomSprite(key))
 		{
 			Renderer.drawSprite(key, px, py, 0x60, flags, renderQueue)
@@ -477,14 +483,14 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		}
 	}
 	// Knuckles
-	else if (objA0.update_address == 0x05c8c8 && global_ExChar_P1 && isMainCharacter(CHARACTER_KNUCKLES))
+	else if (objA0.update_address == 0x05c8c8 && global_ExChar_str[0] && isMainCharacter(CHARACTER_KNUCKLES))
 	{
-		ECF_drawCharEchoSprite(global_ExChar_P1, objA0.animation.sprite, px, py, flags, 0x80, renderQueue)
+		ECF_drawCharEchoSprite(global_ExChar_str[0], objA0.animation.sprite, px, py, flags, 0x80, renderQueue)
 		return true
 	}
-	else if (objA0.update_address == 0x05c88c || objA0.update_address == 0x05c8ac) && (global_ExChar_P1 && isMainCharacter(CHARACTER_KNUCKLES))
+	else if (objA0.update_address == 0x05c88c || objA0.update_address == 0x05c8ac) && (global_ExChar_str[0] && isMainCharacter(CHARACTER_KNUCKLES))
 	{
-		key = stringformat("%s_continue_0x%02x", getECFCharacterSpriteKey(global_ExChar_P1, false), objA0.animation.frame)
+		key = stringformat("%s_continue_0x%02x", getECFCharacterSpriteKey(global_ExChar_str[0], false), objA0.animation.frame)
 		if (Renderer.hasCustomSprite(key))
 		{
 			Renderer.drawSprite(key, px, py, 0x80, flags, renderQueue)
@@ -492,10 +498,10 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		}
 	}
 	// Animated Icon
-	else if (objA0.update_address == 0x05ca5c && global_ExChar_P1)
+	else if (objA0.update_address == 0x05ca5c && global_ExChar_str[0])
 	{
 		u8 character = getMainCharacter()
-		key = stringformat("%s_wait_0x%02x", getECFCharacterContinueIcon(global_ExChar_P1), (character == CHARACTER_SONIC) ? objA0.animation.sprite : (character == CHARACTER_TAILS) ? objA0.animation.sprite-2 : objA0.animation.sprite-7)
+		key = stringformat("%s_wait_0x%02x", getECFCharacterContinueIcon(global_ExChar_str[0]), (character == CHARACTER_SONIC) ? objA0.animation.sprite : (character == CHARACTER_TAILS) ? objA0.animation.sprite-2 : objA0.animation.sprite-7)
 		
 		if (Renderer.hasCustomSprite(key))
 		{
@@ -503,10 +509,10 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 			return true
 		}
 	}
-	else if (objA0.update_address == 0x05ca9e && global_ExChar_P1)
+	else if (objA0.update_address == 0x05ca9e && global_ExChar_str[0])
 	{
 		u8 character = getMainCharacter()
-		key = stringformat("%s_wait_0x%02x", getECFCharacterContinueFollowObjectSpriteKey(global_ExChar_P1), objA0.animation.sprite-4)
+		key = stringformat("%s_wait_0x%02x", getECFCharacterContinueFollowObjectSpriteKey(global_ExChar_str[0]), objA0.animation.sprite-4)
 			
 		if (Renderer.hasCustomSprite(key))
 		{
@@ -578,19 +584,19 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 #endif
 
 	// Endpose
-	else if (objA0.update_address == 0x05e18a || objA0.update_address == 0x05f4e4) && (global_ExChar_P1)
+	else if (objA0.update_address == 0x05e18a || objA0.update_address == 0x05f4e4) && (global_ExChar_str[0])
 	{
 		if (objA0.update_address == 0x05f4e4)
-			key = stringformat("%s_0x%02x", getECFCharacterEndPoseSpriteKey(global_ExChar_P1, false), objA0.animation.sprite)
+			key = stringformat("%s_0x%02x", getECFCharacterEndPoseSpriteKey(global_ExChar_str[0], false), objA0.animation.sprite)
 		else if (objA0.animation.sprite >= 0x03)
 		{
-			key = stringformat("%s_0x%02x", getECFCharacterEndPoseSpriteKey(global_ExChar_P1, false), objA0.animation.sprite - 0x03)
+			key = stringformat("%s_0x%02x", getECFCharacterEndPoseSpriteKey(global_ExChar_str[0], false), objA0.animation.sprite - 0x03)
 			flags |= SPRITE_FLAG_FLIP_X
 		}
 		else if (objA0.animation.sprite == 0x02)
-			key = getECFCharacterEndPoseSpriteKey(global_ExChar_P1, true)
+			key = getECFCharacterEndPoseSpriteKey(global_ExChar_str[0], true)
 		else if (objA0.animation.sprite <= 0x01)
-			key = stringformat("%s_0x%02x", getECFCharacterEndPoseSpriteKey(global_ExChar_P1, false), objA0.animation.sprite - 0x00)
+			key = stringformat("%s_0x%02x", getECFCharacterEndPoseSpriteKey(global_ExChar_str[0], false), objA0.animation.sprite - 0x00)
 
 		if (Renderer.hasCustomSprite(key))
 		{
@@ -603,10 +609,8 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	// Best ending congrats character
 	else if (objA0.update_address == addressof(ECF_EndScreen_char))
 	{
-		string buffer = System.getGlobalVariableValueByName(stringformat("global_ExChar_P%d", objA0.subtype2c + 1))
-		
-		key = stringformat("%s_ending_%d_%d", getECFCharacterSpriteKey(buffer, false), objA0.state, objA0.animation.frame)
-		atex = 0x40 + getECFCharBase(global_ExChar_P1) * 0x20
+		key = stringformat("%s_ending_%d_%d", getECFCharacterSpriteKey(global_ExChar_str[objA0.subtype2c + 1], false), objA0.state, objA0.animation.frame)
+		atex = 0x40 + getECFCharBase(global_ExChar_str[0]) * 0x20
 		if (Renderer.hasCustomSprite(key))
 			Renderer.drawSprite(key, px, py, atex, SPRITE_FLAG_PRIO, renderQueue)
 		else
@@ -983,7 +987,7 @@ function string ECF_cRenderGetName()
 		return getECFCharBufferName(u32(0xffff0000 + u16[A0 + 0x30]))
 	// Slot Machine character
 	else if (objA0.update_address == 0x04b958 || objA0.update_address == 0x04bc54)
-		return global_ExChar_P1
+		return global_ExChar_str[0]
 		
 	return ""
 }
@@ -1008,7 +1012,7 @@ function void ECF_drawCharEchoSprite(string name, u8 animationSprite, s16 px, s1
 // Cutscene Knuckles in his campaign
 function void Standalone.renderCutsceneKnuckles(u8 variant, s16 px, s16 py, u16 renderQueue)
 {
-	if (global_ExChar_P1 == 0 || !isMainCharacter(CHARACTER_KNUCKLES))
+	if (global_ExChar_str[0] == 0 || !isMainCharacter(CHARACTER_KNUCKLES) || objA0.update_address == 0x05e0d6)
 	{
 		base.Standalone.renderCutsceneKnuckles(variant, px, py, renderQueue)
 		return
@@ -1016,7 +1020,7 @@ function void Standalone.renderCutsceneKnuckles(u8 variant, s16 px, s16 py, u16 
 	
 	u8 flags = ((objA0.render_flags & render_flag.FLIP_X) ? SPRITE_FLAG_FLIP_X : 0) | ((objA0.render_flags & render_flag.FLIP_Y) ? SPRITE_FLAG_FLIP_Y : 0) | ((objA0.sprite_attributes & sprite_attribute.PRIORITY) ? SPRITE_FLAG_PRIO : 0)
 	
-	string key = stringformat("cutscene_%s_%d_0x%02x", global_ExChar_P1, variant, objA0.animation.sprite)
+	string key = stringformat("cutscene_%s_%d_0x%02x", global_ExChar_str[0], variant, objA0.animation.sprite)
 	if (!Renderer.hasCustomSprite(key))
 	{
 		if (variant == 1) // Sonic 3 (disc 1) zones use a shared resource for its Knuckles cutscene sprites

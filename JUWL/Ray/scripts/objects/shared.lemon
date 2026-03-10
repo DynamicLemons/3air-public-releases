@@ -22,5 +22,5 @@ function void fn01e10e()
 {
 	base.fn01e10e()
 	if (isECFCharA1("JUWL-Ray") && u8[A1 + 0x2f] == 1)
-		setPlayerGlobalValue(A1, "ray_abilitySpeed", 0)
+		ray_abilitySpeed[getPId(A1)] = 0
 }

@@ -3,7 +3,7 @@ function void fn009488()
 {
 	A1 = 0xffff0000 + objA0.value3e
 	bool parentIsP1 = (objA1.update_address == 0x00903e)
-	string name = (parentIsP1) ? global_ExChar_P1 : global_ExChar_P2
+	string name = (parentIsP1) ? global_ExChar_str[0] : global_ExChar_str[1]
 	
 	if (name != "JUWL-Ray")
 	{

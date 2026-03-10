@@ -94,7 +94,7 @@ function void fn03c636()
 		while (A1 < A2)
 		{
 			if (u8[A3])
-				setPlayerGlobalValue(A1, "mighty_cam_vlock", 0)
+				mighty_cam_vlock[getPId(A1)] = 0
 			A1 += 0x4a
 		}
 		

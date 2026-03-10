@@ -81,7 +81,7 @@ function string getECFCharacterBonusTextIcon(string name)
 
 function string Lemons_getSlotIcon(u8 i)
 {
-	if (global_ExChar_P1 == "JUWL-Mighty")
+	if (global_ExChar_str[0] == "JUWL-Mighty")
 	{
 		string key
 		if (i == 2)

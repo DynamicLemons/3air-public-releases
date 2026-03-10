@@ -8,13 +8,11 @@ function void Character.OnThreatCollision()
 		return
 	}
 
-#if ROARING_KNIGHT_ACTIVE
-	if (isRoaringKnightMode)
+	if (MightyInteraction_compat_ignoreOnThreatCollision())
 	{
 		base.Character.OnThreatCollision()
 		return
 	}
-#endif
 
 	// Check for shield or invincibility
 	D0.u8 = (char.bonus_effect & (char.bonus.ALL_SHIELDS | char.bonus.INVINCIBLE))
@@ -78,8 +76,6 @@ function void Character.OnThreatCollisionInner()
 	{
 		A2 = A1
 		u8 type = MightyInteraction_getType()
-		bool crouchable = MightyInteraction_canCrouchBlock()
-		
 		if (type)
 		{
 			u8 dir = MightyInteraction_getReboundDir()
@@ -196,7 +192,7 @@ function void Character.OnThreatCollisionInner()
 			else if (!nohurt)
 				Character.GettingHurt()
 		}
-		else if (char.state == char.state.COWERING && crouchable)
+		else if (char.state == char.state.COWERING && MightyInteraction_canCrouchBlock())
 		{
 			MightyInteraction_crouchBlock()
 			MightyInteraction_itemCauseBlockEffect()
@@ -624,6 +620,9 @@ function u8 MightyInteraction_getType()
 	// 3 - rebound, enemy
 	// 4 - deflect
 	
+	if (MightyInteraction_compat_getType())
+		return D0.u8
+	
 	u32 upd = objA1.update_address
 	u32 map = objA1.mapping_offset
 
@@ -883,7 +882,7 @@ function u8 MightyInteraction_getType()
 		return 2
 	
 	// Chainspike
-	else if (upd == 0x091e72)
+	else if (upd == 0x091e72 || upd == 0x091d52)
 		return 2
 	
 	// Rockets
@@ -930,6 +929,9 @@ function u8 MightyInteraction_getReboundDir(u32 a, u32 b)
 
 function u8 MightyInteraction_getReboundDir()
 {
+	if (MightyInteraction_compat_getReboundDir())
+		return D0.u8
+		
 	// 0 - up 
 	// 1 - right
 	// 2 - down
@@ -974,6 +976,9 @@ function u8 MightyInteraction_getReboundDir()
 
 function s16 MightyInteraction_getBounceSpeed(bool unCurl, u8 dir)
 {
+	if (MightyInteraction_compat_getBounceSpeed())
+		return D0.s16
+		
 	s16 speed = (unCurl) ? 0x380 : 0x300
 	if (dir == 5)
 		speed = (unCurl) ? 0x400 : 0x600
@@ -998,12 +1003,18 @@ function s16 MightyInteraction_getBounceSpeed(bool unCurl, u8 dir)
 
 function s16 MightyInteraction_getBounceSpeedX(bool unCurl, u8 dir)
 {
+	if (MightyInteraction_compat_getBounceSpeedX())
+		return D0.s16
+		
 	s16 speed = MightyInteraction_getBounceSpeed(unCurl, dir)
 	return speed
 }
 
 function s16 MightyInteraction_getBounceSpeedY(bool unCurl, u8 dir)
 {
+	if (MightyInteraction_compat_getBounceSpeedY())
+		return D0.s16
+		
 	s16 speed = MightyInteraction_getBounceSpeed(unCurl, dir)
 	// mgz mace
 	if (objA1.update_address == 0x0341fa)
@@ -1017,6 +1028,9 @@ function s16 MightyInteraction_getBounceSpeedY(bool unCurl, u8 dir)
 
 function u8 MightyInteraction_canCrouchBlock()
 {
+	if (MightyInteraction_compat_canCrouchBlock())
+		return D0.u8
+		
 	// this is only used when crouch interacts with an object that's not considered spiky
 	u8 attrib = (objA1.collision_attributes & collision_attributes.flags)
 	// badniks
@@ -1028,6 +1042,9 @@ function u8 MightyInteraction_canCrouchBlock()
 
 function void MightyInteraction_itemCauseBlockEffect()
 {
+	if (MightyInteraction_compat_itemCauseBlockEffect())
+		return
+		
 	// FBZ Parachute Rockets and DEZ rockets
 	// this applies to the former in Mania
 	if (objA1.update_address == 0x03c6cc || objA1.update_address == 0x03c8d4 || objA1.update_address == 0x04728a)
@@ -1118,4 +1135,54 @@ function void fn042ec0()
 	objA0.base_state = 0x02
 	u8[A0 + 0x28] = 0
 	u8[A0 + 0x29] = 0
+}
+
+// compat functions
+// meant to be used for mods that lack the priority to override Mighty's regular functions.
+
+// if these return true, D0 will then be processed as a return command for the original function
+// ...remember to actually set D0 here, as it's otherwise uninitialized.
+
+// leaving functionality open to allow for unflagging base-game objects as non-blockable
+function bool MightyInteraction_compat_getType()
+{
+	return base.MightyInteraction_compat_getType()
+}
+
+function bool MightyInteraction_compat_canCrouchBlock()
+{
+	return base.MightyInteraction_compat_canCrouchBlock()
+}
+
+// ...
+function bool MightyInteraction_compat_getReboundDir()
+{
+	return base.MightyInteraction_compat_getReboundDir()
+}
+
+// X and Y functions don't need to be overriden, as they will fallback to the regular bounce speed function.
+function bool MightyInteraction_compat_getBounceSpeed()
+{
+	return base.MightyInteraction_compat_getBounceSpeed()
+}
+
+function bool MightyInteraction_compat_getBounceSpeedX()
+{
+	return base.MightyInteraction_compat_getBounceSpeedX()
+}
+
+function bool MightyInteraction_compat_getBounceSpeedY()
+{
+	return base.MightyInteraction_compat_getBounceSpeedY()
+}
+
+// D0 does not determine anything for these functions
+function bool MightyInteraction_compat_itemCauseBlockEffect()
+{
+	return base.MightyInteraction_compat_itemCauseBlockEffect()
+}
+
+function bool MightyInteraction_compat_ignoreOnThreatCollision()
+{
+	return base.MightyInteraction_compat_ignoreOnThreatCollision()
 }

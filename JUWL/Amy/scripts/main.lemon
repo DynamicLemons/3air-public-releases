@@ -3,10 +3,7 @@ include objects/?
 include levels/?
 include renderhooks
 
-global s16 p1_amy_bounceLoss
-global s16 p2_amy_bounceLoss
-global s16 p3_amy_bounceLoss
-global s16 p3_amy_bounceLoss
+global u8 amy_bounceLoss[4]
 
 global bool setting_amySuperstarsSounds
 global bool setting_amyAltPalette

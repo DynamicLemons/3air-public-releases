@@ -19,7 +19,7 @@ function void fn05ecb4()
 
 	objA0.update_address = 0x05ed18
 #if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-	if (objA1.render_flags & render_flag.FLIP_X && !global_ExChar_P1)
+	if (objA1.render_flags & render_flag.FLIP_X && !global_ExChar_str[0])
 #else
 	if (objA1.render_flags & render_flag.FLIP_X)
 #endif
@@ -39,7 +39,7 @@ function void fn05ecb4()
 function void fn05d8bc()
 {
 #if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES) || global_ExChar_P1)
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES) || global_ExChar_str[0])
 #else
 	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
 #endif
@@ -110,7 +110,7 @@ function void fn05e1c2()
 	base.fn05e1c2()
 	
 #if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-	if (global_ExChar_P1)
+	if (global_ExChar_str[0])
 		return
 #endif
 
@@ -122,7 +122,7 @@ function void fn05e1c2()
 function void fn05e288()
 {
 #if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES) || global_ExChar_P1)
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES) || global_ExChar_str[0])
 #else
 	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
 #endif
@@ -170,7 +170,7 @@ function void fn05ef68()
 function void fn05e2c2()
 {
 #if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES) || global_ExChar_P1)
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES) || global_ExChar_str[0])
 #else
 	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
 #endif
@@ -204,7 +204,7 @@ function void fn05dd6a()
 		objA0.base_state = 0x1e
 		u8[0xffffeec4] = 0xff
 	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-		if (!global_ExChar_P1) // hide knuckles when the island flashes
+		if (!global_ExChar_str[0]) // hide knuckles when the island flashes
 	#endif	
 			objA0.animation.sprite = 0x1a
 		if (outro.ending_type >= 0)
@@ -275,7 +275,7 @@ function void fn05b1a2()
 function void fn05e170()
 {
 #if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES) || global_ExChar_P1)
+	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES) || global_ExChar_str[0])
 #else
 	if (!isBossRushMode || !isMainCharacter(CHARACTER_KNUCKLES))
 #endif
@@ -302,12 +302,12 @@ function void fn05e170()
 		copyMemory(0xfffffc00, 0x060bea, 0x20)
 		
 	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-		if (global_ExChar_P1)
+		if (global_ExChar_str[0])
 		{
 			u32 targetAddress = 0x802000 + getMainCharacter() * 0x40
-			loadECFCharacterEndPosePalette(global_ExChar_P1, targetAddress, 0)
+			loadECFCharacterEndPosePalette(global_ExChar_str[0], targetAddress, 0)
 			targetAddress += 0x180
-			loadECFCharacterEndPosePalette(global_ExChar_P1, targetAddress, 0)
+			loadECFCharacterEndPosePalette(global_ExChar_str[0], targetAddress, 0)
 		}
 		else
 	#endif

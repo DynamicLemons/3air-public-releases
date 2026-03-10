@@ -1,8 +1,9 @@
 function void Character.Initialization.shared(u8 character)
 {
 	base.Character.Initialization.shared(character)
-	setPlayerGlobalValue("mighty_shockwave_t", 0)
-	setPlayerGlobalValue("mighty_cam_vlock", 0)
+	u8 pId = getPId()
+	mighty_shockwave_t[pId] = 0
+	mighty_cam_vlock[pId] = 0
 }
 
 //# address-hook(0x010bba) end(0x010c8e)
@@ -12,9 +13,10 @@ function void Character.UpdateNormalState.Sonic()
 	{
 		base.Character.UpdateNormalState.Sonic()
 		
-		s8 timer = getPlayerGlobalValue("mighty_shockwave_t")
+		u8 pId = getPId()
+		s8 timer = mighty_shockwave_t[pId] 
 		if (timer > 0)
-			setPlayerGlobalValue("mighty_shockwave_t", timer - 1)
+			--mighty_shockwave_t[pId]
 		return
 	}
 	else
@@ -154,7 +156,7 @@ function void MightyPressedJumpInMidAir()
 	char.animation.frame = 0
 	char.animation.timer = 0
 	
-	setPlayerGlobalValue("mighty_cam_vlock", 8)
+	mighty_cam_vlock[getPId()] = 8
 	
 	playSound(SFX_SPINDASH_RELEASE) // actually plays in Mania, gives the HD a bit more oomph to it
 	Audio.playOverride((setting_mightyManiaSounds) ? "mighty_drill" : "mighty_c_drill", AudioContext.CONTEXT_SOUND, Character.getCharAudioChannelA(), 1)
@@ -188,8 +190,9 @@ function void Mighty_startWallCling()
 	else
 		char.position.x.u16 += D1.s16
 	
-	setPlayerGlobalValue("mighty_cling_timer", (char.double_jump_state == 1) ? 30 : 0)
-	setPlayerGlobalValue("mighty_cling_dustcountdown", 0)
+	u8 pId = getPId()
+	mighty_cling_timer[pId] = (char.double_jump_state == 1) ? 30 : 0
+	mighty_cling_timer[pId] = 0
 	if (char.velocity.y > 0x380)
 		char.velocity.y >>= 3
 	else if (char.velocity.y < -0x380)
@@ -272,13 +275,13 @@ function void Character.CheckCollision()
 	}
 	
 	// reorders two landing calls to be done after velocities are set.
-#if STANDALONE
-	if (A0 == 0xffffb000)
-	{
-		// Needed only for bubble shield bounce
-		mainchar.groundhit.velocity.x = char.velocity.x
-		mainchar.groundhit.velocity.y = char.velocity.y
-	}
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	u8 pId = getPId()
+	s16 oldVX = p_groundhit_velocity_x[pId]
+	s16 oldVY = p_groundhit_velocity_y[pId]
+#else
+	s16 oldVX = mainchar.groundhit.velocity.x
+	s16 oldVY = mainchar.groundhit.velocity.y
 #endif
 
 #if CHARACTER_SELECTION_PLUS_ACTIVE
@@ -523,12 +526,12 @@ function void MightyHammerDropBounce()
 	camera.hyper_knux_shake = 0x0114
 	Audio.playOverride((setting_mightyManiaSounds) ? "mighty_land" : "mighty_c_land", AudioContext.CONTEXT_SOUND, Character.getCharAudioChannelA(), 1)
 	
-	u8 pId = ((A0.u16 - 0xb000) / 0x4a) + 1
-	setPlayerGlobalValue("mighty_shockwave_t", 2)
-	setPlayerGlobalValue("mighty_shockwave_x", objA0.position.x.u16)
-	setPlayerGlobalValue("mighty_shockwave_y", objA0.position.y.u16)
+	u8 pId = getPId()
+	mighty_shockwave_t[pId] = 2
+	mighty_shockwave_x[pId] = objA0.position.x.u16
+	mighty_shockwave_y[pId] = objA0.position.y.u16
 	
-	setPlayerGlobalValue("mighty_cam_vlock", 0)
+	mighty_cam_vlock[pId] = 0
 	
 	if (Character.getSuperState() & 0x80)
 	{
@@ -562,7 +565,8 @@ function void Character.UpdateSonicRollingInAir()
 	// Wall Cling!
 	if (char.double_jump_state == 2)
 	{
-		u8 clingtime = getPlayerGlobalValue("mighty_cling_timer")
+		u8 pId = getPId()
+		u8 clingtime = mighty_cling_timer[pId]
 		if (clingtime >= slideMax)
 			power = Math.roundToInt(0.8 * power)
 		
@@ -633,7 +637,7 @@ function void Character.UpdateSonicRollingInAir()
 		// looks cool though, so also spawn it when moving up.
 		if (clingtime >= slideMin || char.velocity.y < 0)
 		{
-			s8 countdown = getPlayerGlobalValue("mighty_cling_dustcountdown")
+			s8 countdown = mighty_cling_dustcountdown[pId]
 			
 			--countdown
 			if (countdown < 0)
@@ -646,10 +650,10 @@ function void Character.UpdateSonicRollingInAir()
 					countdown = max((maxTime - clingtime) / 3, 2)
 			}
 			
-			setPlayerGlobalValue("mighty_cling_dustcountdown", countdown)
+			mighty_cling_dustcountdown[pId] = countdown
 		}
 		else
-			setPlayerGlobalValue("mighty_cling_dustcountdown", 0)
+			mighty_cling_dustcountdown[pId] = 0
 		
 		// Mighty can slide up a little bit... as a treat.
 		if (char.velocity.y < 0 && clingtime == 0)
@@ -664,8 +668,7 @@ function void Character.UpdateSonicRollingInAir()
 		{
 			if (clingtime > slideMin)
 				char.velocity.y += Math.roundToInt(min(1.0 * (clingtime - slideMin) / slideMax, 1) * 1.0 * ((char.flags & char.flag.UNDERWATER) ? 0x10 : 0x38) / 5.0)
-			++clingtime
-			setPlayerGlobalValue("mighty_cling_timer", clingtime)
+			mighty_cling_timer[pId] = clingtime + 1
 		}
 
 		Character.UpdateRotationInAir()
@@ -758,7 +761,7 @@ function void Character.UpdateControlInAir()
 //# address-hook(0x00ff06) end(0x00ff5e)
 function void Character.CheckCollisionsWithDynamicObjects_partial()
 {
-	if (!isECFCharA0("JUWL-Mighty") || getPlayerGlobalValue("mighty_shockwave_t") == 0)
+	if (!isECFCharA0("JUWL-Mighty") || mighty_shockwave_t[getPId()] == 0)
 	{
 		base.Character.CheckCollisionsWithDynamicObjects_partial()
 		return
@@ -773,8 +776,9 @@ function void Character.CheckCollisionsWithDynamicObjects_partial()
 
 function void Character.MightyShockwaveDynamic()
 {
-	s16 waveX = getPlayerGlobalValue("mighty_shockwave_x")
-	s16 waveY = getPlayerGlobalValue("mighty_shockwave_y")
+	u8 pId = getPId()
+	s16 waveX = mighty_shockwave_x[pId] 
+	s16 waveY = mighty_shockwave_y[pId] 
 	
 #if LEMONS_TWEAKS_ACTIVE
 	if (debugDrawFlag == dev_view_dynamic)
@@ -851,10 +855,6 @@ function void Character.MightyShockwaveDynamic()
 
 function void Character.MightyShockwaveExtraCollision()
 {
-	// all this does is check for mines... so not really worth much
-	if (global.zone != 0x4)
-		return
-	
 	for (A1 = 0xffffb128; A1 < 0xffffcb2c; A1 += 0x4a)
 		Character.MightyShockwaveExtraCollisionInner()
 }
@@ -872,7 +872,8 @@ function void Character.MightyShockwaveExtraCollisionInner()
 		if (debugDrawFlag == 2)
 			debugDrawRect(px, py, sx, sy, 0x800080ff)
 		
-		if (checkBoxOverlap(getPlayerGlobalValue("mighty_shockwave_x") - 48, getPlayerGlobalValue("mighty_shockwave_y"), 96, char.hitbox.y.ROLLING + 16, px, py, sx, sy))
+		u8 pId = getPId()
+		if (checkBoxOverlap(mighty_shockwave_x[pId] - 48, mighty_shockwave_y[pId], 96, char.hitbox.y.ROLLING + 16, px, py, sx, sy))
 			objA1.update_address = 0x03c9bc
 	}
 }

@@ -12,8 +12,14 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	
 	if (objA0.update_address == 0x39A26a || objA0.update_address == 0x39A26c)
 	{
-		SpriteHandle spr = Renderer.addSpriteHandle(stringformat((objA0.subtype2c == 1) ? "mighty_hyperdust_%d" : "mighty_dust_%d", objA0.animation.sprite), px, py, renderQueue)
-		spr.setFlags(flags)
+		key = stringformat((objA0.subtype2c == 1) ? "mighty_hyperdust_%d" : "mighty_dust_%d", objA0.animation.sprite)
+		if (Renderer.hasCustomSprite(key))
+		{
+			SpriteHandle spr = Renderer.addSpriteHandle(stringformat((objA0.subtype2c == 1) ? "mighty_hyperdust_%d" : "mighty_dust_%d", objA0.animation.sprite), px, py, renderQueue)
+			spr.setFlags(flags)
+		}
+		else
+			debugLog(key)
 		return true
 	}
 	

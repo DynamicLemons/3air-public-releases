@@ -1,6 +1,6 @@
 function void initializeMainGame()
 {
-	if (levelselect_ExChar_P1_id == 0)
+	if (global_ExChar_num[0] == 0)
 	{
 		base.initializeMainGame()
 		return
@@ -347,7 +347,7 @@ function void ECF_introMusicAndTitlecardStuff()
 {
 	// unchanged, but located to this function to be more easily replacable.
 	
-	bool isKnucklesIntro = (Game.getSetting(SETTING_AIZ_INTRO_KNUCKLES) != 0 && global.zone_act == 0x0000 && ECF_AIZ_introBase(global_ExChar_P1) == CHARACTER_KNUCKLES && checkpoint.number == 0 && !Game.isTimeAttack())
+	bool isKnucklesIntro = (Game.getSetting(SETTING_AIZ_INTRO_KNUCKLES) != 0 && global.zone_act == 0x0000 && ECF_AIZ_introBase(global_ExChar_str[0]) == CHARACTER_KNUCKLES && checkpoint.number == 0 && !Game.isTimeAttack())
 	
 	u8 musicId
 	if (global.zone_act == 0x0001 && checkpoint.number == 3)
@@ -389,7 +389,7 @@ function void ECF_introMusicAndTitlecardStuff()
 	}
 
 	bool isAnyIntro = false
-	if (global.zone_act == 0x0000 && ECF_AIZ_introBase(global_ExChar_P1) == CHARACTER_SONIC)
+	if (global.zone_act == 0x0000 && ECF_AIZ_introBase(global_ExChar_str[0]) == CHARACTER_SONIC)
 	{
 		// Angel Island Act 1
 		isAnyIntro = isSonicIntro()
@@ -437,42 +437,24 @@ function void ECF_introMusicAndTitlecardStuff()
 //# address-hook(0x0067b6) end(0x0067ec)
 function void SetGlobalCharacters()
 {
-	if (global.game_mode != 0x88 && competition_mode.active == 0 && levelselect_ExChar_P1_id)
-	{
-		global.characters = getECFGlobalCharId(getECFCharNameAtId(levelselect_ExChar_P1_id))
-		global_ExChar_P1_id = levelselect_ExChar_P1_id
-		global_ExChar_P1 = getECFCharNameAtId(global_ExChar_P1_id)
-		global_ExChar_P2_id = levelselect_ExChar_P2_id
-		global_ExChar_P2 = getECFCharNameAtId(global_ExChar_P2_id)
-
-		ExChar_P1 = global_ExChar_P1
-		ExChar_P1_id = global_ExChar_P1_id
-		ExChar_P2 = global_ExChar_P2
-		ExChar_P2_id = global_ExChar_P2_id
+	ExChar_str[0] = global_ExChar_str[0]
+	ExChar_num[0] = global_ExChar_num[0]
+	ExChar_str[1] = global_ExChar_str[1]
+	ExChar_num[1] = global_ExChar_num[1]
 	
-		// failsafe.
+	if (global.game_mode != 0x88 && competition_mode.active == 0 && global_ExChar_num[0])
+	{
+		global.characters = getECFGlobalCharId(getECFCharNameAtId(global_ExChar_num[0]))
 		useKnucklesAndTails = false
 	}
 	else
-	{
-		ExChar_P1 = 0
-		ExChar_P1_id = 0
-		ExChar_P2 = 0
-		ExChar_P2_id = 0
-		
-		global_ExChar_P1 = 0
-		global_ExChar_P1_id = 0
-		global_ExChar_P2 = 0
-		global_ExChar_P2_id = 0
-	
 		base.SetGlobalCharacters()
-	}
 }
 
 //# address-hook(0x01be46) end(0x01bfae)
 function void SetupCharacterAtStartPosition()
 {
-	if (checkpoint.number != 0 || global_ExChar_P1 == 0 || ECF_disableBranchBase)
+	if (checkpoint.number != 0 || global_ExChar_str[0] == 0 || ECF_disableBranchBase)
 	{
 		base.SetupCharacterAtStartPosition()
 		return
@@ -481,12 +463,12 @@ function void SetupCharacterAtStartPosition()
 	// Angel Island Act 1 
 	// Stop Knuckles based characters from softlocking by enforcing the right spawn location
 	// ... Ignores 3AIR spawn location, due to that being hardcoded, but maybe that's a good thing...
-	if (global.zone_act == 0x0000 && ECF_AIZ_introBase(global_ExChar_P1) == CHARACTER_TAILS && isMainCharacter(CHARACTER_KNUCKLES))
+	if (global.zone_act == 0x0000 && ECF_AIZ_introBase(global_ExChar_str[0]) == CHARACTER_TAILS && isMainCharacter(CHARACTER_KNUCKLES))
 		SetupCharacterAtStartPosition_simple()
 	// IceCap Act 1
 	// See level_icz for teleporter handling.
 	// Setup for crashing into the wall
-	else if (global.zone_act == 0x0500 && ECF_ICZ_introBase(global_ExChar_P1) == CHARACTER_TAILS)
+	else if (global.zone_act == 0x0500 && ECF_ICZ_introBase(global_ExChar_str[0]) == CHARACTER_TAILS)
 	{
 		u16[0xffffb000 + 0x10] = 0x3780
 		u16[0xffffb000 + 0x14] = 0x01e0
@@ -502,7 +484,7 @@ function void SetupCharacterAtStartPosition()
 		camera.position.y.u16.player2 = 0x0200
 	}
 	// For Snowboarding
-	else if (global.zone_act == 0x0500 && !isMainCharacter(CHARACTER_SONIC) && ECF_ICZ_introBase(global_ExChar_P1) != CHARACTER_KNUCKLES)
+	else if (global.zone_act == 0x0500 && !isMainCharacter(CHARACTER_SONIC) && ECF_ICZ_introBase(global_ExChar_str[0]) != CHARACTER_KNUCKLES)
 		SetupCharacterAtStartPosition_simple(0x1e3c18)
 	else
 		base.SetupCharacterAtStartPosition()
@@ -552,19 +534,19 @@ function void SetupCharacterAtStartPosition_simple(u16 px, u16 py)
 //# address-hook(0x0067ee) end(0x0069b6)
 function void fn0067ee()
 {
-	if (checkpoint.number != 0 || global.stage_type != 0 || global_ExChar_P1 == 0 || ECF_disableBranchBase)
+	if (checkpoint.number != 0 || global.stage_type != 0 || global_ExChar_str[0] == 0 || ECF_disableBranchBase)
 		base.fn0067ee()
 	else if (global.zone_act == 0x0000)
 	{
 		zoneInit_shared()
 		// Angel Island Zone
-		if (ECF_AIZ_introBase(global_ExChar_P1) == CHARACTER_SONIC)
+		if (ECF_AIZ_introBase(global_ExChar_str[0]) == CHARACTER_SONIC)
 		{
 			// Trigger intro
 			u32[0xffffb172] = 0x067472		// Intro cutscene controller
 			global.level_started = 0
 		}
-		else if (ECF_AIZ_introBase(global_ExChar_P1) == CHARACTER_KNUCKLES)
+		else if (ECF_AIZ_introBase(global_ExChar_str[0]) == CHARACTER_KNUCKLES)
 			u32[0xffffb172] = 0x063446
 	}
 	// Carnival Night / Mushroom Hill
@@ -599,9 +581,9 @@ function void fn0067ee()
 		zoneInit_shared()
 		
 		// IceCap Zone
-		if (ECF_ICZ_introBase(global_ExChar_P1) == CHARACTER_SONIC)
+		if (ECF_ICZ_introBase(global_ExChar_str[0]) == CHARACTER_SONIC)
 			u32[0xffffb172] = 0x0396e4
-		else if (ECF_ICZ_introBase(global_ExChar_P1) == CHARACTER_TAILS)
+		else if (ECF_ICZ_introBase(global_ExChar_str[0]) == CHARACTER_TAILS)
 			u32[0xffffb172] = 0x039b66
 	}
 	else
@@ -689,10 +671,10 @@ function void copyPaletteDataFromTable(u8 index, u16 ramAddress)
 
 			for (u16 i; i <= CHARACTER_KNUCKLES; ++i)
 			{
-				if (global_ExChar_P1 && getECFCharBase(global_ExChar_P1) == i)
-					loadECFCharacterPalette(global_ExChar_P1, dest + i * 0x40, paletteVariant)
-				else if (global_ExChar_P2 && getECFCharBase(global_ExChar_P2) == i)
-					loadECFCharacterPalette(global_ExChar_P2, dest + i * 0x40, paletteVariant)
+				if (global_ExChar_str[0] && getECFCharBase(global_ExChar_str[0]) == i)
+					loadECFCharacterPalette(global_ExChar_str[0], dest + i * 0x40, paletteVariant)
+				else if (global_ExChar_str[1] && getECFCharBase(global_ExChar_str[1]) == i)
+					loadECFCharacterPalette(global_ExChar_str[1], dest + i * 0x40, paletteVariant)
 				else
 					loadCharacterPalette(i, dest + i * 0x40, paletteVariant)
 			}

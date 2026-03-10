@@ -46,7 +46,7 @@ function bool Character_doesLandedObjectCancelAbility()
 		return true
 	// breakable floors
 	else if (objA1.update_address == 0x01faf2 && objA1.subtype2c & 0x01 || objA1.update_address == 0x02a502 || objA1.update_address == 0x04172e || objA1.update_address == 0x08b384)
-		return getPlayerGlobalValue("landedInObjBreakState") // this runs a bit too late to properly invoke ECF_canCharBreakFloor(), referencing this var instead
+		return landedInObjBreakState[getPId()] // this runs a bit too late to properly invoke ECF_canCharBreakFloor(), referencing this var instead
 	// hcz spinning pillar
 	else if (objA1.update_address == 0x0326b6)
 		return true

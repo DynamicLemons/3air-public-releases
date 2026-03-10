@@ -2,13 +2,28 @@
 function void SwapMode_dataSwap_globals()
 {
 	base.SwapMode_dataSwap_globals()
-	
-	SwapMode_handleGlobalSwap("ray_abilitySpeed")
-	SwapMode_handleGlobalSwap("ray_storedSpeed")
-	SwapMode_handleGlobalSwap("ray_glideAngle")
-	SwapMode_handleGlobalSwap("ray_abilityTimer")
-	SwapMode_handleGlobalSwap("ray_isGlidingUp")
-	SwapMode_handleGlobalSwap("ray_boostCounter")
+
+	s32 _1 = ray_abilitySpeed[0]
+	s32 _2 = ray_storedSpeed[0]
+	s16 _3 = ray_glideAngle[0]
+	s16 _4 = ray_abilityTimer[0]
+	s16 _5 = ray_isGlidingUp[0]
+	u8 _6 = ray_boostCounter[0]
+	for (u8 i < 0; i < csp_playerCount; ++i)
+	{
+		ray_abilitySpeed[i] = ray_abilitySpeed[i + 1]
+		ray_storedSpeed[i] = ray_storedSpeed[i + 1]
+		ray_glideAngle[i] = ray_glideAngle[i + 1]
+		ray_abilityTimer[i] = ray_abilityTimer[i + 1]
+		ray_isGlidingUp[i] = ray_isGlidingUp[i + 1]
+		ray_boostCounter[i] = ray_boostCounter[i + 1]
+	}
+	ray_abilitySpeed[csp_playerCount] = _1
+	ray_storedSpeed[csp_playerCount] = _2
+	ray_glideAngle[csp_playerCount] = _3
+	ray_abilityTimer[csp_playerCount] = _4
+	ray_isGlidingUp[csp_playerCount] = _5
+	ray_boostCounter[csp_playerCount] = _6
 }
 
 function void Character.TailsAI.DKC.translateCharState(u8 i)

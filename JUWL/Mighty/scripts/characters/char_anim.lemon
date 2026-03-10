@@ -10,7 +10,7 @@ function void UpdateSonicAnimation()
 {
 	if (objA0.update_address == 0x04dfee)
 	{
-		if (global_ExChar_P1 != "JUWL-Mighty")
+		if (global_ExChar_str[0] != "JUWL-Mighty")
 		{
 			base.UpdateSonicAnimation()
 			return

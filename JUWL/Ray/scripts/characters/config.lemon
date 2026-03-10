@@ -106,7 +106,7 @@ function string getECFCharacterResultsNameplate(string name)
 }
 function string Lemons_getSlotIcon(u8 i)
 {
-	if (global_ExChar_P1 == "JUWL-Ray")
+	if (global_ExChar_str[0] == "JUWL-Ray")
 	{
 		string key
 		if (i == 2)

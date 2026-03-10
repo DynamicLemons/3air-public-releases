@@ -1,7 +1,7 @@
 //# address-hook(0x04df86) end(0x04dfe8)
 function void fn04df86()
 {
-	if (global_ExChar_P1 == "JUWL-Amy")
+	if (global_ExChar_str[0] == "JUWL-Amy")
 	{
 		objA0.sprite_attributes = (sprite_attribute.PRIORITY | (Char.Player1.targetInVRAM >> 5))
 		objA0.position.x.u16 = 0x0120 + getScreenExtend()

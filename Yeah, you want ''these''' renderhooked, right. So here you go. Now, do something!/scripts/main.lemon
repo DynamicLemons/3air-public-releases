@@ -90,11 +90,11 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	
 	// Bubble
 	else if (objA0.update_address == 0x019922)
-		key = stringformat("shield_bubl_%x", objA0.animation.sprite)
+		key = stringformat("shield_bubble_%x", objA0.animation.sprite)
 	
 	// Lightning
 	else if (objA0.update_address == 0x019732 || objA0.update_address == 0x019874 && objA0.mapping_offset == 0x19dc8)
-		key = stringformat("shield_lght_%x", objA0.animation.sprite)
+		key = stringformat("shield_lightning_%x", objA0.animation.sprite)
 	
 	// Spikes
 	else if (objA0.mapping_offset == 0x024456)

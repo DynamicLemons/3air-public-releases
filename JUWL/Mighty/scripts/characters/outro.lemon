@@ -1,7 +1,7 @@
 function void ECF_EndScreen_char_init()
 {
 	base.ECF_EndScreen_char_init()
-	if (global_ExChar_P1 == "JUWL-Mighty")
+	if (global_ExChar_str[0] == "JUWL-Mighty")
 	{
 		objA0.position.x.u16 += 38
 	#if LEMONS_IMPROVED_RENDERHOOKS_ACTIVE

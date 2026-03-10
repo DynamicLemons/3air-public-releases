@@ -3,7 +3,7 @@
 //# address-hook(0x02dd3e) end(0x02dd92)
 function void LevelResults.UpdateCharacterNameDisplay()
 {
-	if (!ExChar_P1 || ECF_disableBranchBase)
+	if (!ExChar_str[0] || ECF_disableBranchBase)
 	{
 		base.LevelResults.UpdateCharacterNameDisplay()
 		return
@@ -34,7 +34,7 @@ function void LevelResults.UpdateCharacterNameDisplay()
 
 	// 0x13 - Sonic | 0x14 - Miles | 0x15 - Tails | 0x16 - Knuckles
 	u16 originalSize = (objA0.animation.sprite == 0x15) ? 64 : (objA0.animation.sprite == 0x16) ? 120 : 72
-	s16 offset = originalSize - ECF_getResultsNameTagWidth(ExChar_P1)
+	s16 offset = originalSize - ECF_getResultsNameTagWidth(ExChar_str[0])
 	
 	objA0.position.x.u16 += offset
 	u16[A0 + 0x46] += offset
@@ -51,10 +51,10 @@ function void LevelResults.UpdateCharacterNameDisplay()
 function void fn02ec80()
 {
 	base.fn02ec80()
-	if (ExChar_P1 && !ECF_disableBranchBase)
+	if (ExChar_str[0] && !ECF_disableBranchBase)
 	{
 		// 0 - Sonic | 1 - Miles | 2 - Tails | 3 - Knuckles
 		u16 originalSize = (D0 == 2) ? 64 : (D0 == 3) ? 120 : 72
-		D0 = (originalSize - ECF_getResultsNameTagWidth(ExChar_P1)) / 2
+		D0 = (originalSize - ECF_getResultsNameTagWidth(ExChar_str[0])) / 2
 	}
 }

@@ -48,7 +48,7 @@ function void Mighty_landingDust()
 			return
 		}
 	}
-	
+
 	if (char.flags & char.flag.IN_AIR)
 	{
 		UpdateMovementStraight()

@@ -1,7 +1,7 @@
 // ... in case you needed to disable your zone variant- or have more, I suppose.
 function string ECF_getZoneRawdataVariant()
 {
-	return global_ExChar_P1
+	return global_ExChar_str[0]
 }
 
 function u32 Standalone.loadRawLevelData(string format, u16 zoneAndAct, u32 targetAddress)

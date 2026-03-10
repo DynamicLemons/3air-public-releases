@@ -1,7 +1,7 @@
 // Remove intros by default.
 function bool isSonicIntro()
 {
-	if (global_ExChar_P1 && ECF_AIZ_introBase(global_ExChar_P1) != CHARACTER_SONIC && !ECF_disableBranchBase)
+	if (global_ExChar_str[0] && ECF_AIZ_introBase(global_ExChar_str[0]) != CHARACTER_SONIC && !ECF_disableBranchBase)
 		return false
 	return base.isSonicIntro()
 }
@@ -9,7 +9,7 @@ function bool isSonicIntro()
 //# address-hook(0x01c4d0) end(0x01c54e)
 function void fn01c4d0()
 {
-	if (!global_ExChar_P1 || ECF_disableBranchBase)
+	if (!global_ExChar_str[0] || ECF_disableBranchBase)
 	{
 		base.fn01c4d0()
 		return
@@ -23,7 +23,7 @@ function void fn01c4d0()
 
 	if (camera.position.x.u16 >= 0x1400)
 	{
-		if (checkpoint.number == 0 && ECF_AIZ_introBase(global_ExChar_P1) == CHARACTER_SONIC)
+		if (checkpoint.number == 0 && ECF_AIZ_introBase(global_ExChar_str[0]) == CHARACTER_SONIC)
 		{
 			Kosinski.addToDecompressionQueue(0x3a458a, 0xffff9268)
 			Kosinski.addToDMAQueue(0x3a944e, 0x17c0)
@@ -49,7 +49,7 @@ function void fn01c4d0()
 //# address-hook(0x01c46e) end(0x01c4ce)
 function void fn01c46e()
 {
-	if (!global_ExChar_P1 || ECF_disableBranchBase)
+	if (!global_ExChar_str[0] || ECF_disableBranchBase)
 	{
 		base.fn01c46e()
 		return
@@ -62,7 +62,7 @@ function void fn01c46e()
 		move_area.left = camera.position.x.u16
 		if (camera.position.x.u16 >= 0x1308 - getScreenExtend())	// Not exact, but works for 416px
 		{
-			u8 _chr = ECF_AIZ_introBase(global_ExChar_P1)
+			u8 _chr = ECF_AIZ_introBase(global_ExChar_str[0])
 			if (checkpoint.number == 0 && _chr == CHARACTER_SONIC)
 				requestLoadingPatterns(0x0b)		// AIZ1 object sprites
 				
