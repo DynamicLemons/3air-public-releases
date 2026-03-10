@@ -96,7 +96,7 @@ function void DataSelect.setup()
 		global_ExChar_str[i] = 0
 		global_ExChar_num[i] = 0
 	}
-	noSave_ExChar_P1_id = 0
+	ECF_NoSave_num = 0
 	
 	System.callFunctionByName("ECF_loadIdValues")
 #endif
@@ -1352,8 +1352,8 @@ function void ESS_saveBoxGetColors(u8 num)
 	{
 		u8 saveChar = (num == 0) ? dataselect.nosave_characters : u16[temp0 + 0x34]
 	#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-		u16 e_id = (num >= 9) ? ESS_tempECFChar_id : (num == 0) ? noSave_ExChar_P1_id : ECF_Save_num[num - 1]
-		string e_name = (num >= 9) ? ESS_tempECFChar_name : (num == 0) ? getECFCharNameAtId(noSave_ExChar_P1_id) : ECF_Save_str[num - 1]
+		u16 e_id = (num >= 9) ? ESS_tempECFChar_id : (num == 0) ? ECF_NoSave_num : ECF_Save_num[num - 1]
+		string e_name = (num >= 9) ? ESS_tempECFChar_name : (num == 0) ? getECFCharNameAtId(ECF_NoSave_num) : ECF_Save_str[num - 1]
 		if (e_name)
 		{
 			if (e_id)
