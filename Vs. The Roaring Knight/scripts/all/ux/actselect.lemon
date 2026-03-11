@@ -338,19 +338,23 @@ function void ActSelect.Menu(u8 fadeInMethod)
 				else
 				{
 				#if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-					if (levelselect.characters >= ActSelect.GetNumCharacterCombinations())
+					if (ECF_charList_length)
 					{
-						while (true)
+						if (levelselect.characters >= ActSelect.GetNumCharacterCombinations())
 						{
-							levelselect.characters = min(levelselect.characters + optionChange, ECF_lastSelectableId + CHARS_KNUCKLES_AND_TAILS)
-							if (!ECF_isSelectionHidden(getECFCharNameAtId(levelselect.characters - CHARS_KNUCKLES_AND_TAILS)))
-								break
+							while (true)
+							{
+								levelselect.characters = min(levelselect.characters + optionChange, ECF_lastSelectableId + CHARS_KNUCKLES_AND_TAILS)
+								if (!ECF_isSelectionHidden(getECFCharNameAtId(levelselect.characters - CHARS_KNUCKLES_AND_TAILS)))
+									break
+							}
 						}
+						else
+							levelselect.characters = clamp(s16(levelselect.characters) + optionChange, 0, ActSelect.GetNumCharacterCombinations())
 					}
-					else
-						levelselect.characters = clamp(s16(levelselect.characters) + optionChange, 0, ActSelect.GetNumCharacterCombinations())
 				#else
-					levelselect.characters = clamp(s16(levelselect.characters) + optionChange, 0, ActSelect.GetNumCharacterCombinations() - 1)
+					else
+						levelselect.characters = clamp(s16(levelselect.characters) + optionChange, 0, ActSelect.GetNumCharacterCombinations() - 1)
 				#endif
 				}
 			}
