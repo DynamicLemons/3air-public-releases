@@ -69,7 +69,7 @@ function void Standalone.onLevelStart()
 	CSP_setControllerColors()
 	Game.onLevelStart()
 	CSP_setRPC()
-#else if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
+#elif EXTRA_CHARACTER_FRAMEWORK_ACTIVE
 	ECF_setControllerColors()
 	Game.onLevelStart()
 	ECF_setRPC()
