@@ -1273,11 +1273,8 @@ function void ESS_drawFakeSave(u8 sav, s16 px, s16 py, u8 page)
 	string file = ESS_getSaveStr("s3air_saveslots")
 	
 	u8 slotIndex = sav + 1
-#if GAMEAPP >= 0x24120500
+
 	if (loadAndMigratePersistentData(0x800000, 4, file, stringformat("ECF_save%dChar_bytes", slotIndex), false))
-#else
-	if (System.loadPersistentData(0x800000, stringformat("ECF_save%dChar_bytes", slotIndex), 4))
-#endif
 	{
 		if (u32[0x800000])
 		{
@@ -1411,8 +1408,8 @@ function void ESS_drawCharIcons(u8 combo, s16 px, s16 py, u16 num)
 	string lives
 	string conts
 #if EXTRA_CHARACTER_FRAMEWORK_ACTIVE
-	string name = ECF_Save_str[num]
-	string id = ECF_Save_num[num]
+	string name = (A0 == 0xffffb378) ? ESS_tempECFChar_name : ECF_dataselect_getStr()
+	u16 id = (A0 == 0xffffb378) ? ESS_tempECFChar_id : ECF_dataselect_getNum()
 	
 	if (name)
 	{
