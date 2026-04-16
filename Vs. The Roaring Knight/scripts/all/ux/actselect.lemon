@@ -353,9 +353,8 @@ function void ActSelect.Menu(u8 fadeInMethod)
 							levelselect.characters = clamp(s16(levelselect.characters) + optionChange, 0, ActSelect.GetNumCharacterCombinations())
 					}
 					else
-				#else
-						levelselect.characters = clamp(s16(levelselect.characters) + optionChange, 0, ActSelect.GetNumCharacterCombinations() - 1)
 				#endif
+						levelselect.characters = clamp(s16(levelselect.characters) + optionChange, 0, ActSelect.GetNumCharacterCombinations() - 1)
 				}
 			}
 
