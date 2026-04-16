@@ -525,6 +525,21 @@ function void fn0532b6()
 	fn0532e0()
 }
 
+// ssz_spinningdisc
+//# address-hook(0x045f74) end(0x0460a2)
+function void fn045f74()
+{
+	if (u8[A3] && u16[A2] & CONTROL_ABC)
+	{
+		base.fn045f74()
+		objA1.hitbox_extends.x = ECF_getCharRollWidth(A1)
+		objA1.hitbox_extends.y = ECF_getCharRollHeight(A1)
+		return
+	}
+	else
+		base.fn045f74()
+}
+
 // dez_hangcarrier
 //# address-hook(0x04703e) end(0x04717c)
 function void fn04703e()
@@ -785,10 +800,12 @@ function void fn048fa4()
 				D0.u16 = 0x1000
 				D3 = 8
 			}
+			
+			D0.s16 -= s32(u8[A1 + 0x44] - char.hitbox.y.UPRIGHT + 4) << 8
 
 			D1.s32 = s32(D1.s16) * D0.s16
 			D1 = (D1 << 16) + (D1 >> 16)
-			D2.u16 = objA0.position.y.u16 + Math.roundToInt(D1.s16 * 1.0 * char.hitbox.y.UPRIGHT / u8[A1 + 0x44])
+			D2.u16 = objA0.position.y.u16 + D1.s16
 			objA1.position.y.u16 = D2.u16
 			D0.u8 = u8[A2]
 			u8[A1 + 0x27] = D0.u8		// Set x-rotation of character
