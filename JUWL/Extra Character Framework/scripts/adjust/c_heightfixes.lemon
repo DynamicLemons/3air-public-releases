@@ -209,6 +209,64 @@ function void fn01c9e0()
 	}
 }
 
+// lbz_springbooster
+//# address-hook(0x026164) end(0x0261ec)
+function void fn026164()
+{
+	if (u8[A1 + 0x44] <= char.hitbox.y.UPRIGHT)
+	{
+		base.fn026164()
+		return
+	}
+	
+	D0.u16 = objA0.position.x.u16
+	D1.u16 = D0.u16 + 0x10
+	D0.u16 -= 0x10
+	
+	D2.u16 = objA0.position.y.u16
+	D3.u16 = D2.u16 + 0x10
+	D2.u16 -= 0x10
+
+	A1 = 0xffffb000
+	SpringBooster.checkCharacter()
+
+	A1 = 0xffffb04a
+	SpringBooster.checkCharacter()
+
+	DrawOrUnloadObject()
+}
+
+function void SpringBooster.checkCharacter()
+{
+	if (u8[A1 + 0x44] <= char.hitbox.y.UPRIGHT)
+	{
+		D4.u16 = objA1.position.x.u16
+		if (D4.u16 >= D0.u16 && D4.u16 < D1.u16)
+		{
+			D4.u16 = objA1.position.y.u16
+			if (D4.u16 >= D2.u16 && D4.u16 < D3.u16)
+			{
+				A2 = A0 + 0x3a
+				fn0261f2()
+			}
+		}
+	}
+	else
+	{
+		D4.u16 = objA1.position.x.u16
+		if (D4.u16 >= D0.u16 && D4.u16 < D1.u16)
+		{
+			D4.u16 = objA1.position.y.u16 - char.hitbox.y.UPRIGHT + objA1.hitbox_extends.y
+			if (D4.u16 >= D2.u16 && D4.u16 < D3.u16)
+			{
+				A2 = A0 + 0x3a
+				fn0261f2()
+			}
+		}
+	}
+}
+
+
 // lbz_cupelevator
 //# address-hook(0x02694e) end(0x026aac)
 function void CupElevator.Init()

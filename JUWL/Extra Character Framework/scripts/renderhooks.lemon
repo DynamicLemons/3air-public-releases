@@ -609,8 +609,10 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	// Best ending congrats character
 	else if (objA0.update_address == addressof(ECF_EndScreen_char))
 	{
-		key = stringformat("%s_ending_%d_%d", getECFCharacterSpriteKey(global_ExChar_str[objA0.subtype2c + 1], false), objA0.state, objA0.animation.frame)
-		atex = 0x40 + getECFCharBase(global_ExChar_str[0]) * 0x20
+		string chr = global_ExChar_str[objA0.subtype2c]
+		
+		key = stringformat("%s_ending_%d_%d", getECFCharacterSpriteKey(chr, false), objA0.state, objA0.animation.frame)
+		atex = 0x40 + getECFCharBase(chr) * 0x20
 		if (Renderer.hasCustomSprite(key))
 			Renderer.drawSprite(key, px, py, atex, SPRITE_FLAG_PRIO, renderQueue)
 		else

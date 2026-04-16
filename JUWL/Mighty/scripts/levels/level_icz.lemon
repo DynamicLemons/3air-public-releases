@@ -7,12 +7,9 @@ function void fn01c9e0()
 		return
 	}
 	
-	if (camera.position.x.u16 >= 0x3700 && camera.position.y.u16 >= 0x068c)
-	{
-		u8[0xffffeec6] = 0xff
+	base.fn01c9e0()
+	if (u8[0xffffeec6])
 		level.vertical_wrap = 0x068c - getScreenHeight()
-		camera.update_routine += 2
-	}
 }
 
 
@@ -25,10 +22,7 @@ function void fn01c9fa()
 		return
 	}
 	
-	if (camera.position.x.u16 >= 0x3940)
-	{
-		u8[0xffffeec6] = 0xff
+	base.fn01c9fa()
+	if (u8[0xffffeec6])
 		level.vertical_wrap = 0xff00
-		camera.update_routine += 2
-	}
 }

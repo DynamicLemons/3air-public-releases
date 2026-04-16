@@ -3,9 +3,9 @@ include objects/?
 
 global s32 ray_abilitySpeed[4]
 global s32 ray_storedSpeed[4]
-global s16 ray_glideAngle[4]
 global s16 ray_abilityTimer[4]
-global s16 ray_isGlidingUp[4]
+global u8 ray_glideAngle[4]
+global u8 ray_isGlidingUp[4]
 global u8 ray_boostCounter[4]
 
 global bool setting_rayManiaSounds

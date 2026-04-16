@@ -35,15 +35,14 @@ function void Character.updateJumpMoves()
 	u8 input_pressed   = Character.getControlVariable(1)
 	bool isSuperActive = Character.getSuperState()
 	
-#if CHARACTER_SELECTION_PLUS_ACTIVE
-	bool secondaryMode = (A0 != 0xffffb000 && isSoloMode)
-#else
-	bool secondaryMode = false
-#endif
-		
 	if (char.jumping == 2)
 	{
-		if (char.double_jump_state == 0 && !secondaryMode)
+	#if CHARACTER_SELECTION_PLUS_ACTIVE
+		if (Character.disableJumpAbilities())
+			return
+	#endif
+	
+		if (char.double_jump_state == 0)
 		{
 		#if STANDALONE
 			if (Input.buttonPressed(BUTTON_Y))
@@ -82,7 +81,12 @@ function void Character.updateJumpMoves()
 		else
 	#endif
 		{
-			if (char.double_jump_state == 0 && !secondaryMode)
+		#if CHARACTER_SELECTION_PLUS_ACTIVE
+			if (Character.disableJumpAbilities())
+				return
+		#endif
+		
+			if (char.double_jump_state == 0)
 			{
 				#if STANDALONE
 					if (Input.buttonPressed(BUTTON_Y))
@@ -108,8 +112,13 @@ function void Character.updateJumpMoves()
 		}
 	}
 	// Allow for Hammer Drop to cancel into Wall Cling
-	else if (char.double_jump_state == 1 && input_pressed & CONTROL_ABC && setting_mightyWallJump && !secondaryMode)
+	else if (char.double_jump_state == 1 && input_pressed & CONTROL_ABC && setting_mightyWallJump)
 	{
+	#if CHARACTER_SELECTION_PLUS_ACTIVE
+		if (Character.disableJumpAbilities())
+			return
+	#endif
+		
 		Character_checkWallInFront()
 		if (D1.s16 <= 10 && (input_state & CONTROL_LEFT && char.flags & char.flag.FACING_LEFT || input_state & CONTROL_RIGHT && (char.flags & char.flag.FACING_LEFT) == 0))
 		{
@@ -254,7 +263,7 @@ function void Character.LandingOnGroundResetState()
 #if LEMONS_TWEAKS_ACTIVE
 	u32 A1_o = A1
 	A1 = 0xffff0000 + char.object_standing_on
-	if (MightyInteraction_getType() && char.flags & char.flag.ON_OBJECT && char.state.former == char.state.ROLLING && char.invuln.countdown == 0)
+	if (Character_interaction_cancelAbilityLanding() && MightyInteraction_getType() && char.flags & char.flag.ON_OBJECT && char.state.former == char.state.ROLLING && char.invuln.countdown == 0)
 		char.state = char.state.ROLLING
 	A1 = A1_o
 #endif
@@ -277,11 +286,15 @@ function void Character.CheckCollision()
 	// reorders two landing calls to be done after velocities are set.
 #if CHARACTER_SELECTION_PLUS_ACTIVE
 	u8 pId = getPId()
-	s16 oldVX = p_groundhit_velocity_x[pId]
-	s16 oldVY = p_groundhit_velocity_y[pId]
+	p_groundhit_velocity_x[pId] = char.velocity.x
+	p_groundhit_velocity_y[pId] = char.velocity.y
 #else
-	s16 oldVX = mainchar.groundhit.velocity.x
-	s16 oldVY = mainchar.groundhit.velocity.y
+	if (A0 == 0xffffb000)
+	{
+		// Needed only for bubble shield bounce
+		mainchar.groundhit.velocity.x = char.velocity.x
+		mainchar.groundhit.velocity.y = char.velocity.y
+	}
 #endif
 
 #if CHARACTER_SELECTION_PLUS_ACTIVE
@@ -540,6 +553,18 @@ function void MightyHammerDropBounce()
 	}
 	Input.setControllerRumbleByAddress(A0, 0.5f, 1.0f, 200)
 }
+
+function void MightyInteraction_onHammerDrop()
+{
+	if (MightyInteraction_compat_getType())
+		return
+}
+
+function bool MightyInteraction_compat_onHammerDrop()
+{
+	return base.MightyInteraction_compat_onHammerDrop()
+}
+
 
 //# address-hook(0x011036) end(0x01105e)
 function void Character.UpdateSonicRollingInAir()

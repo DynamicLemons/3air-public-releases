@@ -3,27 +3,28 @@ function void SwapMode_dataSwap_globals()
 {
 	base.SwapMode_dataSwap_globals()
 
-	u8 _1 = mighty_shockwave_t[0]
-	u16 _2 = mighty_shockwave_x[0]
-	u16 _3 = mighty_shockwave_y[0]
-	u8 _4 = mighty_cam_vlock[0]
-	u8 _5 = mighty_cling_timer[0]
-	s8 _6 = mighty_cling_dustcountdown[0]
-	for (u8 i < 0; i < csp_playerCount; ++i)
-	{
-		mighty_shockwave_t[i] = mighty_shockwave_t[i + 1]
-		mighty_shockwave_x[i] = mighty_shockwave_x[i + 1]
-		mighty_shockwave_y[i] = mighty_shockwave_y[i + 1]
-		mighty_cam_vlock[i] = mighty_cam_vlock[i + 1]
-		mighty_cling_timer[i] = mighty_cling_timer[i + 1]
-		mighty_cling_dustcountdown[i] = mighty_cling_dustcountdown[i + 1]
-	}
-	mighty_shockwave_t[csp_playerCount] = _1
-	mighty_shockwave_x[csp_playerCount] = _2
-	mighty_shockwave_y[csp_playerCount] = _3
-	mighty_cam_vlock[csp_playerCount] = _4
-	mighty_cling_timer[csp_playerCount] = _5
-	mighty_cling_dustcountdown[csp_playerCount] = _6
+	mighty_cam_vlock[0] = 0
+	mighty_cam_vlock[1] = 0
+	mighty_cam_vlock[2] = 0
+	mighty_cam_vlock[3] = 0
+	
+	SwapMode_handleGlobalSwapArray_u8(mighty_cling_timer[0], mighty_cling_timer[1], mighty_cling_timer[2], mighty_cling_timer[3])
+	for (u8 i = 0; i < csp_playerCount; ++i)
+		mighty_cling_timer[i] = SwapMode_temp_u8[i]
+		
+	SwapMode_handleGlobalSwapArray_s8(mighty_shockwave_t[0], mighty_shockwave_t[1], mighty_shockwave_t[2], mighty_shockwave_t[3])
+	for (u8 i = 0; i < csp_playerCount; ++i)
+		mighty_shockwave_t[i] = SwapMode_temp_s8[i]
+	SwapMode_handleGlobalSwapArray_s8(mighty_cling_dustcountdown[0], mighty_cling_dustcountdown[1], mighty_cling_dustcountdown[2], mighty_cling_dustcountdown[3])
+	for (u8 i = 0; i < csp_playerCount; ++i)
+		mighty_cling_dustcountdown[i] = SwapMode_temp_s8[i]
+		
+	SwapMode_handleGlobalSwapArray_u16(mighty_shockwave_x[0], mighty_shockwave_x[1], mighty_shockwave_x[2], mighty_shockwave_x[3])
+	for (u8 i = 0; i < csp_playerCount; ++i)
+		mighty_shockwave_x[i] = SwapMode_temp_u16[i]
+	SwapMode_handleGlobalSwapArray_u16(mighty_shockwave_y[0], mighty_shockwave_y[1], mighty_shockwave_y[2], mighty_shockwave_y[3])
+	for (u8 i = 0; i < csp_playerCount; ++i)
+		mighty_shockwave_y[i] = SwapMode_temp_u16[i]
 }
 
 function void SwapMode_onHotSwap()
@@ -41,25 +42,19 @@ function void SwapMode_onHotSwap()
 }
 
 
-function void Character.TailsAI.DKC.translateCharState(u8 i)
+function void Character.DKC.translateCharState(u8 i)
 {
-	string trail_name = SwapMode_trail_name[i]
-	string self_name = Character.TailsAI.DKC.getName()
-	if (trail_name == "JUWL-Mighty" && self_name != "JUWL-Mighty" && char.state == char.state.MIGHTY_UNSPIN)
-	{
-		char.control_flags &= ~control_flag.DISABLE_ANIMATION
-		char.state = Character.TailsAI.DKC.getFallState(self_name)
-		Character.TailsAI.DKC.hitboxFix(i)
-	}
+	if (Character.DKC.isCharDiffFromTrail(i, "JUWL-Mighty") && char.state == char.state.MIGHTY_UNSPIN)
+		char.state = Character.DKC.getFallState()
 	else
-		base.Character.TailsAI.DKC.translateCharState(i)
+		base.Character.DKC.translateCharState(i)
 }
 
 
-function u8 Character.TailsAI.DKC.getFallState(string self_name)
+function u8 Character.DKC.getFallState()
 {
-	if (self_name == "JUWL-Mighty")
+	if (isECFCharA0("JUWL-Mighty"))
 		return char.state.MIGHTY_UNSPIN
-	return base.Character.TailsAI.DKC.getFallState(self_name)
+	return base.Character.DKC.getFallState()
 }
 #endif

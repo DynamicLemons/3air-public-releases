@@ -36,7 +36,7 @@ function bool Character_doesLandedObjectCancelAbility()
 	if (objA1.update_address == 0x024090)
 		return ((char.bonus_effect & char.bonus.INVINCIBLE) == 0 && char.invuln.countdown == 0)
 	// harmful floors
-	else if (objA1.update_address == 0x01f4c4)
+	else if (objA1.update_address == 0x01f45e)
 	{
 		u8 objFx = objA1.flags2b & (char.bonus.ALL_SHIELDS | char.bonus.INVINCIBLE)
 		return ((char.bonus_effect & char.bonus.INVINCIBLE) == 0 && char.invuln.countdown == 0 && (objFx & char.bonus_effect) == 0)
@@ -55,6 +55,9 @@ function bool Character_doesLandedObjectCancelAbility()
 		return true
 	// cnz cannon
 	else if (objA1.update_address == 0x0318f2)
+		return true
+	// soz pillar platform
+	else if (objA1.update_address == 0x0411d8 && objA1.animation.sprite == 1)
 		return true
 	// ssz shell platform
 	else if (objA1.update_address == 0x0462b6)

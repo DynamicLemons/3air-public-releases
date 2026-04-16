@@ -120,7 +120,7 @@ function void UpdateSonicAnimation()
 			u8[A1 + i] = AniTable[i]
 		D0.u8 = AniTable[0]
 		
-		updateSonicAnimationBraking(2)
+		updateSonicAnimationStanding()
 	}
 	else if (char.state == char.state.BRAKE_TURN)
 	{

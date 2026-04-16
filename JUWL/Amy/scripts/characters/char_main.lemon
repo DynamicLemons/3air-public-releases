@@ -154,7 +154,7 @@ function void Character.updateJumpMoves()
 	#endif
 		{
 		#if CHARACTER_SELECTION_PLUS_ACTIVE
-			if (A0 != 0xffffb000 && isSoloMode) 
+			if (Character.disableJumpAbilities())
 				return
 		#endif
 
@@ -587,11 +587,7 @@ function void Character.CheckCollision()
 
 function void AmyLandedWithAirAbility()
 {
-#if LEMONS_TWEAKS_ACTIVE
-	u8 pId = getPId()
-	s16 oldVX = p_groundhit_velocity_x[pId]
-	s16 oldVY = p_groundhit_velocity_y[pId]
-#elif CHARACTER_SELECTION_PLUS_ACTIVE
+#if CHARACTER_SELECTION_PLUS_ACTIVE
 	u8 pId = getPId()
 	s16 oldVX = p_groundhit_velocity_x[pId]
 	s16 oldVY = p_groundhit_velocity_y[pId]
@@ -880,7 +876,7 @@ function void Character.OnThreatCollision()
 		{
 			if (char.state == char.state.AMY_HAMMERSPIN_N || char.state == char.state.AMY_HAMMERSPIN_H)
 			{
-				//  - 0x28 x 0x28  -> (offset & collision_attributes.size) = collision.size.40x40
+			#if LEMONS_TWEAKS_ACTIVE
 				A2 = 0x00ff62 + (objA1.collision_attributes & collision_attributes.size) * 2
 				s16 hitbox.x = u8[A2]
 				s16 hitbox.y = u8[A2+1]
@@ -891,6 +887,18 @@ function void Character.OnThreatCollision()
 				u16 sy = hitbox.y * 2
 				
 				if (checkBoxOverlap(char.position.x.u16 - 8, char.position.y.u16 - (char.hitbox_extends.y - 3), 16, (char.hitbox_extends.y - 3) * 2, px, py, sx, sy))
+			#else
+				A2 = 0x00ff62 + (objA1.collision_attributes & collision_attributes.size) * 2
+				s16 hitbox.x = u8[A2]
+				s16 hitbox.y = u8[A2+1]
+
+				u16 px = objA1.position.x.u16 - hitbox.x
+				u16 py = objA1.position.y.u16 - hitbox.y
+				u16 sx = hitbox.x * 2
+				u16 sy = hitbox.y * 2
+				
+				if (checkBoxOverlap(char.position.x.u16 - 8, char.position.y.u16 - (char.hitbox_extends.y - 3), 16, (char.hitbox_extends.y - 3) * 2, px, py, sx, sy))
+			#endif
 					Character.OnThreatCollisionInner()
 			}
 			else

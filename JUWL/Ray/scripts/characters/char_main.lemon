@@ -127,18 +127,17 @@ function void Character.updateJumpMoves()
 	u8 input_pressed   = Character.getControlVariable(1)
 	bool isSuperActive = Character.getSuperState()
 
-#if CHARACTER_SELECTION_PLUS_ACTIVE
-	bool secondaryMode = (A0 != 0xffffb000 && isSoloMode)
-#else
-	bool secondaryMode = false
-#endif
-
 	// Hyper Ray can just turn around idfk lmao
 	bool Thinginator90_suggestion = (Character.getSuperState() & 0x80 && char.double_jump_state == 2)
 		
 	if (char.jumping == 2)
 	{
-		if (char.double_jump_state == 0 && !secondaryMode) 
+	#if CHARACTER_SELECTION_PLUS_ACTIVE
+		if (Character.disableJumpAbilities())
+			return
+	#endif
+	
+		if (char.double_jump_state == 0) 
 		{
 			#if STANDALONE
 			if (Input.buttonPressed(BUTTON_Y))
@@ -179,7 +178,12 @@ function void Character.updateJumpMoves()
 		else
 	#endif
 		{
-			if (char.double_jump_state == 0 || Thinginator90_suggestion) && (!secondaryMode)
+		#if CHARACTER_SELECTION_PLUS_ACTIVE
+			if (Character.disableJumpAbilities())
+				return
+		#endif
+		
+			if (char.double_jump_state == 0 || Thinginator90_suggestion)
 			{
 			#if STANDALONE
 				if (Input.buttonPressed(BUTTON_Y) && !Thinginator90_suggestion)

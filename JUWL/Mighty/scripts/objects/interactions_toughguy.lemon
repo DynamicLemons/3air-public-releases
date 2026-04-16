@@ -1,4 +1,4 @@
-// player code, but fits here, and makes sense to be here.
+// player code, but makes sense to be here.
 //# address-hook(0x01021e) end(0x010288)
 function void Character.OnThreatCollision()
 {
@@ -81,45 +81,7 @@ function void Character.OnThreatCollisionInner()
 			u8 dir = MightyInteraction_getReboundDir()
 			bool nohurt
 			if (char.state == char.state.MIGHTY_UNSPIN)
-			{
-				A2 = 0x00ff62 + (objA1.collision_attributes & collision_attributes.size) * 2
-				s16 hitbox.x = u8[A2]
-				s16 hitbox.y = u8[A2+1]
-			
-				// try to prevent awkward situations where Mighty would get bounced out and instantly damaged because his hurtbox got bigger.
-				if (dir == 0)
-					nohurt = (char.velocity.y < 0 && objA0.position.y.u16 < objA1.position.y.u16 - hitbox.y)
-				else if (dir == 1)
-					nohurt = (char.velocity.x > 0 && objA0.position.x.u16 > objA1.position.x.u16 + hitbox.x)
-				else if (dir == 2)
-					nohurt = (char.velocity.y > 0 && objA0.position.y.u16 > objA1.position.y.u16 + hitbox.y)
-				else if (dir == 3)
-					nohurt = (char.velocity.x < 0 && objA0.position.x.u16 < objA1.position.x.u16 - hitbox.x)
-				else
-				{
-					s16 dx = char.position.x.u16 - u16[A1 + 0x10]
-					s16 dy = char.position.y.u16 - u16[A1 + 0x14]
-					u8 enemAngle = lookupAngleByVector(dx, dy)
-					u8 velAngle = lookupAngleByVector(char.velocity.x, char.velocity.y)
-					
-					s16 angleDiff_A = enemAngle - velAngle
-					s16 angleDiff_B = velAngle - enemAngle
-					
-					// normalize angles
-					while (angleDiff_A < 0) 
-						angleDiff_A += 256
-					while (angleDiff_A >= 256) 
-						angleDiff_A -= 256
-					while (angleDiff_B < 0) 
-						angleDiff_B += 256
-					while (angleDiff_B >= 256) 
-						angleDiff_B -= 256
-						
-					s16 angleDiff = (angleDiff_A < angleDiff_B) ? angleDiff_A : angleDiff_B
-					
-					nohurt = (angleDiff <= 0x40)
-				}
-			}
+				nohurt = MightyInteraction_ignoreDamage(dir)
 			
 			if (char.state == char.state.ROLLING || char.state == char.state.SPINDASH || char.state == char.state.MIGHTY_HAMMERDROP)
 			{
@@ -216,16 +178,7 @@ function void DamageCharacter()
 			bool nohurt
 			// try to prevent awkward situations where Mighty would get bounced out and instantly damaged because his hurtbox got bigger.
 			if (objA1.state == char.state.MIGHTY_UNSPIN)
-			{
-				if (dir == 0)
-					nohurt = (objA1.velocity.y < 0)
-				else if (dir == 1)
-					nohurt = (objA1.velocity.x > 0)
-				else if (dir == 2)
-					nohurt = (objA1.velocity.y > 0)
-				else if (dir == 3)
-					nohurt = (objA1.velocity.x < 0)
-			}
+				nohurt = MightyInteraction_ignoreDamage(dir, 0, 0)
 			
 			if (objA1.state == char.state.MIGHTY_HAMMERDROP || objA1.state.former == char.state.MIGHTY_HAMMERDROP || objA1.state == char.state.COWERING) && (u8[A1 + 0x34] == 0 && (u8[A1 + 0x2b] & char.bonus.INVINCIBLE) == 0)
 			{
@@ -326,26 +279,17 @@ function void Enemy.DamageCharacter()
 		base.Enemy.DamageCharacter()
 }
 
-function void MightyInteraction_uncurl(u8 dir)
+function void MightyInteraction_uncurl()
 {
-	MightyInteraction_genericVelocityHandlerer(true, dir)
-	
-	u8 prevani = char.state
 	if (char.flags & char.flag.IN_AIR)
 	{
 		char.state = char.state.MIGHTY_UNSPIN
 		char.flags &= ~char.flag.CONTROL_LOCK
 	}
 	else
-	{
-		if (char.velocity.y < 0)
-			char.state = char.state.MIGHTY_UNSPIN
-		else
-		{
-			char.state = char.state.RUNNING
-			char.invuln.countdown = max(char.invuln.countdown, 30)
-		}
-	}
+		char.state = char.state.RUNNING
+	characterSetHitboxAngled(char.hitbox.default.x, char.hitbox.default.y)
+	
 	char.flags &= ~char.flag.ROLLING
 	char.base_state = base_state.NORMAL
 	char.double_jump_state = 0
@@ -357,8 +301,15 @@ function void MightyInteraction_uncurl(u8 dir)
 		Audio.playAudio("mighty_unspin")
 	else
 		Audio.playAudio("mighty_c_unspin")
-		
-	UpdateSonicAnimation()
+
+	if (char.state != char.state.former)
+		UpdateSonicAnimation()
+}
+
+function void MightyInteraction_uncurl(u8 dir)
+{
+	MightyInteraction_velocityHandlerer(true, dir)
+	MightyInteraction_uncurl()
 }
 
 function void MightyInteraction_vertUnstuck()
@@ -390,29 +341,26 @@ function void MightyInteraction_vertUnstuck()
 	popAll()	
 }
 
-function void MightyInteraction_rebound(u8 dir)
+function void MightyInteraction_rebound()
 {
 	char.state = char.state.ROLLING
 	char.flags |= char.flag.ROLLING
 	char.hitbox_extends.x = 7
 	char.hitbox_extends.y = 14
 	
-	MightyInteraction_genericVelocityHandlerer(false, dir)
-	
-	if (char.velocity.y < 0)
-	{
-		char.flags |= char.flag.IN_AIR
-		char.flags &= ~(char.flag.ON_OBJECT | char.flag.CONTROL_LOCK)
-	}
-	else
-		char.groundspeed = char.velocity.x
 	char.base_state = 2
 	char.double_jump_state = 0
 	char.jumping = 0
 	char.hlock_countdown = 0
 	char.spindash = 0
-	//char.invuln.countdown = max(char.invuln.countdown, 10) 
+
 	playSound(0x6b)
+}
+
+function void MightyInteraction_rebound(u8 dir)
+{
+	MightyInteraction_velocityHandlerer(false, dir)
+	MightyInteraction_rebound()
 }
 
 function void MightyInteraction_crouchBlock()
@@ -429,8 +377,11 @@ function void MightyInteraction_crouchBlock()
 }
 
 
-function void MightyInteraction_genericVelocityHandlerer(bool unCurl, u8 dir)
+function void MightyInteraction_velocityHandlerer(bool unCurl, u8 dir)
 {
+	if (MightyInteraction_compat_velocityHandlerer(unCurl, dir))
+		return
+		
 	u8 input_state     = Character.getControlVariable(false)
 	s16 newHeight = (unCurl) ? char.hitbox.default.y : char.hitbox.y.ROLLING
 	
@@ -532,7 +483,7 @@ function void MightyInteraction_genericVelocityHandlerer(bool unCurl, u8 dir)
 			char.invuln.countdown = max(char.invuln.countdown, 120)
 	}
 	// omnidirectional
-	else
+	else if (dir == 4)
 	{
 		s16 dx = char.position.x.u16 - u16[A1 + 0x10]
 		s16 dy = char.position.y.u16 - u16[A1 + 0x14]
@@ -598,6 +549,18 @@ function void MightyInteraction_genericVelocityHandlerer(bool unCurl, u8 dir)
 			
 			MightyInteraction_vertUnstuck()
 		}
+	}
+	
+	if (char.velocity.y < 0)
+	{
+		char.flags |= char.flag.IN_AIR
+		char.flags &= ~(char.flag.ON_OBJECT | char.flag.CONTROL_LOCK)
+	}
+	else
+	{
+		char.groundspeed = char.velocity.x
+		if (unCurl && (char.flags & char.flag.IN_AIR) == 0)
+			char.invuln.countdown = max(char.invuln.countdown, 30)
 	}
 }
 
@@ -1051,6 +1014,59 @@ function void MightyInteraction_itemCauseBlockEffect()
 		objA1.update_address = 0x03c768
 }
 
+function u8 MightyInteraction_ignoreDamage(u8 dir)
+{
+	A2 = 0x00ff62 + (objA1.collision_attributes & collision_attributes.size) * 2
+	s16 hitbox.x = u8[A2]
+	s16 hitbox.y = u8[A2+1]
+#if LEMONS_TWEAKS_ACTIVE
+	if (set_lt_fixedHitboxes)
+		return MightyInteraction_ignoreDamage(dir, objA1.position.x.u16 - hitbox.x, objA1.position.y.u16 - hitbox.y, objA1.position.x.u16 + hitbox.x - 1, objA1.position.y.u16 + hitbox.y - 1)
+#endif
+	return MightyInteraction_ignoreDamage(dir, hitbox.x, hitbox.y)
+}
+
+function u8 MightyInteraction_ignoreDamage(u8 dir, s16 hitbox.x, s16 hitbox.y)
+{
+	return MightyInteraction_ignoreDamage(dir, objA1.position.x.u16 - hitbox.x, objA1.position.y.u16 - hitbox.y, objA1.position.x.u16 + hitbox.x, objA1.position.y.u16 + hitbox.y)
+}
+
+function u8 MightyInteraction_ignoreDamage(u8 dir, u16 bL, u16 bR, u16 bU, u16 bD)
+{
+	if (dir == 0)
+		return (char.velocity.y < 0 && objA0.position.y.u16 < bU)
+	else if (dir == 1)
+		return (char.velocity.x > 0 && objA0.position.x.u16 > bR)
+	else if (dir == 2)
+		return (char.velocity.y > 0 && objA0.position.y.u16 > bD)
+	else if (dir == 3)
+		return (char.velocity.x < 0 && objA0.position.x.u16 < bL)
+	else
+	{
+		s16 dx = char.position.x.u16 - u16[A1 + 0x10]
+		s16 dy = char.position.y.u16 - u16[A1 + 0x14]
+		u8 enemAngle = lookupAngleByVector(dx, dy)
+		u8 velAngle = lookupAngleByVector(char.velocity.x, char.velocity.y)
+		
+		s16 angleDiff_A = enemAngle - velAngle
+		s16 angleDiff_B = velAngle - enemAngle
+		
+		// normalize angles
+		while (angleDiff_A < 0) 
+			angleDiff_A += 256
+		while (angleDiff_A >= 256) 
+			angleDiff_A -= 256
+		while (angleDiff_B < 0) 
+			angleDiff_B += 256
+		while (angleDiff_B >= 256) 
+			angleDiff_B -= 256
+			
+		s16 angleDiff = (angleDiff_A < angleDiff_B) ? angleDiff_A : angleDiff_B
+		
+		return (angleDiff <= 0x40)
+	}
+}
+
 // icz_icecrystal
 //# address-hook(0x08b4ec) end(0x08b526)
 function void fn08b4ec()
@@ -1185,4 +1201,9 @@ function bool MightyInteraction_compat_itemCauseBlockEffect()
 function bool MightyInteraction_compat_ignoreOnThreatCollision()
 {
 	return base.MightyInteraction_compat_ignoreOnThreatCollision()
+}
+
+function bool MightyInteraction_compat_velocityHandlerer(bool unCurl, u8 dir)
+{
+	return base.MightyInteraction_compat_velocityHandlerer(unCurl, dir)
 }

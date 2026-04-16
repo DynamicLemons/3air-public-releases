@@ -22,12 +22,19 @@ function bool Lemons_showAfterImagesClassic()
 function bool Standalone.drawCharacterSprite(u8 character, u8 variant, s16 px, s16 py, bool asSmallGhost)
 {
 	string name = ECF_cRenderGetName()
-
-	if (name != "JUWL-Mighty")
+	u8 superFlag = (char.character == CHARACTER_TAILS) ? super.active.tails : super.active
+	
+	if (name != "JUWL-Mighty" || variant != 0 || char.double_jump_state != 1 || superFlag != 0xff)
 		return base.Standalone.drawCharacterSprite(character, variant, px, py, asSmallGhost)
 		
 	bool isPlayer1 = (variant == 0)
+#if CHARACTER_SELECTION_PLUS_ACTIVE
+	u32 characterAddress = A0
+	if (A0 > 0xffffb0de)
+		characterAddress = (variant == 0) ? 0xffffb000 : (variant == 1) ? 0xffffb04a : (variant == 3) ? 0xffffb094 : 0xffffb0de
+#else
 	u32 characterAddress = isPlayer1 ? 0xffffb000 : 0xffffb04a
+#endif
 
 	string cPrefixNormal
 	string cPrefixSuper 
@@ -59,7 +66,6 @@ function bool Standalone.drawCharacterSprite(u8 character, u8 variant, s16 px, s
 		character = CHARACTER_TAILS
 	}
 
-	u8 superFlag = (char.character == CHARACTER_TAILS) ? super.active.tails : super.active
 	if (variant == 2)
 	{
 		cPrefixNormal = getECFCharacterFollowObjectSpriteKey(name, false)
@@ -301,21 +307,7 @@ function bool Standalone.drawCharacterSprite(u8 character, u8 variant, s16 px, s
 		Renderer.drawCustomSprite(key, px, py, atex, flags, renderQueue, angle, 255)
 	}
 
-	bool useAfterImages
-	if (isPlayer1)
-	{
-		if (superFlag == 0xff)
-			useAfterImages = true
-		else if (char.double_jump_state == 1)
-			useAfterImages = 2 - Game.getSetting(SETTING_SPEEDUP_AFTERIMGS)
-		else
-		{
-			if (Game.getSetting(SETTING_SPEEDUP_AFTERIMGS))
-				useAfterImages = ((u8[characterAddress + 0x2b] & char.bonus.SPEED_UP) != 0)
-		}
-	}
-	
-	if (useAfterImages == 2)
+	if (!Game.getSetting(SETTING_SPEEDUP_AFTERIMGS))
 	{
 		A1 = 0xffffe500 + u8(posbackup.offset.player1 - ((level.framecounter.low & 0x01) ? 0x14 : 0x0c))
 		s16 px0 = u16[A1] - camera.foreground.x.u16
@@ -326,7 +318,7 @@ function bool Standalone.drawCharacterSprite(u8 character, u8 variant, s16 px, s
 		Renderer.setSpriteTagWithPosition(A0 + 0x10, px0, py0)
 		Renderer.drawCustomSprite(key, px0, py0, atex, flags, renderQueue - 1, angle, 255)
 	}
-	else if (useAfterImages)
+	else
 	{
 		for (s8 i = 3; i > 0; --i)
 		{

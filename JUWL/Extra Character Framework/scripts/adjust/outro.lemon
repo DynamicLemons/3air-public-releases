@@ -691,7 +691,7 @@ function void ECF_EndScreen_char_init()
 
 	copyMemory(0xfffffc80, 0x0a8a3c, 0x20)
 	
-	string buffer = global_ExChar_str[objA0.subtype2c + 1]
+	string buffer = global_ExChar_str[objA0.subtype2c]
 	loadECFCharacterPalette(buffer, 0x802180 + u32(getECFCharBase(buffer)) * 0x40, 0)
 
 	if (allocDynamicObjectStd())
@@ -705,7 +705,7 @@ function void ECF_EndScreen_char_init()
 
 function void ECF_EndScreen_char_ani()
 {
-	string key = getECFCharacterSpriteKey(global_ExChar_str[objA0.subtype2c + 1], false)
+	string key = getECFCharacterSpriteKey(global_ExChar_str[objA0.subtype2c], false)
 	if (objA0.state == 0 && u8[0xfffffab8] & 0x04 && Renderer.hasCustomSprite(stringformat("%s_ending_1_1", key)))
 	{
 		objA0.state = 1

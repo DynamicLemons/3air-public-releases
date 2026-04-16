@@ -1,44 +1,51 @@
 #if CHARACTER_SELECTION_PLUS_ACTIVE
+function void SwapMode_hot_onAbilitySwap()
+{
+	if (isECFCharA1("JUWL-Ray"))
+	{
+		char.flags |= char.flag.ROLLING
+		SwapMode_hot_abilitySetLocked()
+	}
+	else
+		base.SwapMode_hot_onAbilitySwap()
+}
+
 function void SwapMode_dataSwap_globals()
 {
 	base.SwapMode_dataSwap_globals()
 
-	s32 _1 = ray_abilitySpeed[0]
-	s32 _2 = ray_storedSpeed[0]
-	s16 _3 = ray_glideAngle[0]
-	s16 _4 = ray_abilityTimer[0]
-	s16 _5 = ray_isGlidingUp[0]
-	u8 _6 = ray_boostCounter[0]
-	for (u8 i < 0; i < csp_playerCount; ++i)
-	{
-		ray_abilitySpeed[i] = ray_abilitySpeed[i + 1]
-		ray_storedSpeed[i] = ray_storedSpeed[i + 1]
-		ray_glideAngle[i] = ray_glideAngle[i + 1]
-		ray_abilityTimer[i] = ray_abilityTimer[i + 1]
-		ray_isGlidingUp[i] = ray_isGlidingUp[i + 1]
-		ray_boostCounter[i] = ray_boostCounter[i + 1]
-	}
-	ray_abilitySpeed[csp_playerCount] = _1
-	ray_storedSpeed[csp_playerCount] = _2
-	ray_glideAngle[csp_playerCount] = _3
-	ray_abilityTimer[csp_playerCount] = _4
-	ray_isGlidingUp[csp_playerCount] = _5
-	ray_boostCounter[csp_playerCount] = _6
+	SwapMode_handleGlobalSwapArray_s32(ray_abilitySpeed[0], ray_abilitySpeed[1], ray_abilitySpeed[2], ray_abilitySpeed[3])
+	for (u8 i = 0; i < csp_playerCount; ++i)
+		ray_abilitySpeed[i] = SwapMode_temp_s32[i]
+	SwapMode_handleGlobalSwapArray_s32(ray_storedSpeed[0], ray_storedSpeed[1], ray_storedSpeed[2], ray_storedSpeed[3])
+	for (u8 i = 0; i < csp_playerCount; ++i)
+		ray_storedSpeed[i] = SwapMode_temp_s32[i]
+
+	SwapMode_handleGlobalSwapArray_s16(ray_abilityTimer[0], ray_abilityTimer[1], ray_abilityTimer[2], ray_abilityTimer[3])
+	for (u8 i = 0; i < csp_playerCount; ++i)
+		ray_abilityTimer[i] = SwapMode_temp_s16[i]
+		
+	SwapMode_handleGlobalSwapArray_s8(ray_glideAngle[0], ray_glideAngle[1], ray_glideAngle[2], ray_glideAngle[3])
+	for (u8 i = 0; i < csp_playerCount; ++i)
+		ray_glideAngle[i] = SwapMode_temp_s8[i]
+		
+	SwapMode_handleGlobalSwapArray_u8(ray_boostCounter[0], ray_boostCounter[1], ray_boostCounter[2], ray_boostCounter[3])
+	for (u8 i = 0; i < csp_playerCount; ++i)
+		ray_boostCounter[i] = SwapMode_temp_u8[i]
 }
 
-function void Character.TailsAI.DKC.translateCharState(u8 i)
+function void Character.DKC.translateCharState(u8 i)
 {
-	string trail_name = SwapMode_trail_name[i]
-	if (trail_name == "JUWL-Ray" && getECFCharBufferName(A0) != "JUWL-Ray" && char.state >= char.state.RAY_GLIDE_U && char.state <= char.state.RAY_HANGING2)
+	if (Character.DKC.isCharDiffFromTrail(i, "JUWL-Ray") && char.state >= char.state.RAY_GLIDE_U && char.state <= char.state.RAY_HANGING2)
 	{
 		char.control_flags &= ~control_flag.DISABLE_ANIMATION
 		if (char.state == char.state.RAY_HEADBUTT)
 			char.state = char.state.STRAIGHTJUMP
 		else
-			char.state = Character.TailsAI.DKC.getHoverState(Character.TailsAI.DKC.getName())
+			char.state = Character.DKC.getHoverState()
 		return
 	}
 	
-	base.Character.TailsAI.DKC.translateCharState(i)
+	base.Character.DKC.translateCharState(i)
 }
 #endif

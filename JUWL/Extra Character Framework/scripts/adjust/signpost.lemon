@@ -1,7 +1,7 @@
 //# address-hook(0x083832) end(0x0838bc)
 function void fn083832()
 {
-	if (ExChar_str[0] == 0 || ECF_disableBranchBase)
+	if (global_ExChar_str[0] == 0 || ECF_disableBranchBase)
 	{
 		base.fn083832()
 		return
@@ -60,7 +60,7 @@ function void fn083832()
 //# address-hook(0x0838c2) end(0x08390c)
 function void fn0838c2()
 {
-	if (ExChar_str[0] == 0 || ECF_disableBranchBase)
+	if (global_ExChar_str[0] == 0 || ECF_disableBranchBase)
 	{
 		base.fn0838c2()
 		return
