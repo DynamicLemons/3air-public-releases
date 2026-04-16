@@ -24,7 +24,7 @@ function bool Standalone.drawCharacterSprite(u8 character, u8 variant, s16 px, s
 	string name = ECF_cRenderGetName()
 	u8 superFlag = (char.character == CHARACTER_TAILS) ? super.active.tails : super.active
 	
-	if (name != "JUWL-Mighty" || variant != 0 || char.double_jump_state != 1 || superFlag != 0xff)
+	if (name != "JUWL-Mighty" || variant != 0 || char.double_jump_state != 1 || superFlag == 0xff)
 		return base.Standalone.drawCharacterSprite(character, variant, px, py, asSmallGhost)
 		
 	bool isPlayer1 = (variant == 0)
