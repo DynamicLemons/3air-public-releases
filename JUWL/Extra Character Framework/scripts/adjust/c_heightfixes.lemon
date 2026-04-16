@@ -801,7 +801,7 @@ function void fn048fa4()
 				D3 = 8
 			}
 			
-			D0.s16 -= s32(u8[A1 + 0x44] - char.hitbox.y.UPRIGHT + 4) << 8
+			D0.s16 -= s32(u8[A1 + 0x44] - char.hitbox.y.UPRIGHT) << 8
 
 			D1.s32 = s32(D1.s16) * D0.s16
 			D1 = (D1 << 16) + (D1 >> 16)
@@ -921,9 +921,10 @@ function void fn049090()
 
 	D0.u8 = u8[A2]
 	LookupSinCos()
-	D1.s32 = s32(D1.s16) * 0x1000
+	
+	D1.s32 = s32(D1.s16) * (0x1000 - (s32(u8[A1 + 0x44] - char.hitbox.y.UPRIGHT) << 8))
 	D1 = (D1 << 16) + (D1 >> 16)
-	objA1.position.x.u16 = objA0.position.x.u16 + Math.roundToInt(D1.s16 * 1.0 * char.hitbox.y.UPRIGHT / u8[A1 + 0x44])
+	objA1.position.x.u16 = objA0.position.x.u16 + D1.s16
 	D2 = u8[A2]
 	u8[A2] += 8
 	D2.u16 = D2 / 0x0b
